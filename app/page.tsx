@@ -3,23 +3,6 @@
 import React, { useEffect, useRef } from "react"
 import { useLenis } from "lenis/react"
 import Hero from "@/components/ui/animated-shader-hero"
-import { PerspectiveMarquee } from "@/components/ui/remocn-perspective-marquee"
-import { Player } from "@remotion/player"
-
-function MarqueeScene() {
-  return (
-    <PerspectiveMarquee
-      items={["Vercel", "Linear", "Stripe", "Figma", "Notion", "Raycast", "Arc", "Cursor"]}
-      rotateY={-28}
-      rotateX={8}
-      perspective={1200}
-      pixelsPerFrame={2}
-      background="#050505"
-      fadeColor="#050505"
-      color="#fafafa"
-    />
-  )
-}
 
 export default function Home() {
   const [activeTab, setActiveTab] = React.useState("js")
@@ -148,20 +131,18 @@ export default function Home() {
           }}
         />
 
-        {/* The Perspective Marquee provided in the prompt */}
-        <div className="relative w-full h-[300px] border-t border-white/5 bg-[#050505] overflow-hidden">
-             <Player
-                component={MarqueeScene}
-                durationInFrames={240}
-                fps={30}
-                compositionWidth={1280}
-                compositionHeight={300}
-                style={{ width: "100%", height: "100%" }}
-                controls={false}
-                autoPlay
-                loop
-                clickToPlay={false}
-              />
+        {/* Simple CSS Marquee */}
+        <div className="relative w-full py-16 border-t border-white/5 bg-[#050505] overflow-hidden flex items-center">
+          <div className="flex gap-12 whitespace-nowrap" style={{ animation: "scroll 20s linear infinite" }}>
+            <span className="text-2xl font-bold text-zinc-500">Vercel · Linear · Stripe · Figma · Notion · Raycast · Arc · Cursor</span>
+            <span className="text-2xl font-bold text-zinc-500">Vercel · Linear · Stripe · Figma · Notion · Raycast · Arc · Cursor</span>
+          </div>
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes scroll {
+              from { transform: translateX(0); }
+              to { transform: translateX(-50%); }
+            }
+          `}} />
         </div>
 
         <div className="stats" id="stats">

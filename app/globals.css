@@ -109,14 +109,14 @@
   display: flex; align-items: center; gap: 11px; text-decoration: none;
   opacity: 0; animation: fi 0.9s cubic-bezier(0.16,1,0.3,1) 0.1s forwards;
 }
-.nw { font-family: var(--font-ibm-plex), monospace; font-weight: 600; font-size: 15px; color: #ececec; }
+.nw { font-family: var(--font-ibm-plex), monospace; font-weight: bold; font-size: 15px; color: #00e87b; }
 .nl {
   list-style: none; display: flex; align-items: center; gap: 40px;
   opacity: 0; animation: fi 0.9s cubic-bezier(0.16,1,0.3,1) 0.22s forwards;
   margin: 0;
   padding: 0;
 }
-.nl a { font-family: var(--font-ibm-plex), monospace; font-size: 12px; color: #666; text-decoration: none; transition: color 0.15s; }
+.nl a { font-family: var(--font-ibm-plex), monospace; font-size: 12px; color: #c8c8d4; text-decoration: none; transition: color 0.15s; }
 .nl a:hover { color: #ececec; }
 .nr {
   display: flex; gap: 10px; align-items: center;
@@ -129,7 +129,7 @@
 }
 .nbg:hover { color: #ececec; border-color: rgba(255,255,255,0.22); }
 .np {
-  font-family: var(--font-ibm-plex), monospace; font-size: 12px; font-weight: 500;
+  font-family: var(--font-ibm-plex), monospace; font-size: 12px; font-weight: bold;
   color: #000; background: #00e87b; border: none; padding: 8px 18px;
   border-radius: 6px; cursor: pointer; text-decoration: none; transition: all 0.2s;
 }
@@ -271,18 +271,19 @@
 
 .fnum {
   font-family: var(--font-ibm-plex), monospace; font-size: 12px;
-  color: #2c2c2c; letter-spacing: 0.05em; align-self: start; padding-top: 4px;
+  color: #00e87b; letter-spacing: 0.05em; align-self: start; padding-top: 4px;
 }
 .ftitle {
   font-size: clamp(22px, 2.8vw, 36px); font-weight: 600;
   letter-spacing: -0.03em; line-height: 1.1; padding-right: 48px;
+  color: #f0f0f8;
 }
 .ftitle small {
   display: block; font-size: 13px; font-weight: 400;
-  color: #555; letter-spacing: 0; margin-top: 10px; line-height: 1.6;
+  color: #00e87b; letter-spacing: 0; margin-top: 10px; line-height: 1.6;
 }
 .fdesc {
-  font-size: 14px; color: #555; line-height: 1.75; max-width: 380px;
+  font-size: 14px; color: #c8c8d4; line-height: 1.75; max-width: 380px;
   padding-left: 40px; border-left: 1px solid rgba(255,255,255,0.05);
   display: flex; justify-content: space-between; align-items: center;
 }
@@ -305,11 +306,12 @@
 .code-header h2 {
   font-size: clamp(32px, 3.5vw, 50px); font-weight: 700;
   letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 24px;
+  color: #f0f0f8;
 }
-.code-header p { font-size: 15px; color: #555; line-height: 1.8; margin-bottom: 28px; }
+.code-header p { font-size: 15px; color: #c8c8d4; line-height: 1.8; margin-bottom: 28px; }
 .code-feats { list-style: none; padding: 0; margin: 0; }
 .code-feats li {
-  font-family: var(--font-ibm-plex), monospace; font-size: 12px; color: #555;
+  font-family: var(--font-ibm-plex), monospace; font-size: 12px; color: #c8c8d4;
   padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
   display: flex; align-items: center; gap: 12px;
 }
@@ -326,10 +328,11 @@
 .ctab.a { color: #00e87b; border-bottom-color: #00e87b; }
 .ctab:hover:not(.a) { color: #888; }
 .cblock {
-  background: #080808; border: 1px solid rgba(255,255,255,0.05);
+  background: #0c0c12; border: 1px solid rgba(255,255,255,0.05);
   border-top: none; border-radius: 0 0 10px 10px;
   padding: 26px; font-family: var(--font-ibm-plex), monospace;
   font-size: 13px; line-height: 1.9; overflow-x: auto;
+  color: #00e87b;
 }
 .cpanel { display: none; } .cpanel.a { display: block; }
 .co { color: #3a3a3a; } .cc { color: #7ec8e3; } .cf { color: #b48ead; }

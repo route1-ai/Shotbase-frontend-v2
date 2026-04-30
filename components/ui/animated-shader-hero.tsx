@@ -37,8 +37,9 @@ export default function Hero({
   return (
     <section className={`relative min-h-screen flex items-center justify-center overflow-hidden ${className}`}>
       <WebGLShader />
+      <div className="absolute inset-0 bg-black/70 z-[1]" />
       
-      <div className="relative z-10 w-full max-w-5xl mx-auto px-6 py-32 flex flex-col items-center text-center">
+      <div className="relative z-[2] w-full max-w-5xl mx-auto px-6 py-32 flex flex-col items-center text-center">
         {trustBadge && (
           <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm text-zinc-300">
             {trustBadge.icons && (
