@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react"
 import { useLenis } from "lenis/react"
 import Hero from "@/components/ui/animated-shader-hero"
+import { WebGLShader } from "@/components/ui/web-gl-shader"
 
 export default function Home() {
   const [activeTab, setActiveTab] = React.useState("js")
@@ -310,26 +311,32 @@ export default function Home() {
           </div>
         </section>
 
-        <footer>
-          <div className="fb" style={{ flex: 1 }}>
-            <div className="flogo">
-              <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
-                <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                <path d="M30,66 L14,66 L14,48" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-              </svg>
-              shotbase
+        <footer className="relative overflow-hidden border-t border-white/5">
+          <div className="absolute inset-0 z-0">
+            <WebGLShader />
+            <div className="absolute inset-0 bg-black/70 z-[1]" />
+          </div>
+          <div className="relative z-10 px-[52px] py-[64px] flex gap-[80px] items-start">
+            <div className="fb" style={{ flex: 1 }}>
+              <div className="flogo">
+                <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
+                  <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
+                  <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
+                  <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
+                  <path d="M30,66 L14,66 L14,48" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
+                </svg>
+                shotbase
+              </div>
+              <p>Screenshot any URL.<br />One API call.<br /><br />A Route1AI product</p>
             </div>
-            <p>Screenshot any URL.<br />One API call.<br /><br />A Route1AI product</p>
+            <div className="fcols">
+              <div className="fcol"><h4>Product</h4><ul><li><a href="/docs">Docs</a></li><li><a href="/playground">Playground</a></li><li><a href="#pricing">Pricing</a></li><li><a href="/">Changelog</a></li></ul></div>
+              <div className="fcol"><h4>Developers</h4><ul><li><a href="/docs">API Reference</a></li><li><a href="/">JS SDK</a></li><li><a href="/">Python SDK</a></li><li><a href="/">MCP Server</a></li></ul></div>
+              <div className="fcol"><h4>Company</h4><ul><li><a href="/">Route1AI</a></li><li><a href="/">Blog</a></li><li><a href="/">GitHub</a></li></ul></div>
+            </div>
           </div>
-          <div className="fcols">
-            <div className="fcol"><h4>Product</h4><ul><li><a href="/docs">Docs</a></li><li><a href="/playground">Playground</a></li><li><a href="#pricing">Pricing</a></li><li><a href="/">Changelog</a></li></ul></div>
-            <div className="fcol"><h4>Developers</h4><ul><li><a href="/docs">API Reference</a></li><li><a href="/">JS SDK</a></li><li><a href="/">Python SDK</a></li><li><a href="/">MCP Server</a></li></ul></div>
-            <div className="fcol"><h4>Company</h4><ul><li><a href="/">Route1AI</a></li><li><a href="/">Blog</a></li><li><a href="/">GitHub</a></li></ul></div>
-          </div>
+          <div className="fbot relative z-10 !bg-transparent"><span>© 2026 Route1AI, Inc.</span><span>Privacy · Terms · Security</span></div>
         </footer>
-        <div className="fbot"><span>© 2026 Route1AI, Inc.</span><span>Privacy · Terms · Security</span></div>
       </div>
     </>
   )

@@ -394,11 +394,7 @@
 .plan.ft .pcta:hover { background: #00ff88; box-shadow: 0 0 24px rgba(0,232,123,0.35); }
 
 /* ─── Footer ─────────────────────────────────────────── */
-footer {
-  border-top: 1px solid rgba(255,255,255,0.05); padding: 64px 52px;
-  display: flex; gap: 80px; align-items: flex-start;
-  background: #050505;
-}
+
 .fb .flogo {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--font-ibm-plex), monospace; font-weight: 600; font-size: 14px;
