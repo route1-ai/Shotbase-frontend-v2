@@ -1,0 +1,115 @@
+.container {
+  background: #050505;
+  color: #f0f0f0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container code {
+  font-family: var(--font-ibm-plex), monospace;
+  font-size: 0.9em;
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #c9a9ff;
+}
+
+.container pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+
+.container a {
+  color: #00e87b;
+  text-decoration: none;
+}
+
+.container a:hover {
+  text-decoration: underline;
+}
+
+.container h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+
+.container h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 40px 0 12px;
+  padding-top: 40px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.container h2:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 24px;
+}
+
+.container h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 28px 0 10px;
+}
+
+.container p {
+  color: #888;
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+
+.container ul,
+.container ol {
+  color: #888;
+  line-height: 1.8;
+  padding-left: 20px;
+  margin-bottom: 16px;
+}
+
+.container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 24px;
+}
+
+.container th {
+  font-family: var(--font-ibm-plex), monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #444;
+  font-weight: 500;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.container td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 13px;
+  vertical-align: top;
+}
+
+.container td:first-child {
+  font-family: var(--font-ibm-plex), monospace;
+  font-size: 12px;
+  color: #c9a9ff;
+  white-space: nowrap;
+}
+
+.container td:nth-child(2) {
+  font-family: var(--font-ibm-plex), monospace;
+  font-size: 12px;
+  color: #00e87b;
+  white-space: nowrap;
+}
