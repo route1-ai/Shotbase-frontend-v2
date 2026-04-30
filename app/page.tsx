@@ -132,18 +132,9 @@ export default function Home() {
           }}
         />
 
-        {/* Simple CSS Marquee */}
-        <div className="relative w-full py-16 border-t border-white/5 bg-[#050505] overflow-hidden flex items-center">
-          <div className="flex gap-12 whitespace-nowrap" style={{ animation: "scroll 20s linear infinite" }}>
-            <span className="text-2xl font-bold text-zinc-500">Vercel · Linear · Stripe · Figma · Notion · Raycast · Arc · Cursor</span>
-            <span className="text-2xl font-bold text-zinc-500">Vercel · Linear · Stripe · Figma · Notion · Raycast · Arc · Cursor</span>
-          </div>
-          <style dangerouslySetInnerHTML={{__html: `
-            @keyframes scroll {
-              from { transform: translateX(0); }
-              to { transform: translateX(-50%); }
-            }
-          `}} />
+        {/* Single centered line replacing marquee */}
+        <div className="w-full border-t border-white/5 bg-[#050505]" style={{ fontSize: "13px", color: "#555566", textAlign: "center", padding: "16px 0" }}>
+          Trusted by developers at Vercel, Stripe, Linear, Figma and 1,200+ teams
         </div>
 
         <div className="stats" id="stats">

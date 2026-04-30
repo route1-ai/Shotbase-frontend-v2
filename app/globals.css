@@ -123,14 +123,14 @@
   opacity: 0; animation: fi 0.9s cubic-bezier(0.16,1,0.3,1) 0.34s forwards;
 }
 .nbg {
-  font-family: var(--font-ibm-plex), monospace; font-size: 12px; color: #666;
+  font-family: var(--font-ibm-plex), monospace; font-size: 14px; color: #c8c8d4;
   background: none; border: 1px solid rgba(255,255,255,0.1); padding: 7px 16px;
   border-radius: 6px; cursor: pointer; text-decoration: none; transition: all 0.15s;
 }
 .nbg:hover { color: #ececec; border-color: rgba(255,255,255,0.22); }
 .np {
-  font-family: var(--font-ibm-plex), monospace; font-size: 12px; font-weight: bold;
-  color: #000; background: #00e87b; border: none; padding: 8px 18px;
+  font-family: var(--font-ibm-plex), monospace; font-size: 12px; font-weight: 700;
+  color: #000; background: #00e87b; border: none; padding: 8px 16px;
   border-radius: 6px; cursor: pointer; text-decoration: none; transition: all 0.2s;
 }
 .np:hover { box-shadow: 0 0 28px rgba(0,232,123,0.4); transform: translateY(-1px); }
@@ -233,25 +233,30 @@
 /* ─── STATS ──────────────────────────────────────────── */
 .stats {
   padding: 100px 52px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid #1a1a24;
+  border-bottom: 1px solid #1a1a24;
+  background: #0c0c12;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: 1px; background: rgba(255,255,255,0.05);
 }
 .stat-item {
-  background: #050505; padding: 52px 44px;
+  padding: 52px 44px;
+  border-right: 1px solid #1a1a24;
+}
+.stat-item:last-child {
+  border-right: none;
 }
 .stat-num {
-  font-size: clamp(44px, 5vw, 72px); font-weight: 700;
+  font-size: 3rem; font-weight: 700;
   letter-spacing: -0.04em; line-height: 1;
-  color: #ececec; margin-bottom: 10px;
+  color: #f0f0f8; margin-bottom: 10px;
 }
-.stat-num .u { font-size: 0.5em; font-weight: 400; color: #555; }
+.stat-num .u { font-size: 0.5em; font-weight: 400; color: #555566; }
 .stat-label {
   font-family: var(--font-ibm-plex), monospace; font-size: 11px;
-  color: #444; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #00e87b; text-transform: uppercase; letter-spacing: 2px;
 }
 .stat-sub {
-  font-size: 13px; color: #444; margin-top: 6px;
+  font-size: 12px; color: #555566; margin-top: 6px;
 }
 
 /* ─── FEATURE ROWS ───────────────────────────────────── */
