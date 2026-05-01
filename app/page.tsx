@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react"
 import { useLenis } from "lenis/react"
 import Hero from "@/components/ui/animated-shader-hero"
 import { WebGLShader } from "@/components/ui/web-gl-shader"
+import IntegrationsMarquee from "@/components/ui/integrations-marquee"
 
 export default function Home() {
   const [activeTab, setActiveTab] = React.useState("js")
@@ -64,11 +65,12 @@ export default function Home() {
     if (codeHeaderRef.current && codePanelRef.current) {
       const ch = codeHeaderRef.current
       const cp = codePanelRef.current
-      const pHeader = smooth("ch", progress(ch, 0.88), 0.11)
-      const pPanel = smooth("cp", progress(cp, 0.88), 0.11)
-      ch.style.opacity = `${0.05 + pHeader * 0.95}`
+      // Start the fade-in earlier so the section is bright when it enters view.
+      const pHeader = smooth("ch", progress(ch, 1.35), 0.11)
+      const pPanel = smooth("cp", progress(cp, 1.35), 0.11)
+      ch.style.opacity = `${0.7 + pHeader * 0.3}`
       ch.style.transform = `translateY(${(1 - pHeader) * 32}px)`
-      cp.style.opacity = `${0.05 + pPanel * 0.95}`
+      cp.style.opacity = `${0.7 + pPanel * 0.3}`
       cp.style.transform = `translateY(${(1 - pPanel) * 28}px)`
     }
 
@@ -104,7 +106,7 @@ export default function Home() {
           <li><a href="/">Status&nbsp;<span style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></a></li>
         </ul>
         <div className="nr">
-          <a href="/dashboard" className="nbg">Sign in</a>
+          <a href="/signin" className="nbg">Sign in</a>
           <a href="/dashboard" className="np">Get API Key →</a>
         </div>
       </nav>
@@ -132,10 +134,13 @@ export default function Home() {
           }}
         />
 
-        {/* Single centered line replacing marquee */}
-        <div className="w-full border-t border-white/5 bg-[#050505]" style={{ fontSize: "13px", color: "#555566", textAlign: "center", padding: "16px 0" }}>
-          Trusted by developers at Vercel, Stripe, Linear, Figma and 1,200+ teams
-        </div>
+        <IntegrationsMarquee integrations={[
+          { name: "Linear" },
+          { name: "Stripe" },
+          { name: "Railway" },
+          { name: "Framer" },
+          { name: "Figma" },
+        ]} />
 
         <div className="stats" id="stats">
           {[
