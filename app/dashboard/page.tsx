@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { useUser } from "@clerk/nextjs"
 
 const LOGS = [
   { id: 'req_9xkp2', url: 'https://stripe.com', status: 200, ms: 142, format: 'png', cached: true, ts: '2m ago', size: '284 KB' },
@@ -126,7 +127,7 @@ function OverviewPage() {
   return (
     <div>
       <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 6 }}>Overview</h1>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: 28 }}>April 2026 · Pro plan · Route1AI workspace</p>
+      <p style={{ color: '#888', fontSize: 13, marginBottom: 28 }}>April 2026 · Free plan · Route1AI workspace</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {metrics.map((m, i) => (
@@ -297,7 +298,11 @@ function LogsPage() {
 }
 
 export default function Dashboard() {
+  const { user } = useUser()
   const [page, setPage] = useState('overview')
+
+  const userEmail =
+    user?.emailAddresses?.[0]?.emailAddress ?? "—"
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.3"/></svg> },
@@ -329,14 +334,14 @@ export default function Dashboard() {
           <div style={{ height: 4, background: '#1a1a1a', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: '48.2%', background: '#00e87b', borderRadius: 2 }}/>
           </div>
-          <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginTop: 8 }}>Pro plan · resets May 1</div>
+          <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginTop: 8 }}>Free plan · resets May 1</div>
         </div>
 
         <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #00e87b, #00a855)', flexShrink: 0 }}/>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>dev@route1ai.com</div>
-            <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444' }}>Pro plan</div>
+            <div style={{ fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userEmail}</div>
+            <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444' }}>Free plan</div>
           </div>
         </div>
       </div>

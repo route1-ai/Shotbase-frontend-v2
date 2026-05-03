@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { LenisProvider } from "@/components/lenis-provider";
 import "./globals.css";
@@ -31,9 +32,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
-        <LenisProvider>
-          {children}
-        </LenisProvider>
+        <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+          <LenisProvider>
+            {children}
+          </LenisProvider>
+        </ClerkProvider>
       </body>
     </html>
   );

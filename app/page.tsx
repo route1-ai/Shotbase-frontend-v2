@@ -107,7 +107,7 @@ export default function Home() {
         </ul>
         <div className="nr">
           <a href="/signin" className="nbg">Sign in</a>
-          <a href="/dashboard" className="np">Get API Key →</a>
+          <a href="/signup" className="np">Get API Key →</a>
         </div>
       </nav>
 
@@ -125,7 +125,7 @@ export default function Home() {
           buttons={{
             primary: {
               text: "Start building free",
-              onClick: () => { window.location.href = "/dashboard" }
+              onClick: () => { window.location.href = "/signup" }
             },
             secondary: {
               text: "Try the playground →",
