@@ -1,10 +1,10 @@
 "use client"
-import { SignIn } from '@clerk/nextjs'
+import { SignUp } from '@clerk/nextjs'
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#050505'}}>
-      <SignIn fallbackRedirectUrl="/dashboard" signUpUrl="/signup" />
+      <SignUp fallbackRedirectUrl="/onboarding" signInUrl="/signin" />
     </div>
   )
 }
