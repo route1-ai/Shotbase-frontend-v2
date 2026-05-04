@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { useUser } from "@clerk/nextjs"
+import { useUser, useClerk } from "@clerk/nextjs"
 
 const LOGS = [
   { id: 'req_9xkp2', url: 'https://stripe.com', status: 200, ms: 142, format: 'png', cached: true, ts: '2m ago', size: '284 KB' },
@@ -297,6 +297,44 @@ function LogsPage() {
   )
 }
 
+function UserMenu() {
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const [open, setOpen] = useState(false)
+  
+  const userEmail = user?.emailAddresses?.[0]?.emailAddress ?? "user@example.com"
+  const firstLetter = userEmail.charAt(0).toUpperCase()
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button 
+        onClick={() => setOpen(!open)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+      >
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00e87b', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, fontSize: 14 }}>
+          {firstLetter}
+        </div>
+      </button>
+
+      {open && (
+        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, width: 220, background: '#050505', border: '1px solid #1a1a24', borderRadius: 8, padding: 8, zIndex: 100, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+          <div style={{ padding: '8px 12px', borderBottom: '1px solid #1a1a24', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, color: '#f0f0f0', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>{userEmail}</div>
+          </div>
+          
+          <Link href="/account/profile" style={{ display: 'block', padding: '8px 12px', color: '#888', fontSize: 13, textDecoration: 'none', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#f0f0f0' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888' }}>Profile settings</Link>
+          <Link href="/account/billing" style={{ display: 'block', padding: '8px 12px', color: '#888', fontSize: 13, textDecoration: 'none', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#f0f0f0' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888' }}>Billing</Link>
+          <Link href="/account/security" style={{ display: 'block', padding: '8px 12px', color: '#888', fontSize: 13, textDecoration: 'none', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#f0f0f0' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888' }}>Security</Link>
+          
+          <div style={{ height: 1, background: '#1a1a24', margin: '8px 0' }} />
+          
+          <button onClick={() => signOut({ redirectUrl: '/' })} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', color: '#ff6060', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,96,96,0.1)' }} onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>Sign out</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const { user } = useUser()
   const [page, setPage] = useState('overview')
@@ -356,6 +394,8 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Link href="/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#00e87b', background: 'rgba(0,232,123,0.1)', border: '1px solid rgba(0,232,123,0.2)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground →</Link>
             <Link href="/" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', background: 'none', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>← Marketing site</Link>
+            <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.07)', margin: '0 4px' }} />
+            <UserMenu />
           </div>
         </div>
 
