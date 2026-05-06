@@ -1,12 +1,15 @@
 "use client"
 
 import React, { useEffect, useRef } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useLenis } from "lenis/react"
 import Hero from "@/components/ui/animated-shader-hero"
 import { WebGLShader } from "@/components/ui/web-gl-shader"
 import IntegrationsMarquee from "@/components/ui/integrations-marquee"
 
 export default function Home() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = React.useState("js")
 
   // For scrub animations
@@ -90,7 +93,7 @@ export default function Home() {
   return (
     <>
       <nav id="nav" className="navbar">
-        <a href="/" className="nlogo">
+        <Link href="/" className="nlogo">
           <svg width="28" height="28" viewBox="0 0 80 80" fill="none">
             <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
             <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
@@ -98,16 +101,16 @@ export default function Home() {
             <path d="M30,66 L14,66 L14,48" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
           </svg>
           <span className="nw">shotbase</span>
-        </a>
+        </Link>
         <ul className="nl">
-          <li><a href="/docs">Docs</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-          <li><a href="/playground">Playground</a></li>
-          <li><a href="/">Status&nbsp;<span style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></a></li>
+          <li><Link href="/docs">Docs</Link></li>
+          <li><Link href="/pricing">Pricing</Link></li>
+          <li><Link href="/playground">Playground</Link></li>
+          <li><Link href="/">Status&nbsp;<span style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
         </ul>
         <div className="nr">
-          <a href="/signin" className="nbg">Sign in</a>
-          <a href="/signup" className="np">Get API Key →</a>
+          <Link href="/signin" className="nbg">Sign in</Link>
+          <Link href="/signup" className="np">Get API Key →</Link>
         </div>
       </nav>
 
@@ -125,11 +128,11 @@ export default function Home() {
           buttons={{
             primary: {
               text: "Start building free",
-              onClick: () => { window.location.href = "/signup" }
+              onClick: () => router.push("/signup")
             },
             secondary: {
               text: "Try the playground →",
-              onClick: () => { window.location.href = "/playground" }
+              onClick: () => router.push("/playground")
             }
           }}
         />
@@ -261,7 +264,7 @@ export default function Home() {
                 <li><span className="pfc">✓</span>CDN hosting</li>
                 <li><span className="pfc">✓</span>Community support</li>
               </ul>
-              <a href="/dashboard" className="pcta">Get started</a>
+              <Link href="/dashboard" className="pcta">Get started</Link>
             </div>
             <div className="plan">
               <div className="pn">Starter</div>
@@ -274,7 +277,7 @@ export default function Home() {
                 <li><span className="pfc">✓</span>AI popup removal</li>
                 <li><span className="pfc">✓</span>7-day log retention</li>
               </ul>
-              <a href="/dashboard" className="pcta">Get started</a>
+              <Link href="/dashboard" className="pcta">Get started</Link>
             </div>
             <div className="plan ft">
               <div className="pb">Most popular</div>
@@ -289,7 +292,7 @@ export default function Home() {
                 <li><span className="pfc">✓</span>Custom JS injection</li>
                 <li><span className="pfc">✓</span>Webhooks &amp; 30-day logs</li>
               </ul>
-              <a href="/dashboard" className="pcta">Start Pro trial</a>
+              <Link href="/dashboard" className="pcta">Start Pro trial</Link>
             </div>
             <div className="plan">
               <div className="pn">Scale</div>
@@ -302,7 +305,7 @@ export default function Home() {
                 <li><span className="pfc">✓</span>SLA guarantee</li>
                 <li><span className="pfc">✓</span>SSO &amp; teams</li>
               </ul>
-              <a href="/dashboard" className="pcta">Get started</a>
+              <Link href="/dashboard" className="pcta">Get started</Link>
             </div>
           </div>
         </section>
@@ -326,9 +329,9 @@ export default function Home() {
               <p>Screenshot any URL.<br />One API call.<br /><br />A Route1AI product</p>
             </div>
             <div className="fcols">
-              <div className="fcol"><h4>Product</h4><ul><li><a href="/docs">Docs</a></li><li><a href="/playground">Playground</a></li><li><a href="#pricing">Pricing</a></li><li><a href="/">Changelog</a></li></ul></div>
-              <div className="fcol"><h4>Developers</h4><ul><li><a href="/docs">API Reference</a></li><li><a href="/">JS SDK</a></li><li><a href="/">Python SDK</a></li><li><a href="/">MCP Server</a></li></ul></div>
-              <div className="fcol"><h4>Company</h4><ul><li><a href="/">Route1AI</a></li><li><a href="/">Blog</a></li><li><a href="/">GitHub</a></li></ul></div>
+              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/playground">Playground</Link></li><li><Link href="/pricing">Pricing</Link></li><li><Link href="/">Changelog</Link></li></ul></div>
+              <div className="fcol"><h4>Developers</h4><ul><li><Link href="/docs">API Reference</Link></li><li><Link href="/">JS SDK</Link></li><li><Link href="/">Python SDK</Link></li><li><Link href="/">MCP Server</Link></li></ul></div>
+              <div className="fcol"><h4>Company</h4><ul><li><Link href="/">Route1AI</Link></li><li><Link href="/">Blog</Link></li><li><Link href="/">GitHub</Link></li></ul></div>
             </div>
           </div>
           <div className="fbot relative z-10 !bg-transparent"><span>© 2026 Route1AI, Inc.</span><span>Privacy · Terms · Security</span></div>
