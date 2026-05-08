@@ -324,7 +324,6 @@ function UserMenu() {
           
           <Link href="/account/profile" style={{ display: 'block', padding: '8px 12px', color: '#888', fontSize: 13, textDecoration: 'none', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#f0f0f0' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888' }}>Profile settings</Link>
           <Link href="/account/billing" style={{ display: 'block', padding: '8px 12px', color: '#888', fontSize: 13, textDecoration: 'none', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#f0f0f0' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888' }}>Billing</Link>
-          <Link href="/account/security" style={{ display: 'block', padding: '8px 12px', color: '#888', fontSize: 13, textDecoration: 'none', borderRadius: 4 }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#f0f0f0' }} onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#888' }}>Security</Link>
           
           <div style={{ height: 1, background: '#1a1a24', margin: '8px 0' }} />
           
@@ -355,13 +354,6 @@ export default function Dashboard() {
         <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '0 16px 16px' }}/>
         <nav style={{ padding: '0 10px', flex: 1 }}>
           {navItems.map(n => <NavItem key={n.id} {...n} active={page === n.id} onClick={() => setPage(n.id)}/>)}
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '16px 6px' }}/>
-          <Link href="/playground" style={{ textDecoration: 'none' }}>
-            <NavItem label="Playground" icon={<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 3l5 5-5 5M8 13h5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>} active={false} onClick={() => {}}/>
-          </Link>
-          <Link href="/docs" style={{ textDecoration: 'none' }}>
-            <NavItem label="Docs" icon={<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M4 2h6l3 3v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.3"/><path d="M9 2v4h4" stroke="currentColor" strokeWidth="1.3"/></svg>} active={false} onClick={() => {}}/>
-          </Link>
         </nav>
 
         <div style={{ margin: '16px 14px', padding: '14px', background: '#111', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -392,6 +384,7 @@ export default function Dashboard() {
             <span style={{ fontSize: 13, fontWeight: 500 }}>{page === 'overview' ? 'Overview' : page === 'keys' ? 'API Keys' : 'Logs'}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link href="/docs" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', background: 'none', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Docs</Link>
             <Link href="/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#00e87b', background: 'rgba(0,232,123,0.1)', border: '1px solid rgba(0,232,123,0.2)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground →</Link>
             <Link href="/" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', background: 'none', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>← Marketing site</Link>
             <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.07)', margin: '0 4px' }} />
