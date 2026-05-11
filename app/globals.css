@@ -452,7 +452,10 @@
 }
 .code-feats li::before { content: '→'; color: #00e87b; flex-shrink: 0; }
 .ctabs {
-  display: flex; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0;
+}
+.ctab-list {
+  display: flex; gap: 0;
 }
 .ctab {
   font-family: var(--font-ibm-plex), monospace; font-size: 12px; color: #888899;
@@ -462,6 +465,16 @@
 }
 .ctab.a { color: #00e87b; border-bottom-color: #00e87b; }
 .ctab:hover:not(.a) { color: #f0f0f8; }
+.ccopy {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-ibm-plex), monospace; font-size: 11px; color: #888899;
+  padding: 8px 16px; background: none; border: none; cursor: pointer;
+  transition: all 0.15s; border-radius: 4px; margin-right: 8px;
+}
+.ccopy:hover { color: #00e87b; background: rgba(0, 232, 123, 0.05); }
+.ccopy:focus-visible { outline: 1px solid #00e87b; outline-offset: -2px; }
+.ccopy svg { flex-shrink: 0; }
+
 .cblock {
   background: #111118; border: 1px solid rgba(255,255,255,0.05);
   border-top: none; border-radius: 0 0 10px 10px;
