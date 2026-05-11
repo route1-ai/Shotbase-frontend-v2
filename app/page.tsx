@@ -377,7 +377,7 @@ export default function Home() {
             <WebGLShader />
             <div className="absolute inset-0 bg-black/70 z-[1]" />
           </div>
-          <div className="relative z-10 px-[52px] py-[64px] flex gap-[80px] items-start">
+          <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>
               <div className="flogo">
                 <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
