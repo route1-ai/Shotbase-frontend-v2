@@ -167,6 +167,7 @@ export default function Home() {
 
       <div className="sk-container">
         <Hero
+          className="hero"
           trustBadge={{
             text: "Trusted by forward-thinking teams.",
             icons: ["✨"]
