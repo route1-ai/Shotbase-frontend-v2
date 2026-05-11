@@ -144,8 +144,8 @@ export default function Home() {
   return (
     <>
       <nav id="nav" className="navbar">
-        <Link href="/" className="nlogo">
-          <svg width="28" height="28" viewBox="0 0 80 80" fill="none">
+        <Link href="/" className="nlogo" aria-label="Shotbase Home">
+          <svg width="28" height="28" viewBox="0 0 80 80" fill="none" aria-hidden="true">
             <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
             <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
             <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
@@ -157,11 +157,11 @@ export default function Home() {
           <li><Link href="/docs">Docs</Link></li>
           <li><Link href="/pricing">Pricing</Link></li>
           <li><Link href="/playground">Playground</Link></li>
-          <li><Link href="/">Status&nbsp;<span style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
+          <li><Link href="/">Status&nbsp;<span role="img" aria-label="Online" style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
         </ul>
         <div className="nr">
           <Link href="/signin" className="nbg">Sign in</Link>
-          <Link href="/signup" className="np">Get API Key →</Link>
+          <Link href="/signup" className="np">Get API Key <span aria-hidden="true">→</span></Link>
         </div>
       </nav>
 
@@ -232,7 +232,7 @@ export default function Home() {
               </div>
               <div className="fdesc">
                 {feat.desc}
-                <span className="farrow">↗</span>
+                <span className="farrow" aria-hidden="true">↗</span>
               </div>
             </div>
           ))}
@@ -321,12 +321,12 @@ export default function Home() {
               <div className="pper">forever</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>500 screenshots/mo</li>
-                <li><span className="pfc">✓</span>PNG &amp; JPEG</li>
-                <li><span className="pfc">✓</span>CDN hosting</li>
-                <li><span className="pfc">✓</span>Community support</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>500 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>PNG &amp; JPEG</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>CDN hosting</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Community support</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Get started</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Get started with Free plan">Get started</Link>
             </div>
             <div className="plan">
               <div className="pn">Starter</div>
@@ -334,12 +334,12 @@ export default function Home() {
               <div className="pper">+ $0.012 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>2,000 screenshots/mo</li>
-                <li><span className="pfc">✓</span>All formats incl. PDF</li>
-                <li><span className="pfc">✓</span>AI popup removal</li>
-                <li><span className="pfc">✓</span>7-day log retention</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>2,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>All formats incl. PDF</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>AI popup removal</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>7-day log retention</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Get started</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Get started with Starter plan">Get started</Link>
             </div>
             <div className="plan ft">
               <div className="pb">Most popular</div>
@@ -348,13 +348,13 @@ export default function Home() {
               <div className="pper">+ $0.008 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>10,000 screenshots/mo</li>
-                <li><span className="pfc">✓</span>MCP server access</li>
-                <li><span className="pfc">✓</span>Sub-200ms cache</li>
-                <li><span className="pfc">✓</span>Custom JS injection</li>
-                <li><span className="pfc">✓</span>Webhooks &amp; 30-day logs</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>10,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>MCP server access</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Sub-200ms cache</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Custom JS injection</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Webhooks &amp; 30-day logs</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Start Pro trial</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Start Pro plan trial">Start Pro trial</Link>
             </div>
             <div className="plan">
               <div className="pn">Scale</div>
@@ -362,12 +362,12 @@ export default function Home() {
               <div className="pper">+ $0.004 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>50,000 screenshots/mo</li>
-                <li><span className="pfc">✓</span>Dedicated instances</li>
-                <li><span className="pfc">✓</span>SLA guarantee</li>
-                <li><span className="pfc">✓</span>SSO &amp; teams</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>50,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Dedicated instances</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>SLA guarantee</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>SSO &amp; teams</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Get started</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Get started with Scale plan">Get started</Link>
             </div>
           </div>
         </section>
@@ -377,7 +377,7 @@ export default function Home() {
             <WebGLShader />
             <div className="absolute inset-0 bg-black/70 z-[1]" />
           </div>
-          <div className="relative z-10 px-[52px] py-[64px] flex gap-[80px] items-start">
+          <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>
               <div className="flogo">
                 <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
