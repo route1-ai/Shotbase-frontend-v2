@@ -165,7 +165,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <div className="sk-container">
+      <main className="sk-container" id="main-content">
         <Hero
           trustBadge={{
             text: "Trusted by forward-thinking teams.",
@@ -264,7 +264,7 @@ export default function Home() {
                 title={copied ? "Copied!" : "Copy code"}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copied ? "Copied" : "Copy"}</span>
+                <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
               </button>
             </div>
             <div className="cblock">
@@ -398,7 +398,7 @@ export default function Home() {
           </div>
           <div className="fbot relative z-10 !bg-transparent"><span>© 2026 Route1AI, Inc.</span><span>Privacy · Terms · Security</span></div>
         </footer>
-      </div>
+      </main>
     </>
   )
 }

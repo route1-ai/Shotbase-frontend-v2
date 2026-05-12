@@ -32,6 +32,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="absolute left-13 -top-full z-1000 rounded-b-lg bg-[#00e87b] px-4 py-2 font-mono text-xs font-bold text-black no-underline transition-[top] duration-200 focus:top-0 focus:outline-3 focus:outline-[#00e87b] focus:outline-offset-4"
+        >
+          Skip to content
+        </a>
         <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
           <LenisProvider>
             {children}
