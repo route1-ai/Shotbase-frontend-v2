@@ -17,16 +17,37 @@ export async function POST(req: Request) {
     const { id: clerkId, email_addresses } = event.data
     const email = email_addresses[0].email_address
 
-    const { data: user } = await supabase
+    const { error: supabaseError } = await supabase
       .from('users')
       .insert({ clerk_id: clerkId, email })
-      .select().single()
 
-    await fetch('https://api.unkey.dev/v1/keys.createKey', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiId: process.env.UNKEY_API_ID, name: 'Default', ownerId: clerkId, meta: { plan: 'free' } })
-    })
+    if (supabaseError) {
+      console.error('Error inserting user into Supabase:', supabaseError)
+      return Response.json({ error: 'Database insertion failed' }, { status: 500 })
+    }
+
+    try {
+      const response = await fetch('https://api.unkey.dev/v1/keys.createKey', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiId: process.env.UNKEY_API_ID,
+          name: 'Default',
+          ownerId: clerkId,
+          meta: { plan: 'free' }
+        })
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Unkey API error:', response.status, errorText)
+      }
+    } catch (err) {
+      console.error('Failed to fetch Unkey API:', err)
+    }
   }
   return Response.json({ received: true })
 }
