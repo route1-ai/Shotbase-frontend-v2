@@ -26,7 +26,13 @@ function Toggle({ value, onChange, label, sub }: { value: boolean, onChange: (v:
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
         {sub && <div style={{ fontSize: 11, color: '#444', fontFamily: 'var(--font-ibm-plex)' }}>{sub}</div>}
       </div>
-      <button onClick={() => onChange(!value)} style={{ width: 40, height: 22, borderRadius: 11, background: value ? '#00e87b' : '#1a1a1a', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, marginTop: 2 }}>
+      <button
+        onClick={() => onChange(!value)}
+        role="switch"
+        aria-checked={value}
+        aria-label={label}
+        style={{ width: 40, height: 22, borderRadius: 11, background: value ? '#00e87b' : '#1a1a1a', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, marginTop: 2 }}
+      >
         <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 3, left: value ? 21 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }}/>
       </button>
     </div>
@@ -39,7 +45,14 @@ function Select({ value, onChange, options, label }: { value: string, onChange: 
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {options.map(o => (
-          <button key={o.value} onClick={() => onChange(o.value)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, padding: '6px 12px', background: value === o.value ? 'rgba(0,232,123,0.1)' : '#111', border: `1px solid ${value === o.value ? 'rgba(0,232,123,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 6, color: value === o.value ? '#00e87b' : '#888', cursor: 'pointer', transition: 'all 0.15s' }}>{o.label}</button>
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            aria-pressed={value === o.value}
+            style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, padding: '6px 12px', background: value === o.value ? 'rgba(0,232,123,0.1)' : '#111', border: `1px solid ${value === o.value ? 'rgba(0,232,123,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 6, color: value === o.value ? '#00e87b' : '#888', cursor: 'pointer', transition: 'all 0.15s' }}
+          >
+            {o.label}
+          </button>
         ))}
       </div>
     </div>
@@ -70,8 +83,20 @@ export default function Playground() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [hasRun, setHasRun] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
 
   const config = { url, width, height, format, removePopups, fullPage, waitFor, delay }
+
+  const handleCopyCode = async () => {
+    if (!navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+    }
+  }
 
   const run = () => {
     setLoading(true)
@@ -208,7 +233,13 @@ export default function Playground() {
                   <button key={l} onClick={() => setCodeLang(l)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, padding: '11px 16px', background: 'none', border: 'none', borderBottom: `2px solid ${codeLang === l ? '#00e87b' : 'transparent'}`, color: codeLang === l ? '#00e87b' : '#444', cursor: 'pointer', marginBottom: -1 }}>{l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}</button>
                 ))}
               </div>
-              <button onClick={() => navigator.clipboard?.writeText(code)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px' }}>Copy</button>
+              <button
+                onClick={handleCopyCode}
+                aria-label={codeCopied ? "Copied!" : "Copy code to clipboard"}
+                style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: codeCopied ? '#00e87b' : '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', transition: 'color 0.15s' }}
+              >
+                {codeCopied ? 'Copied!' : 'Copy'}
+              </button>
             </div>
             <pre style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, lineHeight: 1.7, padding: '16px', overflow: 'auto', maxHeight: 200, color: '#888', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{code}</pre>
           </div>
