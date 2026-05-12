@@ -1,16 +1,67 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
+import React, { useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLenis } from "lenis/react"
+import { Copy, Check } from "lucide-react"
 import Hero from "@/components/ui/animated-shader-hero"
 import { WebGLShader } from "@/components/ui/web-gl-shader"
 import IntegrationsMarquee from "@/components/ui/integrations-marquee"
 
+const CODE_SNIPPETS: Record<string, string> = {
+  js: `// npm install @shotbase/sdk
+import { Shotbase } from '@shotbase/sdk';
+
+const sb = new Shotbase({ apiKey: 'sk-live-...' });
+
+const { url, tookMs } = await sb.screenshot({
+  url: 'https://stripe.com',
+  width: 1440,
+  format: 'png',
+  removePopups: true,
+});
+
+// → cdn.shotbase.io/sc/k9xp... — 142ms`,
+  py: `# pip install shotbase
+from shotbase import Shotbase
+
+sb = Shotbase(api_key="sk-live-...")
+result = sb.screenshot(
+  url="https://stripe.com",
+  width=1440,
+  format="png",
+  remove_popups=True,
+)
+# result.url → cdn.shotbase.io/sc/k9xp...`,
+  cu: `curl -X POST \\
+  -H "Authorization: Bearer sk-live-..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://stripe.com",
+    "width": 1440,
+    "format": "png",
+    "remove_popups": true
+  }' \\
+  https://api.shotbase.io/v1/screenshot`,
+}
+
 export default function Home() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = React.useState("js")
+  const [activeTab, setActiveTab] = useState("js")
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    const text = CODE_SNIPPETS[activeTab]
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+    }
+  }
 
   // For scrub animations
   const statsRef = useRef<(HTMLDivElement | null)[]>([])
@@ -93,8 +144,8 @@ export default function Home() {
   return (
     <>
       <nav id="nav" className="navbar">
-        <Link href="/" className="nlogo">
-          <svg width="28" height="28" viewBox="0 0 80 80" fill="none">
+        <Link href="/" className="nlogo" aria-label="Shotbase Home">
+          <svg width="28" height="28" viewBox="0 0 80 80" fill="none" aria-hidden="true">
             <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
             <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
             <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
@@ -106,11 +157,11 @@ export default function Home() {
           <li><Link href="/docs">Docs</Link></li>
           <li><Link href="/pricing">Pricing</Link></li>
           <li><Link href="/playground">Playground</Link></li>
-          <li><Link href="/">Status&nbsp;<span style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
+          <li><Link href="/">Status&nbsp;<span role="img" aria-label="Online" style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
         </ul>
         <div className="nr">
           <Link href="/signin" className="nbg">Sign in</Link>
-          <Link href="/signup" className="np">Get API Key →</Link>
+          <Link href="/signup" className="np">Get API Key <span aria-hidden="true">→</span></Link>
         </div>
       </nav>
 
@@ -181,7 +232,7 @@ export default function Home() {
               </div>
               <div className="fdesc">
                 {feat.desc}
-                <span className="farrow">↗</span>
+                <span className="farrow" aria-hidden="true">↗</span>
               </div>
             </div>
           ))}
@@ -201,45 +252,56 @@ export default function Home() {
           </div>
           <div className="code-panel-wrap" ref={codePanelRef}>
             <div className="ctabs">
-              <button className={`ctab ${activeTab === "js" ? "a" : ""}`} onClick={() => setActiveTab("js")}>JavaScript</button>
-              <button className={`ctab ${activeTab === "py" ? "a" : ""}`} onClick={() => setActiveTab("py")}>Python</button>
-              <button className={`ctab ${activeTab === "cu" ? "a" : ""}`} onClick={() => setActiveTab("cu")}>cURL</button>
+              <div className="ctab-list">
+                <button className={`ctab ${activeTab === "js" ? "a" : ""}`} onClick={() => setActiveTab("js")}>JavaScript</button>
+                <button className={`ctab ${activeTab === "py" ? "a" : ""}`} onClick={() => setActiveTab("py")}>Python</button>
+                <button className={`ctab ${activeTab === "cu" ? "a" : ""}`} onClick={() => setActiveTab("cu")}>cURL</button>
+              </div>
+              <button
+                className="ccopy"
+                onClick={handleCopy}
+                aria-label={copied ? "Copied!" : "Copy code to clipboard"}
+                title={copied ? "Copied!" : "Copy code"}
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                <span>{copied ? "Copied" : "Copy"}</span>
+              </button>
             </div>
             <div className="cblock">
               {activeTab === "js" && (
                 <div className="cpanel a">
-                  <span className="co">// npm install @shotbase/sdk</span><br />
-                  <span className="cc">import</span> <span className="cs">{"{ Shotbase }"}</span> <span className="cc">from</span> <span className="cs">'@shotbase/sdk'</span>;<br /><br />
-                  <span className="cc">const</span> sb = <span className="cc">new</span> <span className="cv">Shotbase</span>{"({ "} <span className="ck">apiKey</span>: <span className="cs">'sk-live-...'</span> {" });"}<br /><br />
+                  <span className="co">{"// npm install @shotbase/sdk"}</span><br />
+                  <span className="cc">import</span> <span className="cs">{"{ Shotbase }"}</span> <span className="cc">from</span> <span className="cs">&apos;@shotbase/sdk&apos;</span>;<br /><br />
+                  <span className="cc">const</span> sb = <span className="cc">new</span> <span className="cv">Shotbase</span>{"({ "} <span className="ck">apiKey</span>: <span className="cs">&apos;sk-live-...&apos;</span> {" });"}<br /><br />
                   <span className="cc">const</span> {"{ url, tookMs } = "} <span className="cc">await</span> sb.<span className="cv">screenshot</span>{"({"}<br />
-                  &nbsp;&nbsp;<span className="ck">url</span>: <span className="cs">'https://stripe.com'</span>,<br />
+                  &nbsp;&nbsp;<span className="ck">url</span>: <span className="cs">&apos;https://stripe.com&apos;</span>,<br />
                   &nbsp;&nbsp;<span className="ck">width</span>: <span className="cv">1440</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">format</span>: <span className="cs">'png'</span>,<br />
+                  &nbsp;&nbsp;<span className="ck">format</span>: <span className="cs">&apos;png&apos;</span>,<br />
                   &nbsp;&nbsp;<span className="ck">removePopups</span>: <span className="cv">true</span>,<br />
                   {"});"}<br /><br />
-                  <span className="co">// → cdn.shotbase.io/sc/k9xp... — 142ms</span>
+                  <span className="co">{"// → cdn.shotbase.io/sc/k9xp... — 142ms"}</span>
                 </div>
               )}
               {activeTab === "py" && (
                 <div className="cpanel a">
-                  <span className="co"># pip install shotbase</span><br />
+                  <span className="co">{"# pip install shotbase"}</span><br />
                   <span className="cc">from</span> <span className="ck">shotbase</span> <span className="cc">import</span> <span className="cv">Shotbase</span><br /><br />
-                  sb = <span className="cv">Shotbase</span>(<span className="ck">api_key</span>=<span className="cs">"sk-live-..."</span>)<br />
+                  sb = <span className="cv">Shotbase</span>(<span className="ck">api_key</span>=&quot;sk-live-...&quot;)<br />
                   result = sb.<span className="cv">screenshot</span>(<br />
-                  &nbsp;&nbsp;<span className="ck">url</span>=<span className="cs">"https://stripe.com"</span>,<br />
+                  &nbsp;&nbsp;<span className="ck">url</span>=&quot;https://stripe.com&quot;,<br />
                   &nbsp;&nbsp;<span className="ck">width</span>=<span className="cv">1440</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">format</span>=<span className="cs">"png"</span>,<br />
+                  &nbsp;&nbsp;<span className="ck">format</span>=&quot;png&quot;,<br />
                   &nbsp;&nbsp;<span className="ck">remove_popups</span>=<span className="cv">True</span>,<br />
                   )<br />
-                  <span className="co"># result.url → cdn.shotbase.io/sc/k9xp...</span>
+                  <span className="co">{"# result.url → cdn.shotbase.io/sc/k9xp..."}</span>
                 </div>
               )}
               {activeTab === "cu" && (
                 <div className="cpanel a">
                   <span className="cc">curl</span> <span className="cf">-X POST</span> \<br />
-                  &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">"Authorization: Bearer sk-live-..."</span> \<br />
-                  &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">"Content-Type: application/json"</span> \<br />
-                  &nbsp;&nbsp;<span className="cf">-d</span> <span className="cs">'{`\n    "url": "https://stripe.com",\n    "width": 1440,\n    "format": "png",\n    "remove_popups": true\n  `}'</span> \<br />
+                  &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">&quot;Authorization: Bearer sk-live-...&quot;</span> \<br />
+                  &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">&quot;Content-Type: application/json&quot;</span> \<br />
+                  &nbsp;&nbsp;<span className="cf">-d</span> <span className="cs">&apos;{`\n    "url": "https://stripe.com",\n    "width": 1440,\n    "format": "png",\n    "remove_popups": true\n  `}&apos;</span> \<br />
                   &nbsp;&nbsp;https://api.shotbase.io/v1/screenshot
                 </div>
               )}
@@ -259,12 +321,12 @@ export default function Home() {
               <div className="pper">forever</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>500 screenshots/mo</li>
-                <li><span className="pfc">✓</span>PNG &amp; JPEG</li>
-                <li><span className="pfc">✓</span>CDN hosting</li>
-                <li><span className="pfc">✓</span>Community support</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>500 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>PNG &amp; JPEG</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>CDN hosting</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Community support</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Get started</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Get started with Free plan">Get started</Link>
             </div>
             <div className="plan">
               <div className="pn">Starter</div>
@@ -272,12 +334,12 @@ export default function Home() {
               <div className="pper">+ $0.012 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>2,000 screenshots/mo</li>
-                <li><span className="pfc">✓</span>All formats incl. PDF</li>
-                <li><span className="pfc">✓</span>AI popup removal</li>
-                <li><span className="pfc">✓</span>7-day log retention</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>2,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>All formats incl. PDF</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>AI popup removal</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>7-day log retention</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Get started</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Get started with Starter plan">Get started</Link>
             </div>
             <div className="plan ft">
               <div className="pb">Most popular</div>
@@ -286,13 +348,13 @@ export default function Home() {
               <div className="pper">+ $0.008 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>10,000 screenshots/mo</li>
-                <li><span className="pfc">✓</span>MCP server access</li>
-                <li><span className="pfc">✓</span>Sub-200ms cache</li>
-                <li><span className="pfc">✓</span>Custom JS injection</li>
-                <li><span className="pfc">✓</span>Webhooks &amp; 30-day logs</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>10,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>MCP server access</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Sub-200ms cache</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Custom JS injection</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Webhooks &amp; 30-day logs</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Start Pro trial</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Start Pro plan trial">Start Pro trial</Link>
             </div>
             <div className="plan">
               <div className="pn">Scale</div>
@@ -300,12 +362,12 @@ export default function Home() {
               <div className="pper">+ $0.004 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc">✓</span>50,000 screenshots/mo</li>
-                <li><span className="pfc">✓</span>Dedicated instances</li>
-                <li><span className="pfc">✓</span>SLA guarantee</li>
-                <li><span className="pfc">✓</span>SSO &amp; teams</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>50,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Dedicated instances</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>SLA guarantee</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>SSO &amp; teams</li>
               </ul>
-              <Link href="/dashboard" className="pcta">Get started</Link>
+              <Link href="/dashboard" className="pcta" aria-label="Get started with Scale plan">Get started</Link>
             </div>
           </div>
         </section>
@@ -315,7 +377,7 @@ export default function Home() {
             <WebGLShader />
             <div className="absolute inset-0 bg-black/70 z-[1]" />
           </div>
-          <div className="relative z-10 px-[52px] py-[64px] flex gap-[80px] items-start">
+          <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>
               <div className="flogo">
                 <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
