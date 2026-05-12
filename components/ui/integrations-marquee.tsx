@@ -38,7 +38,7 @@ export default function IntegrationsMarquee({
     <div className="integrations-band" aria-label={`${label} ${items.join(", ")}`}>
       <div className="integrations-label">{label}</div>
       <div className="integrations-marquee" role="presentation">
-        <ul className="integrations-track" aria-hidden="true">
+        <ul className="integrations-track">
           {rendered.map((name, idx) => (
             <Item key={`${name}-${idx}`} name={name} />
           ))}

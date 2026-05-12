@@ -1,67 +1,16 @@
 "use client"
 
-import React, { useRef, useState } from "react"
+import React, { useRef } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLenis } from "lenis/react"
-import { Copy, Check } from "lucide-react"
 import Hero from "@/components/ui/animated-shader-hero"
 import { WebGLShader } from "@/components/ui/web-gl-shader"
 import IntegrationsMarquee from "@/components/ui/integrations-marquee"
 
-const CODE_SNIPPETS: Record<string, string> = {
-  js: `// npm install @shotbase/sdk
-import { Shotbase } from '@shotbase/sdk';
-
-const sb = new Shotbase({ apiKey: 'sk-live-...' });
-
-const { url, tookMs } = await sb.screenshot({
-  url: 'https://stripe.com',
-  width: 1440,
-  format: 'png',
-  removePopups: true,
-});
-
-// → cdn.shotbase.io/sc/k9xp... — 142ms`,
-  py: `# pip install shotbase
-from shotbase import Shotbase
-
-sb = Shotbase(api_key="sk-live-...")
-result = sb.screenshot(
-  url="https://stripe.com",
-  width=1440,
-  format="png",
-  remove_popups=True,
-)
-# result.url → cdn.shotbase.io/sc/k9xp...`,
-  cu: `curl -X POST \\
-  -H "Authorization: Bearer sk-live-..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "url": "https://stripe.com",
-    "width": 1440,
-    "format": "png",
-    "remove_popups": true
-  }' \\
-  https://api.shotbase.io/v1/screenshot`,
-}
-
 export default function Home() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("js")
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    const text = CODE_SNIPPETS[activeTab]
-    if (!text) return
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error("Failed to copy: ", err)
-    }
-  }
+  const [activeTab, setActiveTab] = React.useState("js")
 
   // For scrub animations
   const statsRef = useRef<(HTMLDivElement | null)[]>([])
@@ -161,7 +110,7 @@ export default function Home() {
         </ul>
         <div className="nr">
           <Link href="/signin" className="nbg">Sign in</Link>
-          <Link href="/signup" className="np">Get API Key <span aria-hidden="true">→</span></Link>
+          <Link href="/signup" className="np">Get API Key →</Link>
         </div>
       </nav>
 
@@ -253,20 +202,9 @@ export default function Home() {
           </div>
           <div className="code-panel-wrap" ref={codePanelRef}>
             <div className="ctabs">
-              <div className="ctab-list">
-                <button className={`ctab ${activeTab === "js" ? "a" : ""}`} onClick={() => setActiveTab("js")}>JavaScript</button>
-                <button className={`ctab ${activeTab === "py" ? "a" : ""}`} onClick={() => setActiveTab("py")}>Python</button>
-                <button className={`ctab ${activeTab === "cu" ? "a" : ""}`} onClick={() => setActiveTab("cu")}>cURL</button>
-              </div>
-              <button
-                className="ccopy"
-                onClick={handleCopy}
-                aria-label={copied ? "Copied!" : "Copy code to clipboard"}
-                title={copied ? "Copied!" : "Copy code"}
-              >
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                <span>{copied ? "Copied" : "Copy"}</span>
-              </button>
+              <button className={`ctab ${activeTab === "js" ? "a" : ""}`} onClick={() => setActiveTab("js")}>JavaScript</button>
+              <button className={`ctab ${activeTab === "py" ? "a" : ""}`} onClick={() => setActiveTab("py")}>Python</button>
+              <button className={`ctab ${activeTab === "cu" ? "a" : ""}`} onClick={() => setActiveTab("cu")}>cURL</button>
             </div>
             <div className="cblock">
               {activeTab === "js" && (
@@ -287,11 +225,11 @@ export default function Home() {
                 <div className="cpanel a">
                   <span className="co">{"# pip install shotbase"}</span><br />
                   <span className="cc">from</span> <span className="ck">shotbase</span> <span className="cc">import</span> <span className="cv">Shotbase</span><br /><br />
-                  sb = <span className="cv">Shotbase</span>(<span className="ck">api_key</span>=&quot;sk-live-...&quot;)<br />
+                  sb = <span className="cv">Shotbase</span>(<span className="ck">api_key</span>=<span className="cs">&quot;sk-live-...&quot;</span>)<br />
                   result = sb.<span className="cv">screenshot</span>(<br />
-                  &nbsp;&nbsp;<span className="ck">url</span>=&quot;https://stripe.com&quot;,<br />
+                  &nbsp;&nbsp;<span className="ck">url</span>=<span className="cs">&quot;https://stripe.com&quot;</span>,<br />
                   &nbsp;&nbsp;<span className="ck">width</span>=<span className="cv">1440</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">format</span>=&quot;png&quot;,<br />
+                  &nbsp;&nbsp;<span className="ck">format</span>=<span className="cs">&quot;png&quot;</span>,<br />
                   &nbsp;&nbsp;<span className="ck">remove_popups</span>=<span className="cv">True</span>,<br />
                   )<br />
                   <span className="co">{"# result.url → cdn.shotbase.io/sc/k9xp..."}</span>
@@ -327,7 +265,7 @@ export default function Home() {
                 <li><span className="pfc" aria-hidden="true">✓</span>CDN hosting</li>
                 <li><span className="pfc" aria-hidden="true">✓</span>Community support</li>
               </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Get started with Free plan">Get started</Link>
+              <Link href="/dashboard" className="pcta">Get started</Link>
             </div>
             <div className="plan">
               <div className="pn">Starter</div>
@@ -340,7 +278,7 @@ export default function Home() {
                 <li><span className="pfc" aria-hidden="true">✓</span>AI popup removal</li>
                 <li><span className="pfc" aria-hidden="true">✓</span>7-day log retention</li>
               </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Get started with Starter plan">Get started</Link>
+              <Link href="/dashboard" className="pcta">Get started</Link>
             </div>
             <div className="plan ft">
               <div className="pb">Most popular</div>
@@ -355,7 +293,7 @@ export default function Home() {
                 <li><span className="pfc" aria-hidden="true">✓</span>Custom JS injection</li>
                 <li><span className="pfc" aria-hidden="true">✓</span>Webhooks &amp; 30-day logs</li>
               </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Start Pro plan trial">Start Pro trial</Link>
+              <Link href="/dashboard" className="pcta">Start Pro trial</Link>
             </div>
             <div className="plan">
               <div className="pn">Scale</div>
@@ -368,7 +306,7 @@ export default function Home() {
                 <li><span className="pfc" aria-hidden="true">✓</span>SLA guarantee</li>
                 <li><span className="pfc" aria-hidden="true">✓</span>SSO &amp; teams</li>
               </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Get started with Scale plan">Get started</Link>
+              <Link href="/dashboard" className="pcta">Get started</Link>
             </div>
           </div>
         </section>
@@ -381,7 +319,7 @@ export default function Home() {
           <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>
               <div className="flogo">
-                <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
+                <svg width="20" height="20" viewBox="0 0 80 80" fill="none" aria-hidden="true">
                   <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
                   <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
                   <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
