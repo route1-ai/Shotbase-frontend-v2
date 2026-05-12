@@ -37,8 +37,16 @@ export default function IntegrationsMarquee({
   return (
     <div className="integrations-band" aria-label={`${label} ${items.join(", ")}`}>
       <div className="integrations-label">{label}</div>
-      <div className="integrations-marquee" role="presentation">
-        <ul className="integrations-track" aria-hidden="true">
+      <div
+        className="integrations-marquee group focus-within:outline-none"
+        role="region"
+        aria-label="Integrations marquee"
+        tabIndex={0}
+      >
+        <ul
+          className="integrations-track group-focus-within:[animation-play-state:paused] motion-reduce:flex-wrap motion-reduce:justify-center motion-reduce:animation-none"
+          aria-hidden="true"
+        >
           {rendered.map((name, idx) => (
             <Item key={`${name}-${idx}`} name={name} />
           ))}

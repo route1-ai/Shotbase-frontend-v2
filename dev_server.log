@@ -1,0 +1,21 @@
+
+> tmp-next@0.1.0 dev /app
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 543ms
+
+
+[35m
+[Clerk]:[0m You are running in keyless mode.
+You can [35mclaim your keys[0m by visiting https://dashboard.clerk.com/apps/claim?framework=nextjs&token=67ru15xcqn6xkz7ouvl9zba2fnejx4btpahgzec8&return_url=http%3A%2F%2Flocalhost%3A3000%2F
+
+ GET / 200 in 1370ms (next.js: 175ms, proxy.ts: 304ms, application-code: 891ms)
+ GET / 200 in 106ms (next.js: 5ms, proxy.ts: 43ms, application-code: 58ms)
+ POST / 303 in 187ms (next.js: 5ms, proxy.ts: 15ms, application-code: 167ms)
+  └─ ƒ syncKeylessConfigAction({"apiKeysUrl":"https://dashboard.clerk.com/apps/app_3Dc0k20ZM2KB7RS9zSuncBv86hc/instances/ins_3Dc0k1ReoUT1GpM1WO0JgTkyQ2c/api-keys","claimUrl":"https://dashboard.clerk.com/apps/claim?framework=nextjs&token=67ru15xcqn6xkz7ouvl9zba2fnejx4btpahgzec8","...":"3 items not stringified"}) in 11ms node_modules/.pnpm/@clerk+nextjs@7.3.3_next@16.2.4_@babel+core@7.29.0_react-dom@19.2.4_react@19.2.4__react_a84c3a8a4b06d2c1ee4472993dd3ae4f/node_modules/@clerk/nextjs/dist/esm-router/keyless-actions.js
+ GET / 200 in 41ms (next.js: 9ms, proxy.ts: 18ms, application-code: 14ms)
+ GET / 200 in 58ms (next.js: 13ms, proxy.ts: 16ms, application-code: 29ms)
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://sharing-roughy-43.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:12:3216)
