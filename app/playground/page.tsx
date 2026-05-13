@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const PRESETS = [
   { label: 'Stripe', url: 'https://stripe.com' },
@@ -26,7 +27,13 @@ function Toggle({ value, onChange, label, sub }: { value: boolean, onChange: (v:
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
         {sub && <div style={{ fontSize: 11, color: '#444', fontFamily: 'var(--font-ibm-plex)' }}>{sub}</div>}
       </div>
-      <button onClick={() => onChange(!value)} style={{ width: 40, height: 22, borderRadius: 11, background: value ? '#00e87b' : '#1a1a1a', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, marginTop: 2 }}>
+      <button
+        role="switch"
+        aria-checked={value}
+        aria-label={label}
+        onClick={() => onChange(!value)}
+        style={{ width: 40, height: 22, borderRadius: 11, background: value ? '#00e87b' : '#1a1a1a', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0, marginTop: 2 }}
+      >
         <div style={{ width: 16, height: 16, borderRadius: 8, background: '#fff', position: 'absolute', top: 3, left: value ? 21 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)' }}/>
       </button>
     </div>
@@ -39,14 +46,32 @@ function Select({ value, onChange, options, label }: { value: string, onChange: 
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{label}</div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         {options.map(o => (
-          <button key={o.value} onClick={() => onChange(o.value)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, padding: '6px 12px', background: value === o.value ? 'rgba(0,232,123,0.1)' : '#111', border: `1px solid ${value === o.value ? 'rgba(0,232,123,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 6, color: value === o.value ? '#00e87b' : '#888', cursor: 'pointer', transition: 'all 0.15s' }}>{o.label}</button>
+          <button
+            key={o.value}
+            aria-pressed={value === o.value}
+            onClick={() => onChange(o.value)}
+            style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, padding: '6px 12px', background: value === o.value ? 'rgba(0,232,123,0.1)' : '#111', border: `1px solid ${value === o.value ? 'rgba(0,232,123,0.25)' : 'rgba(255,255,255,0.07)'}`, borderRadius: 6, color: value === o.value ? '#00e87b' : '#888', cursor: 'pointer', transition: 'all 0.15s' }}
+          >
+            {o.label}
+          </button>
         ))}
       </div>
     </div>
   )
 }
 
-function generateCode(lang: string, config: any) {
+interface Config {
+  url: string
+  width: string | number
+  height: string | number
+  format: string
+  removePopups: boolean
+  fullPage: boolean
+  waitFor: string
+  delay: string | number
+}
+
+function generateCode(lang: string, config: Config) {
   const { url, width, height, format, removePopups, fullPage, waitFor, delay } = config
   if (lang === 'curl') {
     return `curl -X POST \\\n  -H "Authorization: Bearer sk-live-..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "${url}",\n    "width": ${width},\n    "height": ${height || 'null'},\n    "format": "${format}",\n    "remove_popups": ${removePopups},\n    "full_page": ${fullPage},\n    "wait_for": "${waitFor}",\n    "delay_ms": ${delay}\n  }' \\\n  https://api.shotbase.io/v1/screenshot`
@@ -67,8 +92,17 @@ export default function Playground() {
   const [waitFor, setWaitFor] = useState('networkidle')
   const [delay, setDelay] = useState<string | number>(0)
   const [codeLang, setCodeLang] = useState('curl')
+  const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<{
+    screenshotUrl: string
+    tookMs: number
+    cached: boolean
+    width: number
+    height: number
+    size: number
+    popupsRemoved: number
+  } | null>(null)
   const [hasRun, setHasRun] = useState(false)
 
   const config = { url, width, height, format, removePopups, fullPage, waitFor, delay }
@@ -93,13 +127,24 @@ export default function Playground() {
 
   const code = generateCode(codeLang, config)
 
+  const handleCopy = async () => {
+    if (!navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+    }
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#050505', color: '#f0f0f0' }}>
       <nav style={{ height: 56, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', flexShrink: 0, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+          <Link href="/" aria-label="Shotbase Home" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <div style={{ width: 26, height: 26, background: '#00e87b', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="10" rx="2" stroke="#000" strokeWidth="1.5"/><path d="M4 14h8M8 11v3" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="14" height="10" rx="2" stroke="#000" strokeWidth="1.5"/><path d="M4 14h8M8 11v3" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             <span style={{ fontFamily: 'var(--font-ibm-plex)', fontWeight: 600, fontSize: 14, color: '#f0f0f0' }}>shotbase</span>
           </Link>
@@ -189,7 +234,7 @@ export default function Playground() {
             )}
             {result && !loading && (
               <React.Fragment>
-                <img src={result.screenshotUrl} alt="Screenshot" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}/>
+                <img src={result.screenshotUrl} alt={`Screenshot of ${url}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}/>
                 <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }}>
                   <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: 'rgba(0,232,123,0.1)', border: '1px solid rgba(0,232,123,0.2)', color: '#00e87b', padding: '4px 10px', borderRadius: 6 }}>200 OK</span>
                   <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: '#111', border: '1px solid rgba(255,255,255,0.07)', color: '#888', padding: '4px 10px', borderRadius: 6 }}>{result.tookMs}ms</span>
@@ -208,7 +253,15 @@ export default function Playground() {
                   <button key={l} onClick={() => setCodeLang(l)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, padding: '11px 16px', background: 'none', border: 'none', borderBottom: `2px solid ${codeLang === l ? '#00e87b' : 'transparent'}`, color: codeLang === l ? '#00e87b' : '#444', cursor: 'pointer', marginBottom: -1 }}>{l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}</button>
                 ))}
               </div>
-              <button onClick={() => navigator.clipboard?.writeText(code)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px' }}>Copy</button>
+              <button
+                onClick={handleCopy}
+                aria-label={copied ? "Copied!" : "Copy code to clipboard"}
+                title={copied ? "Copied!" : "Copy code"}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: copied ? '#00e87b' : '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', transition: 'color 0.15s' }}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                <span>{copied ? "Copied" : "Copy"}</span>
+              </button>
             </div>
             <pre style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, lineHeight: 1.7, padding: '16px', overflow: 'auto', maxHeight: 200, color: '#888', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{code}</pre>
           </div>
