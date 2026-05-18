@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { WebGLShader } from "./web-gl-shader"
+import { SmoothShaderBg } from "./smooth-shader-bg"
 import { LiquidButton } from "./liquid-glass-button"
 
 export interface HeroProps {
@@ -36,8 +36,8 @@ export default function Hero({
 }: HeroProps) {
   return (
     <section className={`relative min-h-screen flex items-center justify-center overflow-hidden ${className}`}>
-      <WebGLShader />
-      <div className="absolute inset-0 bg-black/70 z-[1]" />
+      <SmoothShaderBg />
+      <div className="absolute inset-0 bg-black/30 z-[1]" />
       
       <div className="relative z-[2] w-full max-w-5xl mx-auto px-6 py-32 flex flex-col items-center text-center">
         {trustBadge && (
