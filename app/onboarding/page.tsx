@@ -11,9 +11,24 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1)
 
   useEffect(() => {
-    fetch('/api/keys/list')
-      .then(r => r.json())
-      .then(data => { if (data.keys?.[0]) setApiKey(data.keys[0].start + '••••••••') })
+    let interval: NodeJS.Timeout
+
+    const checkKey = () => {
+      fetch('/api/keys/list')
+        .then(r => r.json())
+        .then(data => {
+          if (data.keys && data.keys.length > 0) {
+            setApiKey('sk_prod_••••••••••••')
+            clearInterval(interval)
+          }
+        })
+        .catch(err => console.error(err))
+    }
+
+    checkKey()
+    interval = setInterval(checkKey, 2000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const copy = () => {
@@ -56,7 +71,7 @@ export default function OnboardingPage() {
             <div style={{background:'#0c0c12',border:'1px solid #1a1a24',borderRadius:'8px',padding:'16px',fontFamily:'monospace',fontSize:'12px',color:'#c8c8d4',lineHeight:'1.9',marginBottom:'24px'}}>
               <span style={{color:'#555566'}}># paste this in your terminal</span><br/>
               curl -X POST https://shotbase-production.up.railway.app/screenshot \<br/>
-              &nbsp;&nbsp;-H "Authorization: Bearer YOUR_KEY" \<br/>
+              &nbsp;&nbsp;-H "Authorization: Bearer YOUR_SECRET_KEY" \<br/>
               &nbsp;&nbsp;-d '{JSON.stringify({url:"https://stripe.com",format:"png"})}' \<br/>
               &nbsp;&nbsp;--output screenshot.png
             </div>

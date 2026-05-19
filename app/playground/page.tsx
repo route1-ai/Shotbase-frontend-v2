@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
+import { useUser } from "@clerk/nextjs"
 
 const PRESETS = [
   { label: 'Stripe', url: 'https://stripe.com' },
@@ -50,6 +51,7 @@ function generateCode(lang: string, config: any) {
 }
 
 export default function Playground() {
+  const { user } = useUser()
   const [url, setUrl] = useState('https://stripe.com')
   const [width, setWidth] = useState<string | number>(1440)
   const [height, setHeight] = useState('')
@@ -66,23 +68,12 @@ export default function Playground() {
   const [apiKey, setApiKey] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/keys/list')
-      .then(r => r.json())
-      .then(data => {
-        if (data.keys && data.keys.length > 0) {
-          setApiKey(data.keys[0].id)
-        }
-      })
-      .catch(() => {})
+    // Keys no longer needed for the proxy route
   }, [])
 
   const config = { url, width, height, format, removePopups, fullPage, waitFor, delay }
 
   const run = async () => {
-    if (!apiKey) {
-      setError('No API key found. Please create one in your dashboard.')
-      return
-    }
     setLoading(true)
     setResult(null)
     setError(null)
@@ -91,10 +82,9 @@ export default function Playground() {
     const startTime = Date.now()
 
     try {
-      const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {
+      const res = await fetch('/api/playground/screenshot', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -196,12 +186,12 @@ export default function Playground() {
           </div>
 
           <div style={{ padding: 20, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-            {!apiKey && (
+            {!user ? (
               <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#ff6b6b', marginBottom: 10, textAlign: 'center' }}>
-                No API key found. <Link href="/dashboard" style={{ color: '#00e87b' }}>Create one in dashboard</Link>
+                You must be signed in to run the playground. <Link href="/signin" style={{ color: '#00e87b' }}>Sign in here</Link>
               </div>
-            )}
-            <button onClick={run} disabled={loading || !apiKey} style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 13, fontWeight: 600, color: '#000', background: loading ? '#009950' : !apiKey ? '#333' : '#00e87b', border: 'none', padding: '13px', borderRadius: 8, cursor: loading || !apiKey ? 'not-allowed' : 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            ) : null}
+            <button onClick={run} disabled={loading || !user} style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 13, fontWeight: 600, color: '#000', background: loading ? '#009950' : !user ? '#333' : '#00e87b', border: 'none', padding: '13px', borderRadius: 8, cursor: loading || !user ? 'not-allowed' : 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? (
                 <React.Fragment>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
