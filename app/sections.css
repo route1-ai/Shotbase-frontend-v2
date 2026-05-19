@@ -98,7 +98,7 @@
 .orbital-container {
   position: relative;
   width: 100%;
-  max-width: 650px;
+  max-width: 750px;
   aspect-ratio: 1;
   margin: 0 auto;
   cursor: default;
@@ -149,13 +149,13 @@
 /* Orbit rings */
 .orbital-ring {
   position: absolute;
-  width: 400px; height: 400px;
+  width: 500px; height: 500px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.06);
   pointer-events: none;
 }
 .orbital-ring.outer {
-  width: 460px; height: 460px;
+  width: 580px; height: 580px;
   border-color: rgba(255, 255, 255, 0.03);
 }
 @media (max-width: 768px) {
@@ -235,9 +235,9 @@
 /* Expanded card */
 .orbital-card {
   position: absolute;
-  top: 60px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   width: 260px;
   background: #111118;
   border: 1px solid rgba(255, 255, 255, 0.1);

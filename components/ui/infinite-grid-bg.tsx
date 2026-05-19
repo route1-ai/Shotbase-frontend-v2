@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   motion,
   useMotionValue,
@@ -22,10 +22,15 @@ export default function InfiniteGridBg() {
   const mouseX = useMotionValue(-9999);
   const mouseY = useMotionValue(-9999);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    mouseX.set(e.clientX);
-    mouseY.set(e.clientY);
-  };
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseX.set(e.clientX);
+      mouseY.set(e.clientY);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [mouseX, mouseY]);
 
   const gridOffsetX = useMotionValue(0);
   const gridOffsetY = useMotionValue(0);
@@ -35,12 +40,11 @@ export default function InfiniteGridBg() {
     gridOffsetY.set((gridOffsetY.get() + 0.3) % 40);
   });
 
-  const maskImage = useMotionTemplate`radial-gradient(350px circle at ${mouseX}px ${mouseY}px, black, transparent)`;
+  const maskImage = useMotionTemplate`radial-gradient(circle at ${mouseX}px ${mouseY}px, black 0%, transparent 350px)`;
 
   return (
     <div
       ref={containerRef}
-      onMouseMove={handleMouseMove}
       className="infinite-grid-wrap"
     >
       {/* Base grid — always visible, very faint */}
@@ -55,7 +59,10 @@ export default function InfiniteGridBg() {
       {/* Spotlight grid — visible under cursor, brighter */}
       <motion.div
         className="infinite-grid-spotlight"
-        style={{ maskImage, WebkitMaskImage: maskImage }}
+        style={{
+          maskImage: maskImage,
+          WebkitMaskImage: maskImage,
+        } as any}
       >
         <GridPattern
           id="grid-spot"

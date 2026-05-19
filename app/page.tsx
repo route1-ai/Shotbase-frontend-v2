@@ -170,7 +170,7 @@ export default function Home() {
       <div className="sk-container">
         <Hero
           trustBadge={{
-            text: "Trusted by forward-thinking teams.",
+            text: "Integrations from",
             icons: ["✨"]
           }}
           headline={{
@@ -225,7 +225,7 @@ export default function Home() {
         </div>
 
         <IntegrationsMarquee
-          label="Trusted by forward-thinking teams"
+          label="Integrations from"
           integrations={[
             { name: "Linear" },
             { name: "Stripe" },
