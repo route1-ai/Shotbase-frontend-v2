@@ -37,37 +37,25 @@ export default function RadialOrbitalTimeline({
     }
   };
 
-  const toggleItem = (id: number) => {
-    setExpandedItems((prev) => {
-      const newState = { ...prev };
-      Object.keys(newState).forEach((key) => {
-        if (parseInt(key) !== id) {
-          newState[parseInt(key)] = false;
-        }
-      });
+  const closeItem = () => {
+    setActiveNodeId(null);
+    setAutoRotate(true);
+    setExpandedItems({});
+    setPulseEffect({});
+  };
 
-      newState[id] = !prev[id];
+  const openItem = (id: number) => {
+    if (activeNodeId === id) return;
+    setExpandedItems({ [id]: true });
+    setActiveNodeId(id);
+    setAutoRotate(false);
 
-      if (!prev[id]) {
-        setActiveNodeId(id);
-        setAutoRotate(false);
-
-        const relatedItems = getRelatedItems(id);
-        const newPulseEffect: Record<number, boolean> = {};
-        relatedItems.forEach((relId) => {
-          newPulseEffect[relId] = true;
-        });
-        setPulseEffect(newPulseEffect);
-
-        centerViewOnNode(id);
-      } else {
-        setActiveNodeId(null);
-        setAutoRotate(true);
-        setPulseEffect({});
-      }
-
-      return newState;
+    const relatedItems = getRelatedItems(id);
+    const newPulseEffect: Record<number, boolean> = {};
+    relatedItems.forEach((relId) => {
+      newPulseEffect[relId] = true;
     });
+    setPulseEffect(newPulseEffect);
   };
 
   useEffect(() => {
@@ -98,7 +86,7 @@ export default function RadialOrbitalTimeline({
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
-    const radius = 200;
+    const radius = 250;
     const radian = (angle * Math.PI) / 180;
 
     const x = radius * Math.cos(radian);
@@ -110,7 +98,13 @@ export default function RadialOrbitalTimeline({
       Math.min(1, 0.4 + 0.6 * ((1 + Math.sin(radian)) / 2))
     );
 
-    return { x, y, angle, zIndex, opacity };
+    return { 
+      x: Number(x.toFixed(1)), 
+      y: Number(y.toFixed(1)), 
+      angle: Number(angle.toFixed(1)), 
+      zIndex, 
+      opacity: Number(opacity.toFixed(2)) 
+    };
   };
 
   const getRelatedItems = (itemId: number): number[] => {
@@ -142,6 +136,7 @@ export default function RadialOrbitalTimeline({
       className="orbital-container"
       ref={containerRef}
       onClick={handleContainerClick}
+      onMouseLeave={closeItem}
     >
       <div className="orbital-viewport">
         <div
@@ -177,10 +172,7 @@ export default function RadialOrbitalTimeline({
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleItem(item.id);
-                }}
+                onMouseEnter={() => openItem(item.id)}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -222,70 +214,80 @@ export default function RadialOrbitalTimeline({
                   {item.title}
                 </div>
 
-                {/* Expanded card */}
-                {isExpanded && (
-                  <div className="orbital-card">
-                    <div className="orbital-card-connector" />
-                    <div className="orbital-card-header">
-                      <span
-                        className="orbital-card-status"
-                        style={{
-                          background: getStatusColor(item.status),
-                          color: item.status === "in-progress" ? "#000" : "#000",
-                        }}
-                      >
-                        {item.status === "completed"
-                          ? "ACTIVE"
-                          : item.status === "in-progress"
-                          ? "FEATURED"
-                          : "COMING SOON"}
-                      </span>
-                      <span className="orbital-card-category">{item.category}</span>
-                    </div>
-                    <h4 className="orbital-card-title">{item.title}</h4>
-                    <p className="orbital-card-content">{item.content}</p>
-                    <div className="orbital-card-energy">
-                      <div className="orbital-card-energy-header">
-                        <span>Capability</span>
-                        <span className="orbital-card-energy-val">{item.energy}%</span>
-                      </div>
-                      <div className="orbital-card-energy-bar">
-                        <div
-                          className="orbital-card-energy-fill"
-                          style={{
-                            width: `${item.energy}%`,
-                            background: `linear-gradient(90deg, ${getStatusColor(item.status)}, #00e87b)`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                    {item.relatedIds.length > 0 && (
-                      <div className="orbital-card-related">
-                        <span className="orbital-card-related-label">Connected Features</span>
-                        <div className="orbital-card-related-list">
-                          {item.relatedIds.map((relatedId) => {
-                            const relatedItem = timelineData.find((i) => i.id === relatedId);
-                            return (
-                              <button
-                                key={relatedId}
-                                className="orbital-card-related-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleItem(relatedId);
-                                }}
-                              >
-                                {relatedItem?.title} →
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Removed Expanded card from node */}
               </div>
             );
           })}
+          {/* Centered Expanded Card */}
+          {activeNodeId && (
+            (() => {
+              const activeItem = timelineData.find((i) => i.id === activeNodeId);
+              if (!activeItem) return null;
+              return (
+                <div
+                  className="orbital-card"
+                  onMouseEnter={() => setAutoRotate(false)}
+                >
+                  <div className="orbital-card-connector" />
+                  <div className="orbital-card-header">
+                    <span
+                      className="orbital-card-status"
+                      style={{
+                        background: getStatusColor(activeItem.status),
+                        color: "#000",
+                      }}
+                    >
+                      {activeItem.status === "completed"
+                        ? "ACTIVE"
+                        : activeItem.status === "in-progress"
+                        ? "FEATURED"
+                        : "COMING SOON"}
+                    </span>
+                    <span className="orbital-card-category">{activeItem.category}</span>
+                  </div>
+                  <h4 className="orbital-card-title">{activeItem.title}</h4>
+                  <p className="orbital-card-content">{activeItem.content}</p>
+                  <div className="orbital-card-energy">
+                    <div className="orbital-card-energy-header">
+                      <span>Capability</span>
+                      <span className="orbital-card-energy-val">{activeItem.energy}%</span>
+                    </div>
+                    <div className="orbital-card-energy-bar">
+                      <div
+                        className="orbital-card-energy-fill"
+                        style={{
+                          width: `${activeItem.energy}%`,
+                          background: `linear-gradient(90deg, ${getStatusColor(activeItem.status)}, #00e87b)`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {activeItem.relatedIds.length > 0 && (
+                    <div className="orbital-card-related">
+                      <span className="orbital-card-related-label">Connected Features</span>
+                      <div className="orbital-card-related-list">
+                        {activeItem.relatedIds.map((relatedId) => {
+                          const relatedItem = timelineData.find((i) => i.id === relatedId);
+                          return (
+                            <button
+                              key={relatedId}
+                              className="orbital-card-related-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openItem(relatedId);
+                              }}
+                            >
+                              {relatedItem?.title} →
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
+          )}
         </div>
       </div>
     </div>

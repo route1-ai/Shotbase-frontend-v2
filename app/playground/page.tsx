@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 
 const PRESETS = [
@@ -10,14 +10,6 @@ const PRESETS = [
   { label: 'GitHub', url: 'https://github.com' },
   { label: 'HN', url: 'https://news.ycombinator.com' },
 ]
-
-const DEMO_IMGS: Record<string, string> = {
-  'https://stripe.com': 'https://placehold.co/1440x900/0a192f/00e87b?text=stripe.com+%E2%80%94+captured',
-  'https://vercel.com': 'https://placehold.co/1440x900/000/fff?text=vercel.com+%E2%80%94+captured',
-  'https://linear.app': 'https://placehold.co/1440x900/1a1a2e/5e6ad2?text=linear.app+%E2%80%94+captured',
-  'https://github.com': 'https://placehold.co/1440x900/0d1117/58a6ff?text=github.com+%E2%80%94+captured',
-  'https://news.ycombinator.com': 'https://placehold.co/1440x900/f6f6ef/ff6600?text=news.ycombinator.com+%E2%80%94+captured',
-}
 
 function Toggle({ value, onChange, label, sub }: { value: boolean, onChange: (v: boolean) => void, label: string, sub?: string }) {
   return (
@@ -49,12 +41,12 @@ function Select({ value, onChange, options, label }: { value: string, onChange: 
 function generateCode(lang: string, config: any) {
   const { url, width, height, format, removePopups, fullPage, waitFor, delay } = config
   if (lang === 'curl') {
-    return `curl -X POST \\\n  -H "Authorization: Bearer sk-live-..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "${url}",\n    "width": ${width},\n    "height": ${height || 'null'},\n    "format": "${format}",\n    "remove_popups": ${removePopups},\n    "full_page": ${fullPage},\n    "wait_for": "${waitFor}",\n    "delay_ms": ${delay}\n  }' \\\n  https://api.shotbase.io/v1/screenshot`
+    return `curl -X POST \\\n  -H "Authorization: Bearer sk-live-..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "${url}",\n    "width": ${width},\n    "format": "${format}",\n    "remove_popups": ${removePopups},\n    "full_page": ${fullPage}\n  }' \\\n  https://shotbase-production.up.railway.app/screenshot`
   }
   if (lang === 'js') {
-    return `import { Shotbase } from '@shotbase/sdk';\n\nconst sb = new Shotbase({ apiKey: 'sk-live-...' });\n\nconst { url: screenshotUrl, tookMs } = await sb.screenshot({\n  url: '${url}',\n  width: ${width},\n  format: '${format}',\n  removePopups: ${removePopups},\n  fullPage: ${fullPage},\n  waitFor: '${waitFor}',\n  delayMs: ${delay},\n});\n\nconsole.log(\`Captured in \${tookMs}ms: \${screenshotUrl}\`);`
+    return `const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer sk-live-...',\n    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n    url: '${url}',\n    width: ${width},\n    format: '${format}',\n    remove_popups: ${removePopups},\n    full_page: ${fullPage}\n  })\n});\nconst blob = await res.blob();\nconst imageUrl = URL.createObjectURL(blob);`
   }
-  return `from shotbase import Shotbase\n\nsb = Shotbase(api_key="sk-live-...")\n\nresult = sb.screenshot(\n    url="${url}",\n    width=${width},\n    format="${format}",\n    remove_popups=${removePopups ? 'True' : 'False'},\n    full_page=${fullPage ? 'True' : 'False'},\n    wait_for="${waitFor}",\n    delay_ms=${delay},\n)\n\nprint(f"Captured in {result.took_ms}ms: {result.url}")`
+  return `import httpx\n\nr = httpx.post(\n    'https://shotbase-production.up.railway.app/screenshot',\n    headers={'Authorization': 'Bearer sk-live-...'},\n    json={\n        'url': '${url}',\n        'width': ${width},\n        'format': '${format}',\n        'remove_popups': ${removePopups},\n        'full_page': ${fullPage}\n    }\n)\nopen('screenshot.${format}', 'wb').write(r.content)`
 }
 
 export default function Playground() {
@@ -70,25 +62,76 @@ export default function Playground() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [hasRun, setHasRun] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [apiKey, setApiKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/keys/list')
+      .then(r => r.json())
+      .then(data => {
+        if (data.keys && data.keys.length > 0) {
+          setApiKey(data.keys[0].id)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const config = { url, width, height, format, removePopups, fullPage, waitFor, delay }
 
-  const run = () => {
+  const run = async () => {
+    if (!apiKey) {
+      setError('No API key found. Please create one in your dashboard.')
+      return
+    }
     setLoading(true)
     setResult(null)
+    setError(null)
     setHasRun(true)
-    setTimeout(() => {
-      setLoading(false)
+
+    const startTime = Date.now()
+
+    try {
+      const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url,
+          width: typeof width === 'string' ? parseInt(width) : width,
+          height: height ? parseInt(height) : undefined,
+          format,
+          remove_popups: removePopups,
+          full_page: fullPage,
+        })
+      })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`${res.status}: ${text}`)
+      }
+
+      const blob = await res.blob()
+      const imageUrl = URL.createObjectURL(blob)
+      const tookMs = Date.now() - startTime
+      const cached = res.headers.get('x-cache') === 'HIT'
+      const sizeKb = Math.round(blob.size / 1024)
+
       setResult({
-        screenshotUrl: DEMO_IMGS[url] || `https://placehold.co/${width}x${height || 900}/111/00e87b?text=${encodeURIComponent(url)}`,
-        tookMs: Math.floor(100 + Math.random() * 900),
-        cached: Math.random() > 0.6,
+        screenshotUrl: imageUrl,
+        tookMs,
+        cached,
         width: typeof width === 'string' ? parseInt(width) : width,
         height: parseInt(height) || 900,
-        size: Math.floor(120 + Math.random() * 600),
-        popupsRemoved: removePopups ? Math.floor(Math.random() * 3) : 0,
+        size: sizeKb,
+        popupsRemoved: 0,
       })
-    }, 1200 + Math.random() * 800)
+    } catch (err: any) {
+      setError(err.message || 'Screenshot failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const code = generateCode(codeLang, config)
@@ -130,7 +173,6 @@ export default function Playground() {
 
           <div style={{ padding: 20, flex: 1 }}>
             <Select label="Format" value={format} onChange={setFormat} options={[{label:'PNG',value:'png'},{label:'JPEG',value:'jpeg'},{label:'WebP',value:'webp'},{label:'PDF',value:'pdf'}]}/>
-
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Viewport</div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -144,20 +186,22 @@ export default function Playground() {
                 </div>
               </div>
             </div>
-
             <Select label="Wait for" value={waitFor} onChange={setWaitFor} options={[{label:'networkidle',value:'networkidle'},{label:'domloaded',value:'domloaded'},{label:'load',value:'load'}]}/>
-
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Delay (ms)</div>
               <input type="number" value={delay} onChange={e => setDelay(e.target.value)} style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 12, background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '8px 10px', color: '#f0f0f0', outline: 'none' }}/>
             </div>
-
             <Toggle label="Remove popups" sub="AI popup removal" value={removePopups} onChange={setRemovePopups}/>
             <Toggle label="Full page" sub="Capture entire scrollable height" value={fullPage} onChange={setFullPage}/>
           </div>
 
           <div style={{ padding: 20, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-            <button onClick={run} disabled={loading} style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 13, fontWeight: 600, color: '#000', background: loading ? '#009950' : '#00e87b', border: 'none', padding: '13px', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {!apiKey && (
+              <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#ff6b6b', marginBottom: 10, textAlign: 'center' }}>
+                No API key found. <Link href="/dashboard" style={{ color: '#00e87b' }}>Create one in dashboard</Link>
+              </div>
+            )}
+            <button onClick={run} disabled={loading || !apiKey} style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 13, fontWeight: 600, color: '#000', background: loading ? '#009950' : !apiKey ? '#333' : '#00e87b', border: 'none', padding: '13px', borderRadius: 8, cursor: loading || !apiKey ? 'not-allowed' : 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? (
                 <React.Fragment>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" style={{ animation: 'spin 0.8s linear infinite' }}><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/></svg>
@@ -171,7 +215,7 @@ export default function Playground() {
 
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050505', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'relative', minHeight: 0, overflow: 'hidden', padding: 24 }}>
-            {!hasRun && (
+            {!hasRun && !error && (
               <div style={{ textAlign: 'center' }}>
                 <div style={{ width: 64, height: 64, borderRadius: 16, background: '#111', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -187,6 +231,12 @@ export default function Playground() {
                 <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', marginTop: 4 }}>Loading page, waiting for {waitFor}</div>
               </div>
             )}
+            {error && !loading && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#ff6b6b', marginBottom: 8 }}>{error}</div>
+                <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444' }}>No credits charged for failed requests</div>
+              </div>
+            )}
             {result && !loading && (
               <React.Fragment>
                 <img src={result.screenshotUrl} alt="Screenshot" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}/>
@@ -194,7 +244,6 @@ export default function Playground() {
                   <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: 'rgba(0,232,123,0.1)', border: '1px solid rgba(0,232,123,0.2)', color: '#00e87b', padding: '4px 10px', borderRadius: 6 }}>200 OK</span>
                   <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: '#111', border: '1px solid rgba(255,255,255,0.07)', color: '#888', padding: '4px 10px', borderRadius: 6 }}>{result.tookMs}ms</span>
                   {result.cached && <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: '#111', border: '1px solid rgba(255,255,255,0.07)', color: '#888', padding: '4px 10px', borderRadius: 6 }}>cached</span>}
-                  {result.popupsRemoved > 0 && <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: '#111', border: '1px solid rgba(255,255,255,0.07)', color: '#888', padding: '4px 10px', borderRadius: 6 }}>{result.popupsRemoved} popup{result.popupsRemoved > 1 ? 's' : ''} removed</span>}
                 </div>
                 <div style={{ position: 'absolute', bottom: 12, left: 12, fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444' }}>{result.width}×{result.height} · {result.size} KB · {format.toUpperCase()}</div>
               </React.Fragment>
