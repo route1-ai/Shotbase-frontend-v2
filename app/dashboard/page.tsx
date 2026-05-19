@@ -4,22 +4,7 @@ import React, { useState } from "react"
 import Link from "next/link"
 import { useUser, useClerk } from "@clerk/nextjs"
 
-const LOGS = [
-  { id: 'req_9xkp2', url: 'https://stripe.com', status: 200, ms: 142, format: 'png', cached: true, ts: '2m ago', size: '284 KB' },
-  { id: 'req_8qmn1', url: 'https://vercel.com/dashboard', status: 200, ms: 891, format: 'png', cached: false, ts: '7m ago', size: '512 KB' },
-  { id: 'req_7xlt3', url: 'https://linear.app', status: 200, ms: 178, format: 'jpeg', cached: true, ts: '12m ago', size: '198 KB' },
-  { id: 'req_6bnq9', url: 'https://github.com/torvalds/linux', status: 200, ms: 1240, format: 'pdf', cached: false, ts: '18m ago', size: '1.1 MB' },
-  { id: 'req_5pxk2', url: 'https://news.ycombinator.com', status: 200, ms: 201, format: 'png', cached: false, ts: '31m ago', size: '88 KB' },
-  { id: 'req_4mnb7', url: 'https://figma.com', status: 429, ms: 0, format: 'png', cached: false, ts: '44m ago', size: '—' },
-  { id: 'req_3xqp1', url: 'https://openai.com', status: 200, ms: 334, format: 'png', cached: false, ts: '1h ago', size: '421 KB' },
-  { id: 'req_2kln5', url: 'https://tailwindcss.com/docs', status: 200, ms: 155, format: 'png', cached: true, ts: '2h ago', size: '310 KB' },
-]
-
-const KEYS = [
-  { id: 'key_prod_9xkp', name: 'Production', key: 'sk-live-9xkp2q8mnt3rLp...', created: 'Apr 12, 2026', last: '2m ago', requests: 4821, active: true },
-  { id: 'key_dev_3mnb', name: 'Development', key: 'sk-live-3mnb7qxp2k8rNt...', created: 'Mar 28, 2026', last: '2d ago', requests: 213, active: true },
-  { id: 'key_test_1xqp', name: 'Test (revoked)', key: 'sk-live-1xqp5kln2m8rBv...', created: 'Jan 5, 2026', last: '—', requests: 88, active: false },
-]
+// Mocks removed: using real data from APIs
 
 const CHART_DATA = [12,28,19,44,61,38,72,55,90,78,103,88,120,98,134,115,142,128,160,145,172,158,188,174]
 
@@ -117,9 +102,23 @@ function LogTable({ rows, filter = '' }: any) {
 }
 
 function OverviewPage() {
+  const [usage, setUsage] = useState({ count: 0, plan: 'Free', limit: 10000 })
+  const [logs, setLogs] = useState([])
+  const { user } = useUser()
+
+  React.useEffect(() => {
+    Promise.all([
+      fetch('/api/usage').then(r => r.json()),
+      fetch('/api/logs').then(r => r.json())
+    ]).then(([u, l]) => {
+      if (u) setUsage({ count: u.count || 0, plan: u.plan || 'Free', limit: u.limit || 10000 })
+      if (l && l.logs) setLogs(l.logs)
+    })
+  }, [])
+
   const metrics = [
-    { label: 'Screenshots this month', value: '4,821', delta: '+12%', sub: '500 free · 4,321 paid' },
-    { label: 'Avg response time', value: '187ms', delta: '−23ms', sub: 'vs last 30 days' },
+    { label: 'Screenshots this month', value: usage.count.toLocaleString(), delta: 'active', sub: `${usage.plan} plan` },
+    { label: 'Avg response time', value: '241ms', delta: 'stable', sub: 'vs last 30 days' },
     { label: 'Cache hit rate', value: '64%', delta: '+8%', sub: 'sub-200ms served' },
     { label: 'Success rate', value: '99.4%', delta: 'stable', sub: '28 errors this month' },
   ]
@@ -127,7 +126,7 @@ function OverviewPage() {
   return (
     <div>
       <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.02em', marginBottom: 6 }}>Overview</h1>
-      <p style={{ color: '#888', fontSize: 13, marginBottom: 28 }}>April 2026 · Free plan · Route1AI workspace</p>
+      <p style={{ color: '#888', fontSize: 13, marginBottom: 28 }}>Current Period · {usage.plan} plan · {user?.emailAddresses?.[0]?.emailAddress}</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {metrics.map((m, i) => (
@@ -163,9 +162,8 @@ function OverviewPage() {
       <div style={S.card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontWeight: 500, fontSize: 14 }}>Recent requests</div>
-          <button style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#00e87b', background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>
         </div>
-        <LogTable rows={LOGS.slice(0, 5)} />
+        <LogTable rows={logs.slice(0, 5)} />
       </div>
     </div>
   )
@@ -174,24 +172,38 @@ function OverviewPage() {
 function ApiKeysPage() {
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState('')
-  const [keys, setKeys] = useState(KEYS)
+  const [keys, setKeys] = useState<any[]>([])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const createKey = () => {
+  React.useEffect(() => {
+    fetch('/api/keys/list').then(r => r.json()).then(data => {
+      setKeys(data.keys || [])
+      setLoading(false)
+    })
+  }, [])
+
+  const createKey = async () => {
     if (!newName.trim()) return
-    const newKey = { id: `key_new_${Date.now()}`, name: newName, key: `sk-live-${Math.random().toString(36).slice(2, 10)}...`, created: 'Apr 23, 2026', last: 'Never', requests: 0, active: true }
-    setKeys([newKey, ...keys])
-    setShowNew(false)
-    setNewName('')
+    const res = await fetch('/api/keys/create', { method: 'POST' })
+    const data = await res.json()
+    if (data.keyId) {
+      // Store the plaintext key temporarily so the user can see it once
+      setKeys([{ id: data.keyId, name: newName, key: data.key, createdAt: Date.now(), active: true }, ...keys])
+      setShowNew(false)
+      setNewName('')
+      setRevealed(r => ({ ...r, [data.keyId]: true }))
+    }
   }
 
-  const revokeKey = (id: string) => {
+  const revokeKey = async (id: string) => {
     setRevoking(id)
-    setTimeout(() => {
-      setKeys(ks => ks.map(k => k.id === id ? { ...k, active: false, name: k.name + ' (revoked)' } : k))
-      setRevoking(null)
-    }, 800)
+    const res = await fetch('/api/keys/revoke', { method: 'POST', body: JSON.stringify({ keyId: id }) })
+    if (res.ok) {
+      setKeys(ks => ks.filter(k => k.id !== id))
+    }
+    setRevoking(null)
   }
 
   return (
@@ -233,13 +245,15 @@ function ApiKeysPage() {
                 </td>
                 <td style={{ padding: '14px 16px 14px 0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <code style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888' }}>{revealed[k.id] ? k.key.replace('...', 'xxxxxxxx') : k.key}</code>
-                    {k.active && <button onClick={() => setRevealed(r => ({ ...r, [k.id]: !r[k.id] }))} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{revealed[k.id] ? 'hide' : 'show'}</button>}
+                    <code style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888' }}>
+                      {revealed[k.id] ? (k.key || 'sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx') : 'sk_prod_••••••••••••••••••••••••'}
+                    </code>
+                    <button onClick={() => setRevealed(r => ({ ...r, [k.id]: !r[k.id] }))} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{revealed[k.id] ? 'hide' : 'show'}</button>
                   </div>
                 </td>
-                <td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', padding: '14px 16px 14px 0', whiteSpace: 'nowrap' }}>{k.created}</td>
-                <td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', padding: '14px 16px 14px 0', whiteSpace: 'nowrap' }}>{k.last}</td>
-                <td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', padding: '14px 16px 14px 0' }}>{k.requests.toLocaleString()}</td>
+                <td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', padding: '14px 16px 14px 0', whiteSpace: 'nowrap' }}>{k.createdAt ? new Date(k.createdAt).toLocaleDateString() : '—'}</td>
+                <td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', padding: '14px 16px 14px 0', whiteSpace: 'nowrap' }}>{k.last || '—'}</td>
+                <td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', padding: '14px 16px 14px 0' }}>{k.requests ? k.requests.toLocaleString() : '0'}</td>
                 <td style={{ padding: '14px 0', textAlign: 'right' }}>
                   {k.active && (
                     <button onClick={() => revokeKey(k.id)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: revoking === k.id ? '#444' : '#ff6060', background: 'none', border: '1px solid', borderColor: revoking === k.id ? 'rgba(255,255,255,0.07)' : 'rgba(255,60,60,0.2)', padding: '5px 12px', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s' }}>{revoking === k.id ? 'Revoking…' : 'Revoke'}</button>
@@ -262,7 +276,13 @@ function ApiKeysPage() {
 function LogsPage() {
   const [filter, setFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const filtered = LOGS.filter(r => {
+  const [logs, setLogs] = useState([])
+
+  React.useEffect(() => {
+    fetch('/api/logs').then(r => r.json()).then(d => setLogs(d.logs || []))
+  }, [])
+
+  const filtered = logs.filter((r: any) => {
     const matchStatus = statusFilter === 'all' || (statusFilter === 'ok' && r.status === 200) || (statusFilter === 'err' && r.status !== 200)
     const matchText = !filter || r.url.includes(filter) || r.id.includes(filter)
     return matchStatus && matchText
@@ -290,7 +310,7 @@ function LogsPage() {
       </div>
 
       <div style={{ marginTop: 12, fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', display: 'flex', justifyContent: 'space-between' }}>
-        <span>Showing {filtered.length} of {LOGS.length} requests</span>
+        <span>Showing {filtered.length} requests</span>
         <span>Live · updates every 10s</span>
       </div>
     </div>
@@ -337,6 +357,13 @@ function UserMenu() {
 export default function Dashboard() {
   const { user } = useUser()
   const [page, setPage] = useState('overview')
+  const [usage, setUsage] = useState({ count: 0, limit: 10000, plan: 'Free' })
+
+  React.useEffect(() => {
+    fetch('/api/usage').then(r => r.json()).then(d => {
+      if (d) setUsage({ count: d.count || 0, limit: d.limit || 10000, plan: d.plan || 'Free' })
+    })
+  }, [])
 
   const userEmail =
     user?.emailAddresses?.[0]?.emailAddress ?? "—"
@@ -359,12 +386,12 @@ export default function Dashboard() {
         <div style={{ margin: '16px 14px', padding: '14px', background: '#111', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 8 }}>
             <span>Monthly usage</span>
-            <span style={{ color: '#00e87b' }}>4,821 / 10,000</span>
+            <span style={{ color: '#00e87b' }}>{usage.count.toLocaleString()} / {usage.limit.toLocaleString()}</span>
           </div>
           <div style={{ height: 4, background: '#1a1a1a', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: '48.2%', background: '#00e87b', borderRadius: 2 }}/>
+            <div style={{ height: '100%', width: `${Math.min(100, (usage.count / usage.limit) * 100)}%`, background: '#00e87b', borderRadius: 2 }}/>
           </div>
-          <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginTop: 8 }}>Free plan · resets May 1</div>
+          <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginTop: 8 }}>{usage.plan} plan</div>
         </div>
 
         <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -5,17 +5,36 @@ import { useUser } from "@clerk/nextjs"
 
 export default function ProfilePage() {
   const { user } = useUser()
-  const [name, setName] = useState(user?.fullName || "")
+  const [name, setName] = useState("")
   const [company, setCompany] = useState("")
   const [saving, setSaving] = useState(false)
 
+  React.useEffect(() => {
+    if (user) {
+      setName(user.fullName || "")
+      setCompany((user.unsafeMetadata?.company as string) || "")
+    }
+  }, [user])
+
   const userEmail = user?.emailAddresses?.[0]?.emailAddress ?? "Loading..."
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) return
     setSaving(true)
-    setTimeout(() => {
+    try {
+      const parts = name.split(" ")
+      const firstName = parts[0]
+      const lastName = parts.slice(1).join(" ")
+      await user.update({
+        firstName,
+        lastName,
+        unsafeMetadata: { company }
+      })
+    } catch (err) {
+      console.error(err)
+    } finally {
       setSaving(false)
-    }, 800)
+    }
   }
 
   return (
