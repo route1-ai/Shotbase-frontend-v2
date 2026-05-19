@@ -194,7 +194,7 @@ const CONTENT: Record<string, () => React.ReactNode> = {
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>SDKs</div>
       <h1>MCP Server</h1>
-      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server. Give your AI agents the ability to browse and screenshot any URL with zero setup.</p>
+      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">Model Context Protocol</a> (MCP) server. Give your AI agents the ability to browse and screenshot any URL with zero setup.</p>
       <h2>Installation</h2>
       <CodeBlock lang="bash" code={`npx @shotbase/mcp-server --api-key sk-live-...`}/>
       <h2>Claude Desktop config</h2>
