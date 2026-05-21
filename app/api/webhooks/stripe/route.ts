@@ -5,6 +5,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
   apiVersion: '2023-10-16' as any,
 })
 
+// Map Stripe price IDs → plan names (must match STRIPE_PRICE_* env vars)
+function getPlanFromPriceId(priceId: string | null | undefined): string {
+  if (!priceId) return 'Free'
+  if (priceId === process.env.STRIPE_PRICE_STARTER) return 'starter'
+  if (priceId === process.env.STRIPE_PRICE_PRO)     return 'pro'
+  if (priceId === process.env.STRIPE_PRICE_SCALE)   return 'scale'
+  return 'pro' // unknown price → default to pro
+}
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature') as string
@@ -37,30 +46,44 @@ export async function POST(req: Request) {
         const customerId = session.customer as string
         const subscriptionId = session.subscription as string
         const clerkId = session.metadata?.clerk_id
-        
+
+        // Resolve plan from the purchased price
+        let plan = 'pro'
+        if (subscriptionId) {
+          try {
+            const sub = await stripe.subscriptions.retrieve(subscriptionId)
+            const priceId = sub.items.data[0]?.price?.id
+            plan = getPlanFromPriceId(priceId)
+          } catch (err) {
+            console.error('Could not retrieve subscription for plan mapping:', err)
+          }
+        }
+
         if (clerkId && customerId) {
           await supabase
             .from('users')
-            .update({ 
+            .update({
               stripe_customer_id: customerId,
               stripe_subscription_id: subscriptionId,
-              plan: 'Pro' // Default to Pro, you can map priceId to plan name later
+              plan,
             })
             .eq('clerk_id', clerkId)
         }
         break
       }
-      
+
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
         const status = subscription.status
+        const priceId = subscription.items.data[0]?.price?.id
+        const plan = status === 'active' ? getPlanFromPriceId(priceId) : 'Free'
 
         await supabase
           .from('users')
-          .update({ 
+          .update({
             stripe_subscription_id: subscription.id,
-            plan: status === 'active' ? 'Pro' : 'Free'
+            plan,
           })
           .eq('stripe_customer_id', customerId)
         break
