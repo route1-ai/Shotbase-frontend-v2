@@ -80,7 +80,7 @@ export default function BillingPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         <div style={{ background: '#050505', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Starter</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>$29<span style={{ fontSize: 14, color: '#888', fontWeight: 400 }}>/mo</span></div>
+          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>$9<span style={{ fontSize: 14, color: '#888', fontWeight: 400 }}>/mo</span></div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', fontSize: 13, color: '#888', flex: 1 }}>
             <li style={{ marginBottom: 8 }}>✓ 50,000 requests</li>
             <li style={{ marginBottom: 8 }}>✓ Email support</li>
@@ -97,7 +97,7 @@ export default function BillingPage() {
         <div style={{ background: '#050505', border: '1px solid rgba(0,232,123,0.3)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', position: 'relative' }}>
           <div style={{ position: 'absolute', top: -10, right: 24, background: '#00e87b', color: '#000', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Popular</div>
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Pro</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>$99<span style={{ fontSize: 14, color: '#888', fontWeight: 400 }}>/mo</span></div>
+          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>$19<span style={{ fontSize: 14, color: '#888', fontWeight: 400 }}>/mo</span></div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', fontSize: 13, color: '#888', flex: 1 }}>
             <li style={{ marginBottom: 8, color: '#f0f0f0' }}>✓ 250,000 requests</li>
             <li style={{ marginBottom: 8 }}>✓ Priority support</li>
@@ -114,7 +114,7 @@ export default function BillingPage() {
 
         <div style={{ background: '#050505', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Scale</div>
-          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>$399<span style={{ fontSize: 14, color: '#888', fontWeight: 400 }}>/mo</span></div>
+          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>$49<span style={{ fontSize: 14, color: '#888', fontWeight: 400 }}>/mo</span></div>
           <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px 0', fontSize: 13, color: '#888', flex: 1 }}>
             <li style={{ marginBottom: 8 }}>✓ 1,500,000 requests</li>
             <li style={{ marginBottom: 8 }}>✓ 24/7 Slack support</li>
