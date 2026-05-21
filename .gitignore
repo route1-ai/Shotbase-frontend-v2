@@ -43,3 +43,8 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# local scratch / non-frontend files
+/shotbase-backend-changes/
+/tmp-extract/
+/test-unkey.js
