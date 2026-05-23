@@ -144,113 +144,247 @@ These are not optional. An unmetered AI-extraction endpoint with no rate limit i
 
 **Action:** ✋ sign up for free accounts at ScreenshotOne and Browserless. Screenshot every page of their dashboards. Put screenshots in a Notion doc called "Dashboard Inspiration." 2 hours, one evening.
 
-### 3.3 New IA — one shell at `/dashboard/*`
+### 3.3 The scalability principle — read this before designing
+
+> **Group the sidebar by user intent, not by feature. New features absorb into existing top-level items as tabs or sub-pages. They never spawn new top-level nav items.**
+
+The single biggest dashboard mistake solo founders make is starting with their 6 current features, putting them all in the sidebar as siblings, and discovering by month 6 that the sidebar has 14 items and every release sparks "where does this go?" arguments.
+
+Three rules that keep the sidebar quiet as the product grows:
+
+1. **Cap the top nav at 7 ± 1 items, ever.** If you'd need to add an 8th, refactor first — find which existing item the new feature is actually a child of, and put it there as a tab.
+2. **Group items by what the user *came to do*** (Overview / Develop / Monitor / Resources / Settings), not by what they technically are. A `/screenshots-extracted` data table is a MONITOR thing whether you call it "Extractions" or "Results."
+3. **Settings is a collapsible sub-tree with its own internal IA.** Everything administrative (profile, billing, security, team, storage, regions, notifications) lives there. New admin features stay invisible until clicked.
+
+Apply this rule rigorously and the dashboard at 50 features looks as calm as it does at 5.
+
+### 3.4 What we steal from each competitor
+
+(Names match the 5 you captured in the "Inspirations for user dashboard" Notion doc.)
+
+| From | Steal |
+|---|---|
+| **Urlbox** | The 3-step `/welcome` onboarding flow that personalizes the dashboard before the user sees it. Their density on "Renders" and "Options" — that's the power-user surface we'll keep behind a "Show advanced" toggle. |
+| **ScreenshotOne** | Indie-friendly density (low chrome, high information). The placement of code samples on every page. |
+| **Browserless** | The structural separation of *account home* (org-level settings) from *product home* (the dashboard) — gives us a place for Team/Billing/Subprocessors without polluting the product nav. |
+| **ApiFlash** | `/dashboard/get_started` first-run experience — make sure brand-new users see ONE thing on Overview: "make your first call, here's the curl with your key prefilled." |
+| **Microlink** | Brand confidence + nav minimalism. Their sidebar is *small* and the product still feels comprehensive. |
+| **Stripe** (reference) | Settings as a deep sub-tree with secondary nav. Grouping by section labels in the sidebar. |
+| **Resend** (reference) | Code samples are first-class on every page, not buried in docs. |
+| **Linear** (reference) | Collapsible sidebar UX, ⌘K everything, keyboard-first. |
+
+### 3.5 New IA — `/dashboard/*` grouped by user intent
+
+7 primary items in 3 groups, plus a collapsible Settings tree and external Resources links. **This is the final structure — features for the next 2 years fit inside it without growing the top nav.**
 
 ```
-/dashboard                       → Overview
-/dashboard/playground            → Interactive screenshot tool
-/dashboard/keys                  → API key management
-/dashboard/logs                  → Request log viewer
-/dashboard/webhooks              → Webhook endpoints
-/dashboard/usage                 → Usage & limits
-/dashboard/settings              → (redirects to /dashboard/settings/profile)
-/dashboard/settings/profile
-/dashboard/settings/billing
-/dashboard/settings/security
-/dashboard/settings/preferences
-/dashboard/settings/team         → (v2, link disabled in v1)
-/dashboard/settings/notifications
-/dashboard/trust                 → Trust Center (also public-linkable)
+OVERVIEW
+  /dashboard                          → Home (state-aware: empty / normal / alert)
+  /dashboard/playground               → Interactive screenshot + extract + markdown tester
+
+DEVELOP
+  /dashboard/keys                     → API keys + IP allowlist + scopes
+  /dashboard/integrations             → LangChain, Vercel AI SDK, Stagehand, Claude Skill, n8n, MCP
+
+MONITOR
+  /dashboard/logs                     → Request log viewer
+  /dashboard/webhooks                 → Webhook endpoints + deliveries
+  /dashboard/usage                    → Consumption, plan, rate limits
+
+RESOURCES (external links, render as ↗)
+  /dashboard/trust                    → Trust Center (also public-linkable)
+  https://docs.shotbase.dev           → Docs (open in new tab)
+  https://discord.gg/shotbase         → Community (open in new tab)
+
+SETTINGS (collapsible sub-tree at bottom of sidebar)
+  /dashboard/settings                 → redirects to /settings/profile
+  /dashboard/settings/profile
+  /dashboard/settings/billing
+  /dashboard/settings/security
+  /dashboard/settings/notifications
+  /dashboard/settings/team            → disabled link in v1, "Coming soon" badge
 ```
 
-Delete `/account/*` after migration. Add `next.config` redirects from old paths.
+Delete `/account/*` after migration. Add `next.config.ts` redirects from old `/account/*` paths.
 
-### 3.4 Layout
+### 3.6 Future feature absorption — where things go without growing the sidebar
+
+This is the proof the structure scales. Every plausible v2-v4 feature has a home:
+
+| Future feature | Where it goes | Top nav grows? |
+|---|---|---|
+| Video / MP4 capture | Playground → "Video" tab | ❌ |
+| Real-device matrix (iPhone, Android browsers) | Playground → "Device" option in the options drawer | ❌ |
+| Visual diff alerts / monitoring | Logs → "Watches" tab (or `/dashboard/logs/watches`) | ❌ |
+| Saved playground configs / Templates | Playground → "Templates" tab | ❌ |
+| HTML-to-image (render supplied markup) | Playground → "From HTML" tab | ❌ |
+| BYO S3 / GCS storage | Settings → Storage | ❌ |
+| Multi-region routing | Settings → Regions | ❌ |
+| Team management + invitations | Settings → Team (already reserved) | ❌ |
+| OAuth apps / public API | Keys → "OAuth apps" tab | ❌ |
+| Audit log viewer | Logs → "Audit" tab | ❌ |
+| Anomaly detection / alerts | Logs → "Alerts" tab | ❌ |
+| Cost forecasting / reports | Usage → "Forecast" tab | ❌ |
+| Custom branded screenshots / watermarks | Playground options → "Branding" | ❌ |
+| Webhook signing key rotation | Webhooks → existing page, "Signing keys" sub-section | ❌ |
+| Compliance certifications (SOC 2, HIPAA letters) | Trust Center page (already public) | ❌ |
+| New SDK languages (Go, Ruby, Java, PHP) | Integrations → cards in the existing grid | ❌ |
+| LangGraph / AutoGen / CrewAI plugins | Integrations → more cards | ❌ |
+
+Every plausible feature lands inside an existing top-level item as a tab or sub-page. **The sidebar at v4 still has the same 7 primary items.**
+
+### 3.7 Layout
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  [Logo  shotbase  v]   Search ⌘K       Status●   [User v]    │  ← TopBar (sticky, h=56)
-├─────────────┬────────────────────────────────────────────────┤
-│             │                                                 │
-│  Overview   │                                                 │
-│  Playground │                                                 │
-│  API Keys   │              Page content                       │
-│  Logs       │              (with breadcrumbs)                 │
-│  Webhooks   │                                                 │
-│  Usage      │                                                 │
-│             │                                                 │
-│  ───        │                                                 │
-│  Docs ↗     │                                                 │
-│  Trust ↗    │                                                 │
-│             │                                                 │
-│  Settings v │                                                 │
-│             │                                                 │
-└─────────────┴────────────────────────────────────────────────┘
-   w=220                  remaining width
+┌────────────────────────────────────────────────────────────────────┐
+│ [▣ shotbase  workspace ▾]   ⌘K search       ●Status   [👤 User ▾] │  ← TopBar (sticky h=56)
+├──────────────────┬─────────────────────────────────────────────────┤
+│                  │                                                  │
+│ ─OVERVIEW─       │                                                  │
+│  📊 Overview     │                                                  │
+│  🎮 Playground   │                                                  │
+│                  │                                                  │
+│ ─DEVELOP─        │                                                  │
+│  🔑 Keys         │            Page content                          │
+│  🔌 Integrations │            (with breadcrumbs + page tabs         │
+│                  │             if the page has internal tabs)       │
+│ ─MONITOR─        │                                                  │
+│  📜 Logs         │            Right rail (sticky, optional):        │
+│  🪝 Webhooks     │              contextual code sample              │
+│  📈 Usage        │              (curl / JS / Python / LangChain     │
+│                  │               / MCP) prefilled with active key   │
+│ ─RESOURCES─      │                                                  │
+│  🛡️ Trust   ↗    │                                                  │
+│  📖 Docs    ↗    │                                                  │
+│  💬 Discord ↗    │                                                  │
+│                  │                                                  │
+│  ⋮ (spacer)      │                                                  │
+│                  │                                                  │
+│ ⚙ Settings ▾     │                                                  │
+│  Profile         │                                                  │
+│  Billing         │                                                  │
+│  Security        │                                                  │
+│  Notifications   │                                                  │
+│  Team [soon]     │                                                  │
+│                  │                                                  │
+│ [user pill]      │                                                  │
+└──────────────────┴─────────────────────────────────────────────────┘
+   w=240                 remaining width (max 1280px)
 ```
 
-**Sidebar behavior:** collapsible to icon-only (w=56), state persists via localStorage. Active link highlighted with the existing `#00e87b` brand color.
+**Sidebar behavior**
+- Collapsible to icon-only (w=56), state persists in localStorage
+- Active link highlighted with `#00e87b` brand color
+- Section labels (OVERVIEW / DEVELOP / MONITOR / RESOURCES) are 11px uppercase, muted
+- Sidebar items use 13px Inter, 8px vertical padding, lucide icons
+- Settings collapses by default; expanding it shows the sub-tree inline
 
-**Top bar:**
-- Left: workspace/org switcher (logo + name + chevron) — even if solo today, hook it up for future multi-org
-- Center: `⌘K` global search (jump to any page, search logs)
-- Right: status dot (green/yellow/red — wired to Better Uptime), user menu
+**Top bar**
+- Left: workspace switcher (logo + name + chevron) — wire it up even though solo today, makes multi-org v2 free
+- Center: `⌘K` global command palette (jump to any page, search logs by URL, create key)
+- Right: status dot wired to Better Uptime (green / yellow / red with tooltip), Clerk UserButton
 
-### 3.5 Per-page spec
+**Right-side rail (optional, per page)**
+- Pages that benefit from code samples (Overview, Playground, Keys) get a sticky right rail (w=360) with tabbed code (`curl` / `JS` / `Python` / `LangChain` / `MCP`)
+- All samples prefilled with the user's currently-selected API key
+- Single "Copy" button per tab
 
-**Overview** (`/dashboard`)
-- Empty state for first-time users: "You haven't made a request yet" with prominent curl snippet using their default API key
-- Filled state: 4 metric cards (Requests this month / Quota % / Avg latency / Error rate)
-- 30-day usage chart
-- Last 20 requests table (collapsible row → full request/response JSON)
-- Right-hand sticky panel: copy-paste-ready code samples (`curl` / `JS` / `Python` / `LangChain` / `MCP`)
+### 3.8 Onboarding flow — Urlbox-inspired 3 steps
 
-**Playground** (`/dashboard/playground`)
-- URL input + Options drawer (viewport, format, full-page, wait, popup-removal toggle, redact-pii, extract schema)
+Replace the existing `app/onboarding/page.tsx` with a 3-step wizard. **The point: personalize the dashboard before the user sees it, so the empty Overview is never truly empty.**
+
+```
+/onboarding (after Clerk signup, before Overview)
+  ├─ Step 1: "What are you building?"
+  │    ◯ AI agent / LLM-powered app          ← preselects MCP / LangChain samples
+  │    ◯ Web app (Next.js, React, etc.)      ← preselects JS / fetch samples
+  │    ◯ Backend service / cron / scraper    ← preselects Python / curl samples
+  │    ◯ Internal tool / no-code             ← preselects n8n / Zapier samples
+  │    ◯ Just exploring                      ← curl samples
+  │
+  ├─ Step 2: "Which integration do you want to start with?"
+  │    Cards (the choice from Step 1 is pre-highlighted):
+  │    [ LangChain ] [ Vercel AI SDK ] [ Stagehand ] [ Claude Skill ]
+  │    [ MCP ]       [ n8n ]           [ curl ]      [ SDK only ]
+  │
+  ├─ Step 3: "Your API key is ready"
+  │    • Show key once with a one-click copy button
+  │    • Show the chosen integration's exact code snippet, prefilled with the key
+  │    • Big green button: "Run this now in Playground →" (drops them into /dashboard/playground with the snippet pre-loaded and one click to execute)
+  │    • Secondary link: "Skip to dashboard"
+  │
+  └─ → /dashboard
+```
+
+What this buys us:
+- The Overview "empty state" is never empty — it shows the integration the user actually picked
+- The right-rail code samples are pre-sorted by their use case
+- We capture intent data we can use for product analytics (which segment converts best)
+- Time-to-first-screenshot drops to under 60 seconds
+
+### 3.9 Per-page spec
+
+**Overview** (`/dashboard`) — state-aware
+- *Empty state* (no requests yet): Hero "Make your first call" card with the chosen integration's prefilled snippet + "Run in Playground" CTA. One secondary card linking to docs.
+- *Normal state* (has requests): 4 metric cards (Requests this month / Quota % / Avg latency / Error rate) + 30-day usage chart + Last 20 requests table.
+- *Alert state* (Sentry/Better Uptime reports an active incident): red banner at top + degraded service notice + link to Status / Trust page.
+
+**Playground** (`/dashboard/playground`) — internal tabs ready for growth
+- Tabs: **Screenshot** (default) · **Extract** · **Markdown** · **Schedule** (v2 placeholder, disabled) · **Video** (v2 placeholder, disabled) · **Templates** (v2 placeholder, disabled)
+- URL input + Options drawer (viewport, format, full-page, wait, popup-removal, redact-pii, extract schema). "Show advanced" toggle hides Urlbox-style power-user options until requested.
 - Live preview (image + extracted JSON tabs)
-- "Copy as curl" / "Copy as JS" buttons under preview
-- "Save as template" → stores under Settings → Templates (v2)
+- "Copy as curl / JS / Python / LangChain / MCP" buttons under preview
 
-**API Keys** (`/dashboard/keys`)
+**Keys** (`/dashboard/keys`) — internal tabs for absorption
+- Tabs: **Active** (default) · **Integrations** *(if you want to push integrations here instead of as their own nav item, also valid)* · **Settings** (key-level: scopes, IP allowlist, expiry)
 - Table: Name, Created, Last used, Scopes, IP allowlist (badge if set), Actions
-- "Create key" → modal with name + scopes + optional IP allowlist
-- Reveal-once banner after creation (one-time copy)
+- "Create key" → modal with name + scopes + IP allowlist + optional expiry
+- Reveal-once banner after creation
 
-**Logs** (`/dashboard/logs`)
+**Integrations** (`/dashboard/integrations`) — card grid for distribution wrappers
+- Grid of cards: LangChain · Vercel AI SDK · Stagehand · Browser Use · Claude Skill · n8n · Zapier (v2) · Make (v2)
+- Each card: logo + 2-line install command + "Open docs ↗"
+- New SDKs/plugins just become more cards. No nav change needed.
+
+**Logs** (`/dashboard/logs`) — internal tabs for monitoring growth
+- Tabs: **Requests** (default) · **Webhook deliveries** *(or move to Webhooks page, both valid)* · **Audit** · **Watches** (v2 placeholder) · **Alerts** (v2 placeholder)
 - Filters: date range, endpoint, status, API key, search by URL substring
 - Table: Time, Endpoint, Status, Latency, Key, Region
 - Row click → side drawer with full request + response + audit trail
-- CSV export button
+- CSV export
 
 **Webhooks** (`/dashboard/webhooks`)
-- List of configured webhook URLs (event types, signing secret reveal, last delivery status)
+- List of configured endpoints (event types, signing secret reveal, last delivery status)
 - "Add webhook" form
 - Recent deliveries table with retry button
 
-**Usage** (`/dashboard/usage`)
-- Current plan card (with Upgrade CTA if not max tier)
-- Quota progress bar
-- Rate limit info
-- Per-endpoint breakdown table
-- Per-region breakdown chart
+**Usage** (`/dashboard/usage`) — internal tabs for growth
+- Tabs: **Current** (default) · **Plan** · **Forecast** (v2 placeholder)
+- Plan card + Upgrade CTA, quota progress bar, rate-limit info, per-endpoint breakdown, per-region breakdown
 
-**Settings** (`/dashboard/settings/*`) — secondary sidebar inside settings pages:
-- Profile / Billing / Security / Preferences / Notifications / Team (disabled in v1)
+**Trust Center** (`/dashboard/trust` — also public at `shotbase.dev/trust`)
+- Encryption posture, subprocessors list, compliance roadmap (honest "in progress" labels), incident history, security contact
 
-**Trust Center** (`/dashboard/trust` — also public)
-- Encryption posture, subprocessors list, certifications roadmap, incident history, security contact
+**Settings** (`/dashboard/settings/*`) — secondary sidebar inside the settings shell
+- Profile · Billing · Security · Notifications · Team (disabled, "Coming soon")
+- New admin features (Storage, Regions, API keys policy, IP allowlist defaults) become more entries here without touching the primary sidebar
 
-### 3.6 Component reuse
+### 3.10 Component reuse + look-and-feel
 
-Use existing shadcn + Base UI components. Don't introduce a new component library. Keep the `#00e87b` brand green. Match the dark aesthetic from the current `/dashboard/page.tsx`.
+- Use existing shadcn + Base UI components. Don't introduce a new component library.
+- Keep `#00e87b` brand green for primary actions and active nav.
+- Match the dark aesthetic from the current `app/dashboard/page.tsx`.
+- Lucide icons everywhere (`Home`, `Play`, `Key`, `Plug`, `ScrollText`, `Webhook`, `BarChart3`, `Shield`, `BookOpen`, `MessageCircle`, `Settings`).
+- Keyboard-first: `⌘K` opens command palette, `g d` jumps to Dashboard, `g p` to Playground, `g k` to Keys, etc.
 
-### 3.7 Frontend ↔ backend wiring rules
+### 3.11 Frontend ↔ backend wiring rules
 
-- All data fetches go through one TanStack Query / SWR layer in `lib/api.ts` — no `fetch` calls scattered in components
-- Every page handles three states explicitly: loading skeleton / empty state / error toast
-- Mutations (create key, revoke, add webhook) use optimistic updates
-- Errors from API surface as toast notifications via `sonner` (or existing toast lib)
+- All data fetches go through one TanStack Query layer in `lib/api.ts` — no `fetch` calls scattered in components
+- Every page handles three states explicitly: **loading skeleton** / **empty state** / **error toast**
+- Mutations (create key, revoke, add webhook) use optimistic updates with rollback on error
+- Errors surface as toast notifications via `sonner` (or existing toast lib) AND get logged to Sentry with user context
 - Loading skeletons match the final layout shape (no jarring CLS)
+- The right-rail code samples are a single `<CodeSample />` component that takes `endpoint`, `params`, and `currentKey` — used identically on Overview / Playground / Keys / Integrations
 
 ---
 
