@@ -102,7 +102,22 @@ Anything not on this list is in `someday.md`. Scope is closed until launch.
 | B1 | Commit + push `proxy.ts` (Clerk redirect fix) + `app/api/webhooks/clerk/route.ts` (500 → 400/503) | 15 min | ✋ |
 | B2 | Decide canonical pricing: `$29/$99/$399` (billing page) vs `$9/$19/$49` (live marketing) — kill the other | 30 min | ✋ |
 
-**Scope total: 25 items + 6 ops setup + 2 immediate fixes. Solo-buildable in 4 weeks.**
+### 2.8 Security & abuse prevention (table stakes for an API product)
+
+These are not optional. An unmetered AI-extraction endpoint with no rate limit is one viral tweet away from a $10K bill.
+
+| # | Item | Effort | Owner |
+|---|---|---|---|
+| S1 | **Rate limiting** on every API route — IP-based + API-key-based, Upstash Redis (already in stack). Exponential backoff on auth endpoints. Per-plan request budgets enforced server-side. | 1 d | 🤖 |
+| S2 | **Security headers** — `Content-Security-Policy`, `Strict-Transport-Security` (HSTS preload), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`. Configure in `next.config.ts` `headers()`. | 0.5 d | 🤖 |
+| S3 | **Spend alerts + hard caps** — set monthly hard caps and email alerts on every paid API: Vercel AI Gateway, Anthropic/OpenAI (whichever powers `/extract`), Railway, Vercel Functions, Supabase, Unkey. **Set BEFORE launch, not after.** | 1 h | 🔧 |
+| S4 | **Zod input validation** on every API route — never trust client input. Validate type, length, format, range on both client and server. Reject malformed payloads with 400 before any DB/LLM call. | 1 d | 🤖 |
+| S5 | **Bot protection on signup/login** — enable Clerk's built-in bot detection (Cloudflare Turnstile). Catches scripted account creation. | 30 min | 🔧 |
+| S6 | **Cookie consent banner** — GDPR requires it for EU users. Use `react-cookie-consent` or Vercel's analytics-cookie template. Honor the choice (don't fire analytics if rejected). | 0.5 d | 🎨 |
+| S7 | **Pre-launch security audit pass** — run the prompts in Appendix §11 against the codebase, log findings to `security-audit.md`, fix every High/Critical before launch. | 1 d | 🤖 |
+| S8 | **Secret audit** — install `gitleaks` and run on full history; verify frontend bundle has no leaked keys (`pnpm build && grep -r "sk-\|API_KEY\|SECRET\|TOKEN" .next/static/`); confirm `.env*` are all gitignored; sanitize secrets from logs/error messages. | 0.5 d | 🤖 |
+
+**Scope total: 33 items + 6 ops setup + 2 immediate fixes. Solo-buildable in 4 weeks.**
 
 ---
 
@@ -247,19 +262,19 @@ Day-by-day. Each item shows owner.
 
 | Day | Tasks |
 |---|---|
-| **1 (Mon)** | ✋ B1 commit/push bug fixes • ✋ B2 decide pricing • 🔧 O1 Sentry • 🔧 O2 Better Uptime • 🔧 O3 Vercel Agent • 🤖 O6 waitlist wiring • 🎨 rewrite landing hero to new tagline |
-| **2 (Tue)** | 🎨 U1 + U2 build unified `/dashboard/*` shell + migrate account routes (one focused day on shell only) |
-| **3 (Wed)** | 🎨 U3 Overview + Playground pages |
+| **1 (Mon)** | ✋ B1 commit/push bug fixes • ✋ B2 decide pricing • 🔧 O1 Sentry • 🔧 O2 Better Uptime • 🔧 O3 Vercel Agent • 🔧 **S3 spend caps/alerts (1 hr — do this BEFORE any other code)** • 🤖 O6 waitlist wiring • 🎨 rewrite landing hero to new tagline |
+| **2 (Tue)** | 🎨 U1 + U2 build unified `/dashboard/*` shell + migrate account routes • 🤖 **S2 security headers in `next.config.ts`** (~30 min, slot in) |
+| **3 (Wed)** | 🎨 U3 Overview + Playground pages • 🔧 **S5 Clerk bot protection** (toggle, 30 min) |
 | **4 (Thu)** | 🤖 W2 `/markdown` endpoint + 🤖 W4 idempotency keys |
-| **5 (Fri)** | 🤖 W1 `/extract` start — schema validation + Vercel AI Gateway integration |
-| **6 (Sat)** | 🤖 W1 `/extract` finish + tests |
+| **5 (Fri)** | 🤖 **S1 rate limiting** (Upstash Redis sliding window per route + per key) — **do this before `/extract` ships** |
+| **6 (Sat)** | 🤖 W1 `/extract` start — schema validation + Vercel AI Gateway integration • 🤖 **S4 Zod validation on every new endpoint as we go** |
 | **7 (Sun)** | ✋ rest / weekly review / write Week 1 LinkedIn recap |
 
 ### Week 2 — Polish + remaining wedge + compliance core
 
 | Day | Tasks |
 |---|---|
-| **8 (Mon)** | 🤖 P1 PDF • 🤖 P2 cookie-banner integration • 🤖 W5 vision-ready response |
+| **8 (Mon)** | 🤖 W1 `/extract` finish + tests (carries over from Sat) • 🤖 P1 PDF • 🤖 P2 cookie-banner integration • 🤖 W5 vision-ready response • 🎨 **S6 cookie consent banner** |
 | **9 (Tue)** | 🤖 W3 MCP polish + publish |
 | **10 (Wed)** | 🎨 U3 API Keys + Logs pages + 🎨 U4 wiring |
 | **11 (Thu)** | 🎨 U3 Webhooks + Usage pages |
@@ -283,8 +298,8 @@ Day-by-day. Each item shows owner.
 
 | Day | Tasks |
 |---|---|
-| **22 (Mon)** | ✋ Record Veo 3 demo (60s — agent uses Shotbase MCP to extract product prices from a page) |
-| **23 (Tue)** | ✋ Product Hunt assets: gif, 5 screenshots, tagline copy, first comment drafted |
+| **22 (Mon)** | 🤖 **S7 security audit pass** — run prompts from Appendix §11, log to `security-audit.md`, fix every High/Critical • 🤖 **S8 secret audit** (gitleaks + frontend bundle scan) |
+| **23 (Tue)** | ✋ Record Veo 3 demo (60s — agent uses Shotbase MCP to extract product prices from a page) • ✋ Product Hunt assets: gif, 5 screenshots, tagline copy, first comment drafted |
 | **24 (Wed)** | ✋ Hacker News Show HN draft + 20 LinkedIn build-in-public backlog posts |
 | **25 (Thu)** | ✋ Outreach: DM 30 LangChain/MCP power users you've engaged during build phase |
 | **26 (Fri)** | ✋ Soft launch to waitlist — give them 48h head start |
@@ -380,10 +395,11 @@ Day-by-day. Each item shows owner.
 
 ### ✅ YES — in scope
 - AI-agents wedge positioning
-- 25-item feature set (W1-W5, P1-P2, D1-D6, A1-A8, U1-U4)
+- 33-item feature set (W1-W5, P1-P2, D1-D6, A1-A8, U1-U4, **S1-S8**)
 - Dashboard unification at `/dashboard/*`
 - Build-in-public on LinkedIn during Weeks 1-3
 - Compliance-ready architecture (NOT certification)
+- **Security & abuse prevention (S1-S8) — non-optional for an API product**
 - Buffer/Typefully for cross-posting
 - Sentry + Better Uptime + Vercel Agent for ops
 
@@ -421,13 +437,14 @@ In order:
 2. ✋ B1: `git add proxy.ts app/api/webhooks/clerk/route.ts && git commit -m "fix: redirect unauthed users + harden clerk webhook" && git push`
 3. ✋ Verify deploy on shotbase.dev — `/dashboard` should redirect to `/signin` instead of 404
 4. ✋ B2: decide pricing (recommend $29/$99/$399 for AI-agent positioning; the $9/$19/$49 indie ladder is too cheap to fund Vercel Enterprise + Supabase Pro you'll need next year)
-5. 🔧 Install Sentry: `npx @sentry/wizard@latest -i nextjs`
-6. 🔧 Set up Better Uptime monitor on shotbase.dev + 3 API endpoints
-7. 🔧 Sign up Vercel Agent (one toggle in Vercel dashboard)
-8. 🔧 Sign up Loops.so or Resend; wire to landing waitlist form
-9. ✋ Sign up free tiers at ScreenshotOne + Browserless; screenshot their dashboards into a Notion doc
-10. 🤖 Hand the dashboard redesign spec (§3) to Claude Code — give it this plan and say "execute U1 + U2 for me; ask before deleting `/account/*`."
-11. ✋ Write Day 1 LinkedIn post: "Day 1 of building Shotbase — the screenshot API for AI agents. Here's what I'm shipping and why I think incumbents can't follow."
+5. 🔧 **S3 spend caps — do this BEFORE writing any new code today.** Set monthly hard caps + email alerts on: Vercel (billing → spend management), Anthropic/OpenAI dashboard, Railway (project → settings → usage limits), Supabase (org → billing → spend cap), Unkey (workspace → billing). 1 hour of clicking. **This is the single best ROI hour of the entire 4 weeks.**
+6. 🔧 Install Sentry: `npx @sentry/wizard@latest -i nextjs`
+7. 🔧 Set up Better Uptime monitor on shotbase.dev + 3 API endpoints
+8. 🔧 Sign up Vercel Agent (one toggle in Vercel dashboard)
+9. 🔧 Sign up Loops.so or Resend; wire to landing waitlist form
+10. ✋ Sign up free tiers at ScreenshotOne + Browserless; screenshot their dashboards into a Notion doc
+11. 🤖 Hand the dashboard redesign spec (§3) to Claude Code — give it this plan and say "execute U1 + U2 for me; ask before deleting `/account/*`."
+12. ✋ Write Day 1 LinkedIn post: "Day 1 of building Shotbase — the screenshot API for AI agents. Here's what I'm shipping and why I think incumbents can't follow."
 
 ---
 
@@ -439,3 +456,41 @@ In order:
 > - If no → write it in `someday.md`. Look in 6 months.
 
 Scope is closed until launch.
+
+---
+
+## 11. Appendix — Pre-launch Security Audit Prompts
+
+Run these against the codebase during S7 (Week 4, Day 22). Log findings to `security-audit.md`; fix every High/Critical before launch. Hand each prompt to Claude Code with the repo context.
+
+### 11.1 Full security audit
+
+> Review this codebase as a security specialist. Check for: SQL injection, XSS, CSRF, broken authentication, insecure direct object references (IDOR), open redirects, server-side request forgery (SSRF) — especially in the `/api/playground/screenshot` proxy where user-supplied URLs are fetched server-side. List every vulnerability with file:line, severity (Critical/High/Medium/Low), and a concrete fix.
+
+### 11.2 Secret & environment audit
+
+> Scan the entire codebase for hardcoded API keys, tokens, passwords, and secrets. Check that all `.env*` files are gitignored. Check `git log --all -p` for accidentally committed secrets. Verify no sensitive values are exposed in frontend code (`process.env.X` in client components must be `NEXT_PUBLIC_*` only and must never include keys). Check API responses for accidental leakage of internal IDs, tokens, or PII.
+
+### 11.3 Security headers audit
+
+> Review HTTP security headers configured in `next.config.ts`. Verify presence and correctness of: Content-Security-Policy (with appropriate sources for Clerk, Stripe, Supabase, Vercel Analytics), Strict-Transport-Security (max-age ≥ 63072000, includeSubDomains, preload), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin, Permissions-Policy restricting camera/microphone/geolocation. Test the deployed site against [securityheaders.com](https://securityheaders.com) — target rating A or higher.
+
+### 11.4 Rate limiting audit
+
+> Verify every API route under `app/api/` has rate limiting. Confirm: (a) IP-based limits on unauthenticated routes, (b) API-key-based limits on authenticated routes, (c) per-plan request budgets enforced server-side, (d) exponential backoff on auth and webhook routes to prevent brute force, (e) the `/extract` and `/playground/screenshot` endpoints have stricter limits because they trigger expensive downstream calls. Use the Upstash Redis sliding-window pattern.
+
+### 11.5 Privacy & GDPR audit
+
+> Review the codebase for GDPR/CCPA compliance. List every piece of user data collected, where it's stored, retention duration, and the legal basis for processing. Confirm presence of: privacy policy, terms of service, DPA template, subprocessors list, cookie consent banner (with reject option that actually blocks analytics), `DELETE /api/account` endpoint that wipes user + screenshots + audit logs, configurable per-org retention. Flag any PII logged to Sentry, Vercel logs, or stored without redaction.
+
+### 11.6 Input validation audit
+
+> Verify every API route validates input with Zod (or equivalent) before any DB / LLM / external API call. For each route: list the schema, confirm rejection with 400 on malformed input, and verify the validation runs on both client and server. Pay special attention to: URL inputs (must be parseable URLs with allowed protocols only — block `file://`, `gopher://`, internal IPs, localhost), JSON schemas passed to `/extract` (must have bounded depth and field count), and any field used in DB queries or LLM prompts.
+
+### 11.7 Abuse scenarios
+
+> Walk through these abuse scenarios and confirm we have a defense for each: (1) someone scripts `/extract` and burns through the LLM budget — defense: rate limit + spend cap. (2) someone passes a `file://` URL to render a server file — defense: URL allowlist. (3) someone creates 10,000 accounts via headless browser — defense: Clerk bot protection. (4) someone uploads illegal content via the screenshot proxy as a cache poisoning attack — defense: retention policy + abuse-report endpoint. (5) someone DDoS's a single API key — defense: per-key rate limit + circuit breaker. For each, document the defense and where it lives in code.
+
+---
+
+Run all seven before launch. Anything Critical/High that can't be fixed blocks launch.
