@@ -72,7 +72,12 @@ export async function POST(req: Request) {
     const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY || 'playground_bypass'}`,
+        // The literal `playground_bypass` token is the purpose-built shortcut
+        // in the Railway backend's verifyKey. Clerk auth + plan-quota check
+        // above already gate this route, so the bypass doesn't widen the
+        // attack surface from the proxy side. Backend repo should be kept
+        // private so this token stays internal.
+        'Authorization': 'Bearer playground_bypass',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
