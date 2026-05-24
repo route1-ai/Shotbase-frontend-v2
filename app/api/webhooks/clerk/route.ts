@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET
   if (!secret) {
-    console.error('CLERK_WEBHOOK_SECRET is not set')
+    console.error('Clerk webhook not configured')
     return Response.json({ error: 'Webhook not configured' }, { status: 503 })
   }
 
