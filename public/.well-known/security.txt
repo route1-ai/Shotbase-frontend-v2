@@ -1,0 +1,5 @@
+Contact: mailto:security@shotbase.dev
+Expires: 2027-05-23T23:59:59Z
+Preferred-Languages: en
+Canonical: https://shotbase.dev/.well-known/security.txt
+Policy: https://github.com/route1-ai/Shotbase-frontend-v2/blob/main/SECURITY.md
