@@ -65,7 +65,7 @@ export default function Playground() {
   const [result, setResult] = useState<any>(null)
   const [hasRun, setHasRun] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [apiKey, setApiKey] = useState<string | null>(null)
+  const [codeCopied, setCodeCopied] = useState(false)
 
   useEffect(() => {
     // Keys no longer needed for the proxy route
@@ -121,6 +121,17 @@ export default function Playground() {
       setError(err.message || 'Screenshot failed. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCopyCode = async () => {
+    if (!navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
     }
   }
 
@@ -247,7 +258,13 @@ export default function Playground() {
                   <button key={l} onClick={() => setCodeLang(l)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, padding: '11px 16px', background: 'none', border: 'none', borderBottom: `2px solid ${codeLang === l ? '#00e87b' : 'transparent'}`, color: codeLang === l ? '#00e87b' : '#444', cursor: 'pointer', marginBottom: -1 }}>{l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}</button>
                 ))}
               </div>
-              <button onClick={() => navigator.clipboard?.writeText(code)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px' }}>Copy</button>
+              <button
+                onClick={handleCopyCode}
+                aria-label={codeCopied ? "Copied code" : "Copy code snippet"}
+                style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: codeCopied ? '#00e87b' : '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', transition: 'color 0.2s' }}
+              >
+                {codeCopied ? 'Copied!' : 'Copy'}
+              </button>
             </div>
             <pre style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, lineHeight: 1.7, padding: '16px', overflow: 'auto', maxHeight: 200, color: '#888', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{code}</pre>
           </div>
