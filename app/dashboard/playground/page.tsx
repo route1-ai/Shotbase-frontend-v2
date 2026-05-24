@@ -77,17 +77,23 @@ function Toggle({
   onChange,
   label,
   sub,
+  disabled = false,
+  lockedReason,
 }: {
   value: boolean
   onChange: (v: boolean) => void
   label: string
   sub?: string
+  disabled?: boolean
+  lockedReason?: string
 }) {
   // Whole row is clickable, not just the pill.
   return (
     <button
       type="button"
-      onClick={() => onChange(!value)}
+      onClick={() => { if (!disabled) onChange(!value) }}
+      disabled={disabled}
+      title={disabled ? lockedReason : undefined}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -99,16 +105,38 @@ function Toggle({
         borderBottomWidth: 1,
         borderBottomStyle: 'solid',
         borderBottomColor: IDLE_BORDER,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         textAlign: 'left',
         width: '100%',
         color: 'inherit',
+        opacity: disabled ? 0.55 : 1,
       }}
     >
       <div>
-        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: '#f0f0f0' }}>{label}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: '#f0f0f0' }}>{label}</div>
+          {disabled && (
+            <span
+              style={{
+                fontFamily: 'var(--font-ibm-plex)',
+                fontSize: 9,
+                background: '#1a1a1a',
+                color: '#666',
+                padding: '2px 6px',
+                borderRadius: 4,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontWeight: 600,
+              }}
+            >
+              Locked
+            </span>
+          )}
+        </div>
         {sub && (
-          <div style={{ fontSize: 11, color: '#444', fontFamily: 'var(--font-ibm-plex)' }}>{sub}</div>
+          <div style={{ fontSize: 11, color: disabled ? '#666' : '#444', fontFamily: 'var(--font-ibm-plex)' }}>
+            {disabled && lockedReason ? lockedReason : sub}
+          </div>
         )}
       </div>
       <div
@@ -302,6 +330,15 @@ function PlaygroundInner() {
   const [blockAds, setBlockAds] = useState(() => getInitial('ads', false, (v) => v === '1'))
   const [darkMode, setDarkMode] = useState(() => getInitial('dark', false, (v) => v === '1'))
   const [deviceScaleFactor, setDeviceScaleFactor] = useState(() => getInitial('dpr', 1, (v) => Number(v) || 1))
+
+  // PDF output is always a multi-page document — every printed page is the
+  // viewport-width capture of the scroll position. Until the renderer learns
+  // to clip a PDF to a single page, we force `fullPage` on when format is PDF
+  // and lock the toggle so users don't see a "viewport-only PDF" option that
+  // doesn't behave as expected.
+  useEffect(() => {
+    if (format === 'pdf' && !fullPage) setFullPage(true)
+  }, [format, fullPage])
 
   const [codeLang, setCodeLang] = useState<'curl' | 'js' | 'python'>('curl')
   const [loading, setLoading] = useState(false)
@@ -642,7 +679,14 @@ function PlaygroundInner() {
             <Toggle label="Remove popups" sub="AI popup removal" value={removePopups} onChange={setRemovePopups} />
             <Toggle label="Block ads & trackers" sub="20K+ rules applied" value={blockAds} onChange={setBlockAds} />
             <Toggle label="Dark mode" sub="prefers-color-scheme: dark" value={darkMode} onChange={setDarkMode} />
-            <Toggle label="Full page" sub="Capture entire scrollable height" value={fullPage} onChange={setFullPage} />
+            <Toggle
+              label="Full page"
+              sub="Capture entire scrollable height"
+              value={fullPage}
+              onChange={setFullPage}
+              disabled={format === 'pdf'}
+              lockedReason="PDF always captures the full scrollable document"
+            />
           </div>
 
           <div style={{ padding: 20, borderTop: `1px solid ${IDLE_BORDER}` }}>
