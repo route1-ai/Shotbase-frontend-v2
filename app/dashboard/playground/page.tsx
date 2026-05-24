@@ -796,36 +796,74 @@ function PlaygroundInner() {
             )}
             {result && !loading && (
               <React.Fragment>
-                {/* Image is always contained — full-page screenshots are scrolled in the lightbox, not here. */}
-                <button
-                  onClick={() => setExpanded(true)}
-                  title="Click to view full size"
-                  aria-label="Expand screenshot to full size"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    background: 'transparent',
-                    border: 'none',
-                    padding: 0,
-                    cursor: 'zoom-in',
-                    display: 'inline-block',
-                    lineHeight: 0,
-                  }}
-                >
-                  <img
-                    src={result.screenshotUrl}
-                    alt="Screenshot — click to expand"
+                {/* PDF format renders in an iframe (native PDF viewer); image formats use <img>.
+                    Either way, the preview is always contained — full size lives in the lightbox. */}
+                {format === 'pdf' ? (
+                  <div
                     style={{
-                      maxWidth: '100%',
-                      maxHeight: 'calc(100vh - 56px - 280px)',
-                      objectFit: 'contain',
+                      position: 'relative',
+                      width: '100%',
+                      maxWidth: 720,
+                      height: 'calc(100vh - 56px - 280px)',
                       borderRadius: 8,
                       border: `1px solid ${IDLE_BORDER}`,
                       boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-                      display: 'block',
+                      overflow: 'hidden',
+                      background: '#1a1a1a',
                     }}
-                  />
-                </button>
+                  >
+                    <iframe
+                      src={result.screenshotUrl}
+                      title="PDF preview"
+                      style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+                    />
+                    <button
+                      onClick={() => setExpanded(true)}
+                      title="Open full-size PDF view"
+                      aria-label="Expand PDF to full size"
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'zoom-in',
+                        // Click-overlay only catches the top portion so the inner PDF
+                        // controls (scroll, page nav) remain interactive.
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setExpanded(true)}
+                    title="Click to view full size"
+                    aria-label="Expand screenshot to full size"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'zoom-in',
+                      display: 'inline-block',
+                      lineHeight: 0,
+                    }}
+                  >
+                    <img
+                      src={result.screenshotUrl}
+                      alt="Screenshot — click to expand"
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: 'calc(100vh - 56px - 280px)',
+                        objectFit: 'contain',
+                        borderRadius: 8,
+                        border: `1px solid ${IDLE_BORDER}`,
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                        display: 'block',
+                      }}
+                    />
+                  </button>
+                )}
                 <div
                   style={{
                     position: 'absolute',
@@ -1060,7 +1098,7 @@ function PlaygroundInner() {
             </div>
           </div>
 
-          {/* Scrollable image area — supports tall full-page screenshots */}
+          {/* Scrollable area — image for raster formats, iframe for PDFs */}
           <div
             onClick={() => setExpanded(false)}
             style={{
@@ -1069,22 +1107,41 @@ function PlaygroundInner() {
               padding: 24,
               display: 'flex',
               justifyContent: 'center',
-              alignItems: 'flex-start',
+              alignItems: format === 'pdf' ? 'stretch' : 'flex-start',
             }}
           >
-            <img
-              src={result.screenshotUrl}
-              alt="Screenshot — full size"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxWidth: '100%',
-                height: 'auto',
-                borderRadius: 8,
-                border: `1px solid ${IDLE_BORDER}`,
-                boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
-                cursor: 'default',
-              }}
-            />
+            {format === 'pdf' ? (
+              <iframe
+                src={result.screenshotUrl}
+                title="Full-size PDF"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                style={{
+                  width: '100%',
+                  maxWidth: 1200,
+                  height: '100%',
+                  minHeight: 600,
+                  border: `1px solid ${IDLE_BORDER}`,
+                  borderRadius: 8,
+                  background: '#fff',
+                  boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+                }}
+              />
+            ) : (
+              <img
+                src={result.screenshotUrl}
+                alt="Screenshot — full size"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  borderRadius: 8,
+                  border: `1px solid ${IDLE_BORDER}`,
+                  boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+                  cursor: 'default',
+                }}
+              />
+            )}
           </div>
 
           {/* Hint footer */}
