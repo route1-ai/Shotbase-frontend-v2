@@ -406,23 +406,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const w = collapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W
 
+  // Outer is height: 100vh + overflow: hidden so <main> becomes the actual
+  // scroll container. Without this, content taller than the viewport made
+  // the whole *page* scrollable instead of <main> — mouse-wheel events landed
+  // on the body scrollbar (hidden via globals.css), so users couldn't see
+  // anything was scrolling and had to manually drag whichever inner
+  // overflow:auto element was visible. With outer locked, <main> + the
+  // sidebar's <nav> are both proper scroll containers and respond to wheel
+  // events natively.
   return (
-    <div style={{ display: "flex", width: "100%", minHeight: "100vh", background: "#050505", color: "#f0f0f0" }}>
+    <div style={{ display: "flex", width: "100%", height: "100vh", overflow: "hidden", background: "#050505", color: "#f0f0f0" }}>
       {/* ----- Sidebar ----- */}
       <aside
         style={{
           width: w,
-          minHeight: "100vh",
+          height: "100%",
           background: "#0a0a0a",
           borderRight: `1px solid ${BORDER}`,
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
           transition: "width 0.18s ease",
-          position: "sticky",
-          top: 0,
-          alignSelf: "flex-start",
-          height: "100vh",
         }}
       >
         <Logo collapsed={collapsed} />
@@ -488,7 +492,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ----- Main column ----- */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%", overflow: "hidden" }}>
         <header
           style={{
             height: TOPBAR_H,
