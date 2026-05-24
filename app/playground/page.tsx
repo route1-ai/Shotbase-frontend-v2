@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useId } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -52,6 +52,7 @@ function PillButton({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={title}
+      aria-pressed={active}
       style={{
         fontFamily: 'var(--font-ibm-plex)',
         fontSize,
@@ -84,6 +85,9 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
       style={{
         display: 'flex',
@@ -275,6 +279,11 @@ export default function Playground() {
   const { user } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
+
+  const urlInputId = useId()
+  const widthInputId = useId()
+  const heightInputId = useId()
+  const delayInputId = useId()
 
   // Initialize from query params (so configs are shareable + survive refresh)
   const getInitial = useCallback(
@@ -532,8 +541,10 @@ export default function Playground() {
           }}
         >
           <div style={{ padding: '20px 20px 0', borderBottom: `1px solid ${IDLE_BORDER}`, paddingBottom: 16 }}>
-            <div
+            <label
+              htmlFor={urlInputId}
               style={{
+                display: 'block',
                 fontFamily: 'var(--font-ibm-plex)',
                 fontSize: 11,
                 color: '#444',
@@ -543,9 +554,10 @@ export default function Playground() {
               }}
             >
               Target URL
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               <input
+                id={urlInputId}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && run()}
@@ -606,10 +618,20 @@ export default function Playground() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 4 }}>
+                  <label
+                    htmlFor={widthInputId}
+                    style={{
+                      display: 'block',
+                      fontFamily: 'var(--font-ibm-plex)',
+                      fontSize: 10,
+                      color: '#444',
+                      marginBottom: 4,
+                    }}
+                  >
                     Width
-                  </div>
+                  </label>
                   <input
+                    id={widthInputId}
                     type="number"
                     min={100}
                     max={3840}
@@ -629,10 +651,20 @@ export default function Playground() {
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 4 }}>
+                  <label
+                    htmlFor={heightInputId}
+                    style={{
+                      display: 'block',
+                      fontFamily: 'var(--font-ibm-plex)',
+                      fontSize: 10,
+                      color: '#444',
+                      marginBottom: 4,
+                    }}
+                  >
                     Height (auto)
-                  </div>
+                  </label>
                   <input
+                    id={heightInputId}
                     type="number"
                     min={100}
                     max={2160}
@@ -678,8 +710,10 @@ export default function Playground() {
             />
 
             <div style={{ marginBottom: 16 }}>
-              <div
+              <label
+                htmlFor={delayInputId}
                 style={{
+                  display: 'block',
                   fontFamily: 'var(--font-ibm-plex)',
                   fontSize: 11,
                   color: '#444',
@@ -689,8 +723,9 @@ export default function Playground() {
                 }}
               >
                 Delay (ms)
-              </div>
+              </label>
               <input
+                id={delayInputId}
                 type="number"
                 min={0}
                 max={30000}
@@ -951,7 +986,7 @@ export default function Playground() {
                 padding: '0 16px',
               }}
             >
-              <div style={{ display: 'flex' }}>
+              <div style={{ display: 'flex' }} role="tablist">
                 {(['curl', 'js', 'python'] as const).map((l) => (
                   <CodeTab key={l} active={codeLang === l} onClick={() => setCodeLang(l)}>
                     {l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}
@@ -1006,6 +1041,8 @@ function CodeTab({ active, onClick, children }: { active: boolean; onClick: () =
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      role="tab"
+      aria-selected={active}
       style={{
         fontFamily: 'var(--font-ibm-plex)',
         fontSize: 12,
