@@ -10,7 +10,7 @@ export async function GET() {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('Supabase env vars missing. Returning mock usage data.')
+      console.warn('Database not configured. Returning mock usage data.')
       return Response.json({ count: 0, plan: 'Free', limit: 10000 })
     }
 

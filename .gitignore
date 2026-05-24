@@ -48,3 +48,12 @@ next-env.d.ts
 /shotbase-backend-changes/
 /tmp-extract/
 /test-unkey.js
+/uploads/
+
+# strategy / planning artifacts — never commit
+PLAN.md
+ROADMAP.md
+NOTES.md
+*.plan.md
+security-audit.md
+someday.md
