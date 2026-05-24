@@ -66,6 +66,7 @@ export default function Playground() {
   const [hasRun, setHasRun] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [apiKey, setApiKey] = useState<string | null>(null)
+  const [copiedCode, setCopiedCode] = useState(false)
 
   useEffect(() => {
     // Keys no longer needed for the proxy route
@@ -125,6 +126,13 @@ export default function Playground() {
   }
 
   const code = generateCode(codeLang, config)
+
+  const handleCopyCode = () => {
+    if (!navigator.clipboard) return
+    navigator.clipboard.writeText(code)
+    setCopiedCode(true)
+    setTimeout(() => setCopiedCode(false), 2000)
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#050505', color: '#f0f0f0' }}>
@@ -247,7 +255,7 @@ export default function Playground() {
                   <button key={l} onClick={() => setCodeLang(l)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, padding: '11px 16px', background: 'none', border: 'none', borderBottom: `2px solid ${codeLang === l ? '#00e87b' : 'transparent'}`, color: codeLang === l ? '#00e87b' : '#444', cursor: 'pointer', marginBottom: -1 }}>{l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}</button>
                 ))}
               </div>
-              <button onClick={() => navigator.clipboard?.writeText(code)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px' }}>Copy</button>
+              <button onClick={handleCopyCode} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: copiedCode ? '#00e87b' : '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', transition: 'color 0.2s' }}>{copiedCode ? 'Copied!' : 'Copy'}</button>
             </div>
             <pre style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, lineHeight: 1.7, padding: '16px', overflow: 'auto', maxHeight: 200, color: '#888', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{code}</pre>
           </div>
