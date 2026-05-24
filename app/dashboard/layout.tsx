@@ -270,6 +270,45 @@ function UserMenu() {
   )
 }
 
+function QuotaWidget() {
+  const [usage, setUsage] = useState({ count: 0, plan: "Free", limit: 10000 })
+  useEffect(() => {
+    fetch("/api/usage")
+      .then((r) => r.json())
+      .then((u) => {
+        if (u) setUsage({ count: u.count || 0, plan: u.plan || "Free", limit: u.limit || 10000 })
+      })
+      .catch(() => {})
+  }, [])
+  const pct = Math.min(100, (usage.count / Math.max(1, usage.limit)) * 100)
+  const overHalf = pct > 50
+  return (
+    <Link
+      href="/dashboard/usage"
+      style={{
+        margin: "10px 14px 6px",
+        padding: 12,
+        background: "#111",
+        border: `1px solid ${BORDER}`,
+        borderRadius: 8,
+        display: "block",
+        textDecoration: "none",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", marginBottom: 6 }}>
+        <span>{usage.plan} plan</span>
+        <span style={{ color: pct > 80 ? "#ff9060" : "#00e87b" }}>{Math.round(pct)}%</span>
+      </div>
+      <div style={{ height: 4, background: "#1a1a1a", borderRadius: 2, overflow: "hidden", marginBottom: 6 }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 2 }} />
+      </div>
+      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: overHalf ? "#888" : "#444" }}>
+        {usage.count.toLocaleString()} / {usage.limit.toLocaleString()} requests
+      </div>
+    </Link>
+  )
+}
+
 function Logo({ collapsed }: { collapsed: boolean }) {
   return (
     <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "20px 14px 16px" : "20px 16px 16px", textDecoration: "none", justifyContent: collapsed ? "center" : "flex-start" }}>
@@ -382,6 +421,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
+        {!collapsed && <QuotaWidget />}
+
         <div style={{ borderTop: `1px solid ${BORDER}`, padding: collapsed ? "8px 10px" : "10px 12px" }}>
           <SettingsGroup collapsed={collapsed} pathname={pathname} />
         </div>
@@ -433,8 +474,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         >
           <Breadcrumbs pathname={pathname} />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span
-              title="System status"
+            <a
+              href="https://status.shotbase.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="System status — opens status page"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -445,27 +489,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 padding: "5px 10px",
                 border: `1px solid ${BORDER}`,
                 borderRadius: 6,
+                textDecoration: "none",
               }}
             >
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00e87b" }} />
               Operational
-            </span>
-            <Link
-              href="/playground"
+            </a>
+            <span
+              title="Press ⌘K (or Ctrl+K) anywhere — coming in next polish PR"
               style={{
+                display: "none",
+                alignItems: "center",
+                gap: 6,
                 fontFamily: "var(--font-ibm-plex)",
-                fontSize: 12,
-                color: "#00e87b",
-                background: "rgba(0,232,123,0.08)",
-                border: "1px solid rgba(0,232,123,0.25)",
-                padding: "6px 12px",
+                fontSize: 11,
+                color: "#666",
+                padding: "5px 10px",
+                border: `1px solid ${BORDER}`,
                 borderRadius: 6,
-                textDecoration: "none",
-                fontWeight: 500,
               }}
             >
-              Playground →
-            </Link>
+              ⌘K
+            </span>
             <UserMenu />
           </div>
         </header>
