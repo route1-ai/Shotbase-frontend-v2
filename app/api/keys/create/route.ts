@@ -20,7 +20,10 @@ export async function POST() {
       if (data?.plan) plan = data.plan.toLowerCase()
     }
 
-    const res = await fetch('https://api.unkey.dev/v1/keys.createKey', {
+    // Unkey v2 API (api.unkey.com/v2). The old api.unkey.dev/v1 host was
+    // decommissioned; ownerId was renamed to externalId; result is nested
+    // under `data`.
+    const res = await fetch('https://api.unkey.com/v2/keys.createKey', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
@@ -28,9 +31,9 @@ export async function POST() {
       },
       body: JSON.stringify({
         apiId: process.env.UNKEY_API_ID,
-        ownerId: userId,
+        externalId: userId,
         prefix: 'sk_live',
-        meta: { plan }, // backend reads this to apply correct rate limit
+        meta: { plan }, // Railway reads this to apply the correct rate limit
       })
     })
 
@@ -40,8 +43,8 @@ export async function POST() {
       return Response.json({ error: 'Failed to create key' }, { status: res.status })
     }
 
-    const data = await res.json()
-    return Response.json(data)
+    const body = await res.json()
+    return Response.json(body.data ?? body)
   } catch (err) {
     console.error('Failed to create Unkey API key:', err)
     return Response.json({ error: 'Internal Server Error' }, { status: 500 })
