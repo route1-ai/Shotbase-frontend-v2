@@ -31,6 +31,9 @@ const ICON = {
   logs: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>,
   webhooks: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="4" cy="11" r="2" stroke="currentColor" strokeWidth="1.3"/><circle cx="12" cy="11" r="2" stroke="currentColor" strokeWidth="1.3"/><circle cx="8" cy="4" r="2" stroke="currentColor" strokeWidth="1.3"/><path d="M6.5 5.5L5 9M9.5 5.5L11 9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>,
   usage: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 13V8M6 13V3M10 13v-7M14 13v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  templates: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/><rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.3"/></svg>,
+  explorer: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 4l3 4-3 4M8 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  insights: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-5 3 3 5-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><circle cx="14" cy="3" r="1.5" fill="currentColor"/></svg>,
   trust: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l5 2v4.5c0 2.8-2.2 5.3-5 6-2.8-.7-5-3.2-5-6V3.5l5-2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>,
   docs: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2.5h7l3 3v8H3v-11zM10 2.5v3h3" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M5.5 8h5M5.5 11h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>,
   discord: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 13c1 .5 2 .8 3 1l.6-1.2c-1-.3-1.6-.6-2-.8.2 0 .4-.2.6-.3 2 1 4 1 6 0 .2.1.4.3.6.3-.4.2-1 .5-2 .8L10 14c1-.2 2-.5 3-1 .5-3-.5-6-2-7.5L9 6.5h-2L6 5.5C4.5 7 3.5 10 3 13z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>,
@@ -48,7 +51,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "OVERVIEW",
     items: [
       { href: "/dashboard", label: "Overview", icon: ICON.overview },
-      { href: "/playground", label: "Playground", icon: ICON.playground },
+      { href: "/dashboard/playground", label: "Playground", icon: ICON.playground },
     ],
   },
   {
@@ -56,14 +59,17 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/dashboard/keys", label: "Keys", icon: ICON.keys },
       { href: "/dashboard/integrations", label: "Integrations", icon: ICON.integrations },
+      { href: "/dashboard/templates", label: "Templates", icon: ICON.templates },
+      { href: "/dashboard/api-explorer", label: "API Explorer", icon: ICON.explorer },
     ],
   },
   {
     label: "MONITOR",
     items: [
-      { href: "/dashboard/logs", label: "Logs", icon: ICON.logs },
+      { href: "/dashboard/logs", label: "Activity", icon: ICON.logs },
       { href: "/dashboard/webhooks", label: "Webhooks", icon: ICON.webhooks },
       { href: "/dashboard/usage", label: "Usage", icon: ICON.usage },
+      { href: "/dashboard/insights", label: "Insights", icon: ICON.insights },
     ],
   },
   {
@@ -515,7 +521,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <main style={{ flex: 1, padding: "32px 28px", overflowY: "auto" }}>{children}</main>
+        <main
+          style={{
+            flex: 1,
+            // Playground is full-bleed inside the dashboard shell — no padding.
+            padding: pathname.startsWith("/dashboard/playground") ? 0 : "32px 28px",
+            overflowY: "auto",
+          }}
+        >
+          {children}
+        </main>
       </div>
     </div>
   )
