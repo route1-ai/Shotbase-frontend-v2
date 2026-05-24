@@ -52,6 +52,8 @@ function PillButton({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={title}
+      aria-pressed={active}
+      className="focus-visible:ring-2 focus-visible:ring-[#00e87b] focus-visible:ring-offset-2 focus-visible:ring-offset-black outline-none"
       style={{
         fontFamily: 'var(--font-ibm-plex)',
         fontSize,
@@ -85,6 +87,9 @@ function Toggle({
     <button
       type="button"
       onClick={() => onChange(!value)}
+      role="switch"
+      aria-checked={value}
+      className="focus-visible:ring-2 focus-visible:ring-[#00e87b] focus-visible:ring-offset-2 focus-visible:ring-offset-black outline-none"
       style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -550,6 +555,7 @@ function PlaygroundInner() {
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && run()}
                 placeholder="https://..."
+                className="focus-visible:ring-2 focus-visible:ring-[#00e87b] outline-none"
                 style={{
                   flex: 1,
                   fontFamily: 'var(--font-ibm-plex)',
@@ -559,7 +565,6 @@ function PlaygroundInner() {
                   borderRadius: 7,
                   padding: '9px 12px',
                   color: '#f0f0f0',
-                  outline: 'none',
                 }}
               />
             </div>
@@ -615,6 +620,7 @@ function PlaygroundInner() {
                     max={3840}
                     value={width}
                     onChange={(e) => setWidth(e.target.value)}
+                    className="focus-visible:ring-2 focus-visible:ring-[#00e87b] outline-none"
                     style={{
                       width: '100%',
                       fontFamily: 'var(--font-ibm-plex)',
@@ -624,7 +630,6 @@ function PlaygroundInner() {
                       borderRadius: 7,
                       padding: '8px 10px',
                       color: '#f0f0f0',
-                      outline: 'none',
                     }}
                   />
                 </div>
@@ -639,6 +644,7 @@ function PlaygroundInner() {
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
                     placeholder="auto"
+                    className="focus-visible:ring-2 focus-visible:ring-[#00e87b] outline-none"
                     style={{
                       width: '100%',
                       fontFamily: 'var(--font-ibm-plex)',
@@ -648,7 +654,6 @@ function PlaygroundInner() {
                       borderRadius: 7,
                       padding: '8px 10px',
                       color: '#f0f0f0',
-                      outline: 'none',
                     }}
                   />
                 </div>
@@ -696,6 +701,7 @@ function PlaygroundInner() {
                 max={30000}
                 value={delay}
                 onChange={(e) => setDelay(e.target.value)}
+                className="focus-visible:ring-2 focus-visible:ring-[#00e87b] outline-none"
                 style={{
                   width: '100%',
                   fontFamily: 'var(--font-ibm-plex)',
@@ -705,7 +711,6 @@ function PlaygroundInner() {
                   borderRadius: 7,
                   padding: '8px 10px',
                   color: '#f0f0f0',
-                  outline: 'none',
                 }}
               />
             </div>
@@ -736,6 +741,9 @@ function PlaygroundInner() {
             <button
               onClick={run}
               disabled={loading || !user}
+              title="Run screenshot (⌘ + ↵)"
+              aria-label="Run screenshot (⌘ + ↵)"
+              className="focus-visible:ring-2 focus-visible:ring-[#00e87b] focus-visible:ring-offset-2 focus-visible:ring-offset-black outline-none"
               style={{
                 width: '100%',
                 fontFamily: 'var(--font-ibm-plex)',
