@@ -319,9 +319,13 @@ function Logo({ collapsed }: { collapsed: boolean }) {
   return (
     <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "20px 14px 16px" : "20px 16px 16px", textDecoration: "none", justifyContent: collapsed ? "center" : "flex-start" }}>
       <div style={{ width: 26, height: 26, background: "#00e87b", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-          <rect x="1" y="1" width="14" height="10" rx="2" stroke="#000" strokeWidth="1.5" />
-          <path d="M4 14h8M8 11v3" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
+        {/* Viewfinder / capture-bracket mark — four corner brackets + shutter dot. */}
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M2.5 4.5V2.5H4.5"   stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M11.5 2.5H13.5V4.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2.5 11.5V13.5H4.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M11.5 13.5H13.5V11.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="8" cy="8" r="1.7" fill="#000" />
         </svg>
       </div>
       {!collapsed && (
