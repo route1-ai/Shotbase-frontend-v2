@@ -26,8 +26,8 @@ export async function POST(req: Request) {
     }
 
     if (!process.env.STRIPE_SECRET_KEY) {
-      console.warn('STRIPE_SECRET_KEY missing. Cannot create checkout session.')
-      return Response.json({ error: 'Stripe configuration missing on server' }, { status: 500 })
+      console.warn('Billing not configured. Cannot create checkout session.')
+      return Response.json({ error: 'Billing configuration missing on server' }, { status: 500 })
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
