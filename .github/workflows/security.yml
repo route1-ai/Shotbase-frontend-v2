@@ -1,0 +1,59 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Daily 06:00 UTC catches new CVEs in pinned dependencies even when
+    # no code changes have happened in the repo.
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    name: npm audit (high+ only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: Install dependencies (without running audit during install)
+        run: npm ci --audit=false
+      - name: Audit production deps for High+ severity
+        run: npm audit --omit=dev --audit-level=high
+        # Dependabot handles moderate-severity findings via weekly PRs.
+        # CI fails only on High / Critical so it stays a real signal.
+
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    name: CodeQL (SAST)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"

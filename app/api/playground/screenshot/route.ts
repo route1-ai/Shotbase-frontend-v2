@@ -1,5 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
+import { ScreenshotRequestSchema, zodErrorResponse } from '@/lib/validation'
+import { validateSafeUrl, safeUrlReasonToMessage } from '@/lib/safe-url'
 
 // Monthly screenshot limits per plan. Must match limits surfaced in /api/usage.
 const PLAN_LIMITS: Record<string, number> = {
@@ -9,12 +11,34 @@ const PLAN_LIMITS: Record<string, number> = {
   scale: 1500000,
 }
 
+// Bound the upstream call so a hung render can't tie up a Vercel function slot.
+const RENDER_TIMEOUT_MS = 60_000
+
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // 1. Parse + validate the request body shape with Zod.
+  let rawBody: unknown
   try {
-    // Quota check before forwarding to Railway
+    rawBody = await req.json()
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+
+  const parsed = ScreenshotRequestSchema.safeParse(rawBody)
+  if (!parsed.success) return zodErrorResponse(parsed.error)
+  const body = parsed.data
+
+  // 2. SSRF guard — reject URLs that point at private / internal / metadata
+  //    destinations BEFORE forwarding anywhere or spending render credits.
+  const urlCheck = validateSafeUrl(body.url)
+  if (!urlCheck.ok) {
+    return Response.json({ error: safeUrlReasonToMessage(urlCheck) }, { status: 400 })
+  }
+
+  try {
+    // 3. Plan-quota check.
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (supabaseUrl && supabaseKey) {
@@ -44,34 +68,40 @@ export async function POST(req: Request) {
       }
     }
 
-    const body = await req.json()
-    
-    // Proxy the request to Railway backend
+    // 4. Forward the validated body to the renderer with a bounded timeout.
     const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {
       method: 'POST',
       headers: {
-        // Use a generic bypass or root key for the playground proxy
         'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY || 'playground_bypass'}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
     })
 
     if (!res.ok) {
-      const errorText = await res.text()
-      console.error('Railway API error:', res.status, errorText)
-      return new Response(errorText, { status: res.status })
+      // Log the upstream details server-side but DO NOT echo them back —
+      // raw render errors can leak internals (paths, queue states, etc.).
+      const errorText = await res.text().catch(() => '')
+      console.error('Render upstream error:', res.status, errorText.slice(0, 500))
+      return Response.json(
+        { error: 'Render failed', status: res.status },
+        { status: res.status >= 400 && res.status < 600 ? res.status : 502 }
+      )
     }
 
-    // Return the binary blob
+    // 5. Stream the binary back to the client. Whitelist the headers we copy.
     const blob = await res.blob()
     const headers = new Headers()
     headers.set('Content-Type', res.headers.get('Content-Type') || 'image/png')
     headers.set('x-cache', res.headers.get('x-cache') || 'MISS')
-    
     return new Response(blob, { status: 200, headers })
-  } catch (err: any) {
-    console.error('Playground proxy error:', err)
-    return Response.json({ error: err.message || 'Internal Server Error' }, { status: 500 })
+  } catch (err) {
+    const isAbort = err instanceof Error && err.name === 'AbortError'
+    console.error('Playground proxy error:', isAbort ? 'upstream timeout' : err)
+    return Response.json(
+      { error: isAbort ? 'Render timed out' : 'Render failed' },
+      { status: isAbort ? 504 : 500 }
+    )
   }
 }
