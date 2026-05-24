@@ -10,7 +10,7 @@ export async function GET() {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('Supabase env vars missing. Returning empty logs.')
+      console.warn('Database not configured. Returning empty logs.')
       return Response.json({ logs: [] })
     }
 
