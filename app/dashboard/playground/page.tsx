@@ -313,6 +313,17 @@ function PlaygroundInner() {
   const [hasRun, setHasRun] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+
+  // ESC closes the lightbox
+  useEffect(() => {
+    if (!expanded) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpanded(false)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [expanded])
 
   // For now we don't fetch the user's real API key — the public endpoint isn't
   // shipped yet. When `/api/keys/list` is exposed for the active key, fill this in.
@@ -434,7 +445,7 @@ function PlaygroundInner() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0', overflow: 'hidden' }}>
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
         {/* ---------- Left: options ---------- */}
         <div
@@ -782,19 +793,37 @@ function PlaygroundInner() {
             )}
             {result && !loading && (
               <React.Fragment>
-                <img
-                  src={result.screenshotUrl}
-                  alt="Screenshot"
+                {/* Image is always contained — full-page screenshots are scrolled in the lightbox, not here. */}
+                <button
+                  onClick={() => setExpanded(true)}
+                  title="Click to view full size"
+                  aria-label="Expand screenshot to full size"
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
-                    objectFit: 'contain',
-                    borderRadius: 8,
-                    border: `1px solid ${IDLE_BORDER}`,
-                    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'zoom-in',
+                    display: 'inline-block',
+                    lineHeight: 0,
                   }}
-                />
-                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6 }}>
+                >
+                  <img
+                    src={result.screenshotUrl}
+                    alt="Screenshot — click to expand"
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: 'calc(100vh - 56px - 280px)',
+                      objectFit: 'contain',
+                      borderRadius: 8,
+                      border: `1px solid ${IDLE_BORDER}`,
+                      boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                      display: 'block',
+                    }}
+                  />
+                </button>
+                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span
                     style={{
                       fontFamily: 'var(--font-ibm-plex)',
@@ -836,6 +865,9 @@ function PlaygroundInner() {
                       cached
                     </span>
                   )}
+                  <PillButton onClick={() => setExpanded(true)} title="Open full-size view (press F)">
+                    ⤢ Expand
+                  </PillButton>
                   <PillButton onClick={downloadResult} title="Download as file">
                     ↓ Download
                   </PillButton>
@@ -909,6 +941,151 @@ function PlaygroundInner() {
           </div>
         </div>
       </div>
+
+      {/* ---------- Lightbox: full-size scrollable view of the screenshot ---------- */}
+      {expanded && result && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full-size screenshot"
+          onClick={() => setExpanded(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.92)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'lightbox-fade 0.15s ease-out',
+          }}
+        >
+          <style>{`@keyframes lightbox-fade { from { opacity: 0; } to { opacity: 1; } }`}</style>
+
+          {/* Header (sticky over the scroll area) */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 20px',
+              borderBottom: `1px solid ${IDLE_BORDER}`,
+              background: 'rgba(5,5,5,0.85)',
+              backdropFilter: 'blur(20px)',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#f0f0f0', fontWeight: 500 }}>
+                Full-size view
+              </span>
+              <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#666' }}>
+                {result.width}×{result.height} · {result.size} KB · {format.toUpperCase()}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                onClick={downloadResult}
+                style={{
+                  fontFamily: 'var(--font-ibm-plex)',
+                  fontSize: 12,
+                  color: '#000',
+                  background: '#00e87b',
+                  border: 'none',
+                  padding: '7px 14px',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                ↓ Download
+              </button>
+              <a
+                href={result.screenshotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: 'var(--font-ibm-plex)',
+                  fontSize: 12,
+                  color: '#888',
+                  background: 'transparent',
+                  border: `1px solid ${IDLE_BORDER}`,
+                  padding: '7px 14px',
+                  borderRadius: 6,
+                  textDecoration: 'none',
+                }}
+              >
+                Open in new tab ↗
+              </a>
+              <button
+                onClick={() => setExpanded(false)}
+                aria-label="Close full-size view"
+                title="Close (Esc)"
+                style={{
+                  fontFamily: 'var(--font-ibm-plex)',
+                  fontSize: 16,
+                  color: '#888',
+                  background: 'transparent',
+                  border: `1px solid ${IDLE_BORDER}`,
+                  width: 32,
+                  height: 32,
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable image area — supports tall full-page screenshots */}
+          <div
+            onClick={() => setExpanded(false)}
+            style={{
+              flex: 1,
+              overflow: 'auto',
+              padding: 24,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-start',
+            }}
+          >
+            <img
+              src={result.screenshotUrl}
+              alt="Screenshot — full size"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '100%',
+                height: 'auto',
+                borderRadius: 8,
+                border: `1px solid ${IDLE_BORDER}`,
+                boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
+                cursor: 'default',
+              }}
+            />
+          </div>
+
+          {/* Hint footer */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              padding: '10px 20px',
+              borderTop: `1px solid ${IDLE_BORDER}`,
+              fontFamily: 'var(--font-ibm-plex)',
+              fontSize: 11,
+              color: '#444',
+              textAlign: 'center',
+              background: 'rgba(5,5,5,0.85)',
+              backdropFilter: 'blur(20px)',
+              flexShrink: 0,
+            }}
+          >
+            Scroll inside the image · click outside or press <kbd style={{ background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, padding: '1px 6px', borderRadius: 4, color: '#888' }}>Esc</kbd> to close
+          </div>
+        </div>
+      )}
     </div>
   )
 }
