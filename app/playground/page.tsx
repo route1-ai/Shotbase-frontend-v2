@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { Suspense, useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -271,7 +271,7 @@ with open('screenshot.${config.format}', 'wb') as f:
 
 const STORAGE_KEYS = ['url', 'width', 'height', 'format', 'wait', 'delay', 'popups', 'full', 'ads', 'dark', 'dpr'] as const
 
-export default function Playground() {
+function PlaygroundInner() {
   const { user } = useUser()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -1021,5 +1021,35 @@ function CodeTab({ active, onClick, children }: { active: boolean; onClick: () =
     >
       {children}
     </button>
+  )
+}
+
+// Suspense-wrapped default export.
+// PlaygroundInner uses `useSearchParams()` for URL-param persistence, which
+// Next.js 15+ requires to be inside a Suspense boundary or it bails out of
+// static prerendering with a build error. Wrapping here lets the rest of the
+// shell render normally while the searchParams hydrate on the client.
+export default function Playground() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: '100vh',
+            background: '#050505',
+            color: '#888',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'var(--font-ibm-plex)',
+            fontSize: 13,
+          }}
+        >
+          Loading playground…
+        </div>
+      }
+    >
+      <PlaygroundInner />
+    </Suspense>
   )
 }
