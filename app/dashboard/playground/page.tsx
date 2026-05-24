@@ -347,7 +347,7 @@ function PlaygroundInner() {
     if (darkMode) params.set('dark', '1')
     if (deviceScaleFactor !== 1) params.set('dpr', String(deviceScaleFactor))
     const qs = params.toString()
-    router.replace(`/playground${qs ? `?${qs}` : ''}`, { scroll: false })
+    router.replace(`/dashboard/playground${qs ? `?${qs}` : ''}`, { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, width, height, format, waitFor, delay, removePopups, fullPage, blockAds, darkMode, deviceScaleFactor])
 
@@ -434,92 +434,7 @@ function PlaygroundInner() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#050505', color: '#f0f0f0' }}>
-      <nav
-        style={{
-          height: 56,
-          borderBottom: `1px solid ${IDLE_BORDER}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 28px',
-          flexShrink: 0,
-          background: 'rgba(5,5,5,0.85)',
-          backdropFilter: 'blur(20px)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <div
-              style={{
-                width: 26,
-                height: 26,
-                background: '#00e87b',
-                borderRadius: 6,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <rect x="1" y="1" width="14" height="10" rx="2" stroke="#000" strokeWidth="1.5" />
-                <path d="M4 14h8M8 11v3" stroke="#000" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </div>
-            <span style={{ fontFamily: 'var(--font-ibm-plex)', fontWeight: 600, fontSize: 14, color: '#f0f0f0' }}>
-              shotbase
-            </span>
-          </Link>
-          <span style={{ color: '#444', fontSize: 14 }}>/</span>
-          <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#888' }}>Playground</span>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-ibm-plex)',
-              fontSize: 10,
-              color: '#444',
-              border: `1px solid ${IDLE_BORDER}`,
-              padding: '4px 8px',
-              borderRadius: 5,
-            }}
-            title="Press Cmd+Enter (or Ctrl+Enter) anywhere to run"
-          >
-            ⌘ + ↵
-          </span>
-          <Link
-            href="/docs"
-            style={{
-              fontFamily: 'var(--font-ibm-plex)',
-              fontSize: 12,
-              color: '#888',
-              background: 'none',
-              border: `1px solid ${IDLE_BORDER}`,
-              padding: '6px 12px',
-              borderRadius: 6,
-              textDecoration: 'none',
-            }}
-          >
-            Docs
-          </Link>
-          <Link
-            href="/dashboard"
-            style={{
-              fontFamily: 'var(--font-ibm-plex)',
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#000',
-              background: '#00e87b',
-              padding: '6px 14px',
-              borderRadius: 6,
-              textDecoration: 'none',
-            }}
-          >
-            Dashboard →
-          </Link>
-        </div>
-      </nav>
-
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0' }}>
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
         {/* ---------- Left: options ---------- */}
         <div

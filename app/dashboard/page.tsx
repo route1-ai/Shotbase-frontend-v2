@@ -131,7 +131,7 @@ export default function OverviewPage() {
             </p>
           </div>
           <Link
-            href="/playground"
+            href="/dashboard/playground"
             style={{
               fontFamily: "var(--font-ibm-plex)",
               fontSize: 12,
@@ -195,7 +195,7 @@ export default function OverviewPage() {
                 <span style={{ fontSize: 14, fontWeight: 500 }}>Make your first call</span>
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <Link href="/playground" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
+                <Link href="/dashboard/playground" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
                   Try in Playground →
                 </Link>
                 <button
