@@ -43,7 +43,10 @@ function PillButton({
   title?: string
 }) {
   const [hover, setHover] = useState(false)
-  const bg = active ? ACTIVE_BG : hover ? HOVER_BG : IDLE_BG
+  // Keep IDLE_BG as a solid base; hover BRIGHTENS the border + text, not lightens
+  // the background. Earlier the hover used a near-transparent rgba which let the
+  // underlying screenshot bleed through and looked overlapping.
+  const bg = active ? ACTIVE_BG : IDLE_BG
   const border = active ? ACTIVE_BORDER : hover ? HOVER_BORDER : IDLE_BORDER
   const color = active ? '#00e87b' : hover ? '#f0f0f0' : '#888'
   return (
@@ -823,7 +826,24 @@ function PlaygroundInner() {
                     }}
                   />
                 </button>
-                <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 6, alignItems: 'center' }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    display: 'flex',
+                    gap: 6,
+                    alignItems: 'center',
+                    // Glass-pill background so badges stay readable even when the
+                    // screenshot extends behind them. Fixes the hover-overlap bug.
+                    background: 'rgba(5, 5, 5, 0.55)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    border: `1px solid ${IDLE_BORDER}`,
+                    borderRadius: 8,
+                    padding: 4,
+                  }}
+                >
                   <span
                     style={{
                       fontFamily: 'var(--font-ibm-plex)',
