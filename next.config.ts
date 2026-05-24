@@ -50,6 +50,20 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // Permanent redirects from old URL spaces so bookmarks and email links keep working.
+  async redirects() {
+    return [
+      // /account/* was migrated into /dashboard/settings/* in PR #39.
+      { source: '/account', destination: '/dashboard/settings/profile', permanent: true },
+      { source: '/account/profile', destination: '/dashboard/settings/profile', permanent: true },
+      { source: '/account/billing', destination: '/dashboard/settings/billing', permanent: true },
+      { source: '/account/security', destination: '/dashboard/settings/security', permanent: true },
+      { source: '/account/preferences', destination: '/dashboard/settings/notifications', permanent: true },
+      // Playground moved under the dashboard tree so the sidebar persists across routes.
+      { source: '/playground', destination: '/dashboard/playground', permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

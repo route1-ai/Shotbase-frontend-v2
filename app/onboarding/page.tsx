@@ -349,7 +349,7 @@ export default function OnboardingPage() {
     } catch (err) {
       console.error("Failed to save onboarding state", err)
     } finally {
-      router.push(destination === "playground" ? "/playground?url=https://stripe.com" : "/dashboard")
+      router.push(destination === "playground" ? "/dashboard/playground?url=https://stripe.com" : "/dashboard")
     }
   }
 
