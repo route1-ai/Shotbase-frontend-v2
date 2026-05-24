@@ -46,7 +46,28 @@ function Select({ value, onChange, options, label }: { value: string, onChange: 
   )
 }
 
-function generateCode(lang: string, config: any) {
+interface PlaygroundConfig {
+  url: string
+  width: string | number
+  height: string
+  format: string
+  removePopups: boolean
+  fullPage: boolean
+  waitFor: string
+  delay: string | number
+}
+
+interface ScreenshotResult {
+  screenshotUrl: string
+  tookMs: number
+  cached: boolean
+  width: number
+  height: number
+  size: number
+  popupsRemoved: number
+}
+
+function generateCode(lang: string, config: PlaygroundConfig) {
   const { url, width, height, format, removePopups, fullPage, waitFor, delay } = config
   if (lang === 'curl') {
     return `curl -X POST \\\n  -H "Authorization: Bearer sk-live-..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "${url}",\n    "width": ${width},\n    "height": ${height || 'null'},\n    "format": "${format}",\n    "remove_popups": ${removePopups},\n    "full_page": ${fullPage},\n    "wait_for": "${waitFor}",\n    "delay_ms": ${delay}\n  }' \\\n  https://api.shotbase.io/v1/screenshot`
@@ -68,8 +89,9 @@ export default function Playground() {
   const [delay, setDelay] = useState<string | number>(0)
   const [codeLang, setCodeLang] = useState('curl')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<ScreenshotResult | null>(null)
   const [hasRun, setHasRun] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const config = { url, width, height, format, removePopups, fullPage, waitFor, delay }
 
@@ -92,6 +114,17 @@ export default function Playground() {
   }
 
   const code = generateCode(codeLang, config)
+
+  const handleCopy = async () => {
+    if (!navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#050505', color: '#f0f0f0' }}>
@@ -208,7 +241,22 @@ export default function Playground() {
                   <button key={l} onClick={() => setCodeLang(l)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, padding: '11px 16px', background: 'none', border: 'none', borderBottom: `2px solid ${codeLang === l ? '#00e87b' : 'transparent'}`, color: codeLang === l ? '#00e87b' : '#444', cursor: 'pointer', marginBottom: -1 }}>{l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}</button>
                 ))}
               </div>
-              <button onClick={() => navigator.clipboard?.writeText(code)} style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px' }}>Copy</button>
+              <button
+                onClick={handleCopy}
+                aria-label={copied ? "Copied!" : "Copy code to clipboard"}
+                style={{
+                  fontFamily: 'var(--font-ibm-plex)',
+                  fontSize: 11,
+                  color: copied ? '#00e87b' : '#444',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '6px 8px',
+                  transition: 'color 0.2s'
+                }}
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
             </div>
             <pre style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, lineHeight: 1.7, padding: '16px', overflow: 'auto', maxHeight: 200, color: '#888', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{code}</pre>
           </div>
