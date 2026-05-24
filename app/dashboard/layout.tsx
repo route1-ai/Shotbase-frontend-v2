@@ -243,34 +243,57 @@ function UserMenu() {
   const { user } = useUser()
   const { signOut } = useClerk()
   const [open, setOpen] = useState(false)
+  const containerRef = React.useRef<HTMLDivElement>(null)
   const email = user?.emailAddresses?.[0]?.emailAddress ?? "user@example.com"
   const firstLetter = email.charAt(0).toUpperCase()
 
+  // Close on outside click and on Escape.
+  // Using a document-level mousedown listener instead of a "fixed" backdrop
+  // div, because the top bar uses `backdrop-filter: blur(20px)` which creates
+  // a new stacking context — a `position: fixed` child can't escape it, so a
+  // backdrop only covers the 56px header and clicking below it does nothing.
+  useEffect(() => {
+    if (!open) return
+    const onMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false)
+    }
+    document.addEventListener("mousedown", onMouseDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown)
+      document.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={containerRef} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
         style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", padding: 0 }}
         aria-label="User menu"
+        aria-expanded={open}
+        aria-haspopup="menu"
       >
         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#00e87b", color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: 14 }}>
           {firstLetter}
         </div>
       </button>
       {open && (
-        <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 99 }} />
-          <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, width: 240, background: "#0a0a0a", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 8, zIndex: 100, boxShadow: "0 8px 24px rgba(0,0,0,0.6)" }}>
-            <div style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, marginBottom: 6 }}>
-              <div style={{ fontSize: 12, color: "#f0f0f0", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
-            </div>
-            <Link href="/dashboard/settings/profile" onClick={() => setOpen(false)} style={{ display: "block", padding: "8px 12px", color: "#888", fontSize: 13, textDecoration: "none", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = HOVER_BG; e.currentTarget.style.color = "#f0f0f0" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888" }}>Profile settings</Link>
-            <Link href="/dashboard/settings/billing" onClick={() => setOpen(false)} style={{ display: "block", padding: "8px 12px", color: "#888", fontSize: 13, textDecoration: "none", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = HOVER_BG; e.currentTarget.style.color = "#f0f0f0" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888" }}>Billing</Link>
-            <Link href="/" onClick={() => setOpen(false)} style={{ display: "block", padding: "8px 12px", color: "#888", fontSize: 13, textDecoration: "none", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = HOVER_BG; e.currentTarget.style.color = "#f0f0f0" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888" }}>Back to marketing site</Link>
-            <div style={{ height: 1, background: BORDER, margin: "6px 0" }} />
-            <button onClick={() => signOut({ redirectUrl: "/" })} style={{ width: "100%", textAlign: "left", padding: "8px 12px", color: "#ff6060", fontSize: 13, background: "none", border: "none", cursor: "pointer", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,96,96,0.08)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}>Sign out</button>
+        <div role="menu" style={{ position: "absolute", top: "100%", right: 0, marginTop: 8, width: 240, background: "#0a0a0a", border: `1px solid ${BORDER}`, borderRadius: 10, padding: 8, zIndex: 100, boxShadow: "0 8px 24px rgba(0,0,0,0.6)" }}>
+          <div style={{ padding: "10px 12px", borderBottom: `1px solid ${BORDER}`, marginBottom: 6 }}>
+            <div style={{ fontSize: 12, color: "#f0f0f0", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
-        </>
+          <Link role="menuitem" href="/dashboard/settings/profile" onClick={() => setOpen(false)} style={{ display: "block", padding: "8px 12px", color: "#888", fontSize: 13, textDecoration: "none", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = HOVER_BG; e.currentTarget.style.color = "#f0f0f0" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888" }}>Profile settings</Link>
+          <Link role="menuitem" href="/dashboard/settings/billing" onClick={() => setOpen(false)} style={{ display: "block", padding: "8px 12px", color: "#888", fontSize: 13, textDecoration: "none", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = HOVER_BG; e.currentTarget.style.color = "#f0f0f0" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888" }}>Billing</Link>
+          <Link role="menuitem" href="/" onClick={() => setOpen(false)} style={{ display: "block", padding: "8px 12px", color: "#888", fontSize: 13, textDecoration: "none", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = HOVER_BG; e.currentTarget.style.color = "#f0f0f0" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#888" }}>Back to marketing site</Link>
+          <div style={{ height: 1, background: BORDER, margin: "6px 0" }} />
+          <button role="menuitem" onClick={() => signOut({ redirectUrl: "/" })} style={{ width: "100%", textAlign: "left", padding: "8px 12px", color: "#ff6060", fontSize: 13, background: "none", border: "none", cursor: "pointer", borderRadius: 6 }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,96,96,0.08)" }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}>Sign out</button>
+        </div>
       )}
     </div>
   )
