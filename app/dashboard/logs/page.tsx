@@ -223,7 +223,7 @@ X-Request-Id: ${row.id || "—"}`
             ↻ Replay request
           </button>
           <a
-            href={`/playground?url=${encodeURIComponent(row.url || "")}`}
+            href={`/dashboard/playground?url=${encodeURIComponent(row.url || "")}`}
             style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#f0f0f0", background: "transparent", border: `1px solid ${BORDER}`, padding: "9px 14px", borderRadius: 7, textAlign: "center", textDecoration: "none" }}
           >
             Open in Playground →

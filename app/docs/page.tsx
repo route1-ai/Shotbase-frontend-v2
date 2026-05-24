@@ -280,7 +280,7 @@ export default function Docs() {
           <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#888' }}>Docs</span>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground</Link>
+          <Link href="/dashboard/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground</Link>
           <Link href="/dashboard" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, fontWeight: 600, color: '#000', background: '#00e87b', padding: '6px 14px', borderRadius: 6, textDecoration: 'none' }}>Dashboard →</Link>
         </div>
       </nav>
@@ -316,7 +316,7 @@ export default function Docs() {
             <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444' }}>Last updated Apr 23, 2026</span>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Link href="/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#00e87b' }}>Try in Playground →</Link>
+                <Link href="/dashboard/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#00e87b' }}>Try in Playground →</Link>
               </div>
             </div>
           </div>
