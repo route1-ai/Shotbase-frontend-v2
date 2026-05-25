@@ -70,7 +70,9 @@
   }
   html {
     scrollbar-width: none;
-    scroll-behavior: smooth;
+    /* No `scroll-behavior: smooth` — Chrome 108+ uses this on wheel events
+       too, which makes every tick feel mushy. Anchor-link jumps are rare
+       enough that we don't need built-in animation here. */
   }
   html::-webkit-scrollbar {
     display: none;
@@ -113,11 +115,15 @@
   scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
 }
 
-/* Smooth scrolling inside dashboard main areas + drawers + lightbox */
+/* Dashboard scroll containers.
+   `scroll-behavior: smooth` was REMOVED here — Chrome 108+ animates wheel
+   events when the container has that property, which made every wheel
+   tick feel like a 200-300ms glide. Native (un-animated) wheel scroll is
+   what you want for dashboards. `overscroll-behavior: contain` stays so
+   scrolling inside a drawer/lightbox doesn't chain into the body. */
 main,
 aside,
 .sb-scroll {
-  scroll-behavior: smooth;
   overscroll-behavior: contain;
 }
 
