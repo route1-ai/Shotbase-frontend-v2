@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
+import Lenis from "lenis"
 
 // ----- Shell tokens -----
 const SIDEBAR_W = 240
@@ -406,6 +407,50 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const w = collapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W
 
+  // Snappy smooth-scroll on the dashboard's <main> element only.
+  //
+  // History: PR #57 removed Lenis from /dashboard/* because Lenis-on-root
+  // (document-level) hijacked wheel events and broke every nested overflow:auto
+  // element (playground options, lightbox, drawer). PR #59 removed CSS
+  // scroll-behavior smooth because Chrome 108+ uses it on wheel events and
+  // every tick felt mushy.
+  //
+  // This is the third try: instantiate Lenis directly, scope it to <main> via
+  // its wrapper/content options, and use `prevent` to ignore wheel events that
+  // bubble up from elements tagged with `data-lenis-prevent` (the playground's
+  // left options column, code pre, lightbox scroll area, logs drawer, etc.).
+  //
+  // Config is tighter than the marketing default: shorter duration (0.7 vs 1.5),
+  // higher lerp (0.16 vs 0.1), wheelMultiplier > 1. Feels like Linear, not Apple.
+  const mainRef = useRef<HTMLElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!mainRef.current || !contentRef.current) return
+    const lenis = new Lenis({
+      wrapper: mainRef.current,
+      content: contentRef.current,
+      duration: 0.7,
+      lerp: 0.16,
+      wheelMultiplier: 1.4,
+      smoothWheel: true,
+      prevent: (node) => {
+        if (!(node instanceof Element)) return false
+        return node.closest?.("[data-lenis-prevent]") !== null
+      },
+    })
+    let rafId = 0
+    const raf = (time: number) => {
+      lenis.raf(time)
+      rafId = requestAnimationFrame(raf)
+    }
+    rafId = requestAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(rafId)
+      lenis.destroy()
+    }
+  }, [])
+
   // Outer is height: 100vh + overflow: hidden so <main> becomes the actual
   // scroll container. Without this, content taller than the viewport made
   // the whole *page* scrollable instead of <main> — mouse-wheel events landed
@@ -553,6 +598,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         <main
+          ref={mainRef}
           style={{
             flex: 1,
             // Playground is full-bleed inside the dashboard shell — no padding.
@@ -560,7 +606,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             overflowY: "auto",
           }}
         >
-          {children}
+          {/* Inner wrapper is Lenis's `content` — it gets the translateY transform.
+              Nested elements with `data-lenis-prevent` opt out of smooth scroll. */}
+          <div ref={contentRef}>{children}</div>
         </main>
       </div>
     </div>
