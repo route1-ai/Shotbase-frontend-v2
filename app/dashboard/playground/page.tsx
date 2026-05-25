@@ -87,29 +87,36 @@ function Toggle({
   disabled?: boolean
   lockedReason?: string
 }) {
+  const [isFocused, setIsFocused] = useState(false)
   // Whole row is clickable, not just the pill.
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
       onClick={() => { if (!disabled) onChange(!value) }}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
       disabled={disabled}
       title={disabled ? lockedReason : undefined}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
-        padding: '12px 0',
-        borderBottom: `1px solid ${IDLE_BORDER}`,
-        background: 'none',
+        padding: '12px 8px',
+        margin: '0 -8px',
+        borderRadius: 8,
+        background: isFocused ? 'rgba(0, 232, 123, 0.05)' : 'none',
         border: 'none',
-        borderBottomWidth: 1,
-        borderBottomStyle: 'solid',
-        borderBottomColor: IDLE_BORDER,
+        borderBottom: `1px solid ${IDLE_BORDER}`,
+        outline: isFocused ? '1px solid #00e87b' : 'none',
+        outlineOffset: -1,
         cursor: disabled ? 'not-allowed' : 'pointer',
         textAlign: 'left',
-        width: '100%',
+        width: 'calc(100% + 16px)',
         color: 'inherit',
         opacity: disabled ? 0.55 : 1,
+        transition: 'all 0.15s',
       }}
     >
       <div>
@@ -1001,7 +1008,7 @@ function PlaygroundInner() {
                 padding: '0 16px',
               }}
             >
-              <div style={{ display: 'flex' }}>
+              <div style={{ display: 'flex' }} role="tablist" aria-label="Code language selection">
                 {(['curl', 'js', 'python'] as const).map((l) => (
                   <CodeTab key={l} active={codeLang === l} onClick={() => setCodeLang(l)}>
                     {l === 'js' ? 'JavaScript' : l === 'python' ? 'Python' : 'cURL'}
@@ -1216,23 +1223,29 @@ function PlaygroundInner() {
 
 function CodeTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   const [hover, setHover] = useState(false)
-  const color = active ? '#00e87b' : hover ? '#f0f0f0' : '#444'
+  const [isFocused, setIsFocused] = useState(false)
+  const color = active ? '#00e87b' : (hover || isFocused) ? '#f0f0f0' : '#444'
   return (
     <button
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
       style={{
         fontFamily: 'var(--font-ibm-plex)',
         fontSize: 12,
         padding: '11px 16px',
-        background: 'none',
+        background: isFocused ? 'rgba(0, 232, 123, 0.05)' : 'none',
         border: 'none',
-        borderBottom: `2px solid ${active ? '#00e87b' : 'transparent'}`,
+        borderBottom: `2px solid ${active ? '#00e87b' : isFocused ? '#00e87b' : 'transparent'}`,
         color,
         cursor: 'pointer',
         marginBottom: -1,
-        transition: 'color 0.15s',
+        transition: 'all 0.15s',
+        outline: 'none',
       }}
     >
       {children}
