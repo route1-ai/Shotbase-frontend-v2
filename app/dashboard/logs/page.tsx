@@ -135,7 +135,7 @@ X-Request-Id: ${row.id || "—"}`
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 22 }}>
+        <div data-lenis-prevent style={{ flex: 1, overflowY: "auto", padding: 22 }}>
           {/* Target URL */}
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
