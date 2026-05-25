@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 // ----- Design tokens -----
 const BORDER = "rgba(255,255,255,0.07)"
@@ -385,6 +386,9 @@ export default function OnboardingPage() {
           <span style={{ fontFamily: "var(--font-ibm-plex)", fontWeight: 600, fontSize: 14, color: "#f0f0f0" }}>shotbase</span>
         </Link>
         <div style={{ marginLeft: 16, fontFamily: "var(--font-ibm-plex)", fontSize: 13, color: "#444" }}>/ Welcome</div>
+        <div style={{ marginLeft: "auto" }}>
+          <ThemeToggle />
+        </div>
       </header>
 
       <main style={{ flex: 1, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "56px 24px" }}>
