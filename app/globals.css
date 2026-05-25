@@ -1,25 +1,57 @@
 @import "tailwindcss";
 
+/* ─── Color token system ──────────────────────────────────────────────
+   Phase 1 of the visual refresh. We define light + dark themes via
+   CSS custom properties; components migrate to these in later phases.
+
+   shadcn-compatible tokens (`--background`, `--foreground`, `--card`, …)
+   are still produced so existing shadcn primitives keep working.
+
+   Brand colors (`--brand`, `--brand-soft`) are theme-independent — the
+   #00e87b green is sacred and renders the same in both modes. Surfaces,
+   text, and borders flip.
+   ──────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    /* ─── Surfaces ─── */
+    --background: 0 0% 100%;            /* page background */
+    --surface: 0 0% 98%;                /* cards, panels */
+    --surface-elevated: 0 0% 100%;      /* modals, popovers */
+
+    /* ─── Borders ─── */
+    --border: 220 13% 91%;              /* default border */
+    --border-strong: 220 13% 80%;       /* emphasised border */
+
+    /* ─── Text ─── */
+    --text-primary: 222 47% 11%;        /* headings, body */
+    --text-secondary: 215 16% 35%;      /* sub copy */
+    --text-muted: 215 14% 50%;          /* labels, meta */
+
+    /* ─── Brand (stable across themes) ─── */
+    --brand: 150 100% 45%;              /* #00e87b ish */
+    --brand-soft: 150 100% 45% / 0.12;
+
+    /* ─── State ─── */
+    --danger: 0 72% 51%;
+    --success: 142 71% 45%;
+
+    /* ─── shadcn compatibility ─── */
+    --foreground: var(--text-primary);
+    --card: var(--surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-elevated);
+    --popover-foreground: var(--text-primary);
     --primary: 0 0% 9%;
     --primary-foreground: 0 0% 98%;
     --secondary: 0 0% 96.1%;
     --secondary-foreground: 0 0% 9%;
     --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted-foreground: var(--text-muted);
     --accent: 0 0% 96.1%;
     --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: var(--danger);
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
+    --input: var(--border);
     --ring: 0 0% 3.9%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -28,25 +60,47 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    /* ─── Surfaces ─── */
+    --background: 0 0% 2%;              /* near-black page */
+    --surface: 240 10% 5%;              /* cards, panels */
+    --surface-elevated: 240 10% 7%;     /* modals, popovers */
+
+    /* ─── Borders ─── */
+    --border: 0 0% 100% / 0.06;
+    --border-strong: 0 0% 100% / 0.14;
+
+    /* ─── Text ─── */
+    --text-primary: 240 5% 96%;
+    --text-secondary: 240 5% 78%;
+    --text-muted: 240 4% 50%;
+
+    /* ─── Brand (same as light — sacred) ─── */
+    --brand: 150 100% 45%;
+    --brand-soft: 150 100% 45% / 0.12;
+
+    /* ─── State ─── */
+    --danger: 0 72% 60%;
+    --success: 142 71% 50%;
+
+    /* ─── shadcn compatibility ─── */
+    --foreground: var(--text-primary);
+    --card: var(--surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--surface-elevated);
+    --popover-foreground: var(--text-primary);
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
     --secondary: 0 0% 14.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted-foreground: var(--text-muted);
     --accent: 0 0% 14.9%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: var(--danger);
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --input: var(--border);
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -61,12 +115,15 @@
     border-color: hsl(var(--border));
   }
   body {
-    background-color: #050505;
-    color: #ececec;
+    /* Wired to tokens — dark theme tokens are tuned to match the
+       previous hardcoded #050505 / #ececec so dark looks identical. */
+    background-color: hsl(var(--background));
+    color: hsl(var(--text-primary));
     -webkit-font-smoothing: antialiased;
     font-family: var(--font-ibm-plex), monospace;
     font-size: 15px;
     line-height: 1.6;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
   html {
     scrollbar-width: none;
