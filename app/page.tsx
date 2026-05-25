@@ -10,6 +10,7 @@ import { SmoothShaderBg } from "@/components/ui/smooth-shader-bg"
 import IntegrationsMarquee from "@/components/ui/integrations-marquee"
 import { MacbookScroll } from "@/components/ui/macbook-scroll"
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const CODE_SNIPPETS: Record<string, string> = {
   js: `// npm install @shotbase/sdk
@@ -162,6 +163,7 @@ export default function Home() {
           <li><Link href="/">Status&nbsp;<span role="img" aria-label="Online" style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
         </ul>
         <div className="nr">
+          <ThemeToggle />
           <Link href="/signin" className="nbg">Sign in</Link>
           <Link href="/signup" className="np">Get API Key <span aria-hidden="true">→</span></Link>
         </div>
