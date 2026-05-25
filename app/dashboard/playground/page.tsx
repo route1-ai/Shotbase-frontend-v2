@@ -489,6 +489,7 @@ function PlaygroundInner() {
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
         {/* ---------- Left: options ---------- */}
         <div
+          data-lenis-prevent
           style={{
             borderRight: `1px solid ${IDLE_BORDER}`,
             display: 'flex',
@@ -1026,6 +1027,7 @@ function PlaygroundInner() {
               </button>
             </div>
             <pre
+              data-lenis-prevent
               style={{
                 fontFamily: 'var(--font-ibm-plex)',
                 fontSize: 12,
@@ -1144,6 +1146,7 @@ function PlaygroundInner() {
 
           {/* Scrollable area — image for raster formats, iframe for PDFs */}
           <div
+            data-lenis-prevent
             onClick={() => setExpanded(false)}
             style={{
               flex: 1,
