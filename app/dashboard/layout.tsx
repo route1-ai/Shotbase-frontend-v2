@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
 import Lenis from "lenis"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 // ----- Shell tokens -----
 const SIDEBAR_W = 240
@@ -593,6 +594,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
               ⌘K
             </span>
+            <ThemeToggle />
             <UserMenu />
           </div>
         </header>

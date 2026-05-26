@@ -1,6 +1,6 @@
 "use client"
 
-import React, { Suspense, useState, useEffect, useCallback } from "react"
+import React, { Suspense, useState, useEffect, useCallback, useId } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -52,6 +52,7 @@ function PillButton({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={title}
@@ -314,6 +315,11 @@ function PlaygroundInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
+  const urlId = useId()
+  const widthId = useId()
+  const heightId = useId()
+  const delayId = useId()
+
   // Initialize from query params (so configs are shareable + survive refresh)
   const getInitial = useCallback(
     <T,>(key: string, fallback: T, parse?: (v: string) => T): T => {
@@ -506,8 +512,10 @@ function PlaygroundInner() {
           }}
         >
           <div style={{ padding: '20px 20px 0', borderBottom: `1px solid ${IDLE_BORDER}`, paddingBottom: 16 }}>
-            <div
+            <label
+              htmlFor={urlId}
               style={{
+                display: 'block',
                 fontFamily: 'var(--font-ibm-plex)',
                 fontSize: 11,
                 color: '#444',
@@ -517,9 +525,10 @@ function PlaygroundInner() {
               }}
             >
               Target URL
-            </div>
+            </label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
               <input
+                id={urlId}
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && run()}
@@ -580,10 +589,11 @@ function PlaygroundInner() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 4 }}>
+                  <label htmlFor={widthId} style={{ display: 'block', fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 4 }}>
                     Width
-                  </div>
+                  </label>
                   <input
+                    id={widthId}
                     type="number"
                     min={100}
                     max={3840}
@@ -603,10 +613,11 @@ function PlaygroundInner() {
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 4 }}>
+                  <label htmlFor={heightId} style={{ display: 'block', fontFamily: 'var(--font-ibm-plex)', fontSize: 10, color: '#444', marginBottom: 4 }}>
                     Height (auto)
-                  </div>
+                  </label>
                   <input
+                    id={heightId}
                     type="number"
                     min={100}
                     max={2160}
@@ -652,8 +663,10 @@ function PlaygroundInner() {
             />
 
             <div style={{ marginBottom: 16 }}>
-              <div
+              <label
+                htmlFor={delayId}
                 style={{
+                  display: 'block',
                   fontFamily: 'var(--font-ibm-plex)',
                   fontSize: 11,
                   color: '#444',
@@ -663,8 +676,9 @@ function PlaygroundInner() {
                 }}
               >
                 Delay (ms)
-              </div>
+              </label>
               <input
+                id={delayId}
                 type="number"
                 min={0}
                 max={30000}
@@ -1230,6 +1244,8 @@ function CodeTab({ active, onClick, children }: { active: boolean; onClick: () =
       role="tab"
       aria-selected={active}
       onClick={onClick}
+      role="tab"
+      aria-selected={active}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onFocus={() => setIsFocused(true)}
