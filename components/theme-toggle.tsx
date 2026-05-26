@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTheme } from 'next-themes'
-import { Moon, Sun, Monitor } from 'lucide-react'
+import { Moon, Sun, SunMoon } from 'lucide-react'
+import { useShotbaseTheme, type ThemeMode } from '@/components/theme-provider'
+import { nextFlipLabel } from '@/lib/theme-time'
 
 type Variant = 'icon' | 'pill'
 
@@ -13,22 +14,55 @@ interface ThemeToggleProps {
   className?: string
 }
 
+const CYCLE: Record<ThemeMode, ThemeMode> = {
+  light: 'dark',
+  dark: 'auto',
+  auto: 'light',
+}
+
+function iconFor(mode: ThemeMode) {
+  if (mode === 'auto') return SunMoon
+  if (mode === 'dark') return Moon
+  return Sun
+}
+
+function labelFor(mode: ThemeMode) {
+  if (mode === 'auto') return 'Auto'
+  if (mode === 'dark') return 'Dark'
+  return 'Light'
+}
+
 /**
- * Cycles light → dark → system on click.
+ * Three-state theme cycle: light → dark → auto → light.
  *
- * Renders a placeholder during SSR / pre-hydration to avoid the hydration
- * mismatch that next-themes warns about (the server has no idea which theme
- * the user has stored). Once mounted, the real icon swaps in.
+ * Auto mode flips between light and dark based on the user's local
+ * clock (06:00–17:59 light, otherwise dark). The tooltip shows when
+ * the next automatic flip happens.
+ *
+ * Renders a same-shape placeholder during SSR / pre-hydration to
+ * avoid layout shift and hydration mismatch warnings.
  */
 export function ThemeToggle({ variant = 'icon', className = '' }: ThemeToggleProps) {
-  const { theme, setTheme, resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  const { mode, resolved, setMode, mounted } = useShotbaseTheme()
+  const [tooltip, setTooltip] = useState('')
 
+  // Refresh the "flips at 6:00 PM" hint while Auto is selected.
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    if (!mounted) return
+    const build = () => {
+      if (mode === 'auto') {
+        setTooltip(`Auto • currently ${resolved} — flips at ${nextFlipLabel()}`)
+      } else if (mode === 'dark') {
+        setTooltip('Dark theme — click for Auto')
+      } else {
+        setTooltip('Light theme — click for Dark')
+      }
+    }
+    build()
+    const id = window.setInterval(build, 60 * 1000)
+    return () => window.clearInterval(id)
+  }, [mode, resolved, mounted])
 
-  // Pre-mount: render a same-shape spacer so layout doesn't shift.
   if (!mounted) {
     return (
       <button
@@ -36,9 +70,10 @@ export function ThemeToggle({ variant = 'icon', className = '' }: ThemeTogglePro
         aria-label="Toggle theme"
         className={
           variant === 'pill'
-            ? `inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-xs text-[#888899] ${className}`
-            : `inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-[#888899] ${className}`
+            ? `inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs ${className}`
+            : `inline-flex h-8 w-8 items-center justify-center rounded-md border ${className}`
         }
+        style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--text-muted))' }}
         suppressHydrationWarning
       >
         <span className="block h-4 w-4" aria-hidden />
@@ -46,27 +81,24 @@ export function ThemeToggle({ variant = 'icon', className = '' }: ThemeTogglePro
     )
   }
 
-  const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark'
+  const Icon = iconFor(mode)
+  const label = labelFor(mode)
+  const next = CYCLE[mode]
 
-  // Pick which icon to show. While `theme === 'system'`, surface the
-  // resolved theme's icon so the button reflects what's actually rendered.
-  const active = theme === 'system' ? resolvedTheme : theme
-  const Icon =
-    theme === 'system' ? Monitor : active === 'dark' ? Moon : Sun
-
-  const label =
-    theme === 'system' ? 'System' : active === 'dark' ? 'Dark' : 'Light'
-
-  const cycle = () => setTheme(next)
+  const cycle = () => setMode(next)
 
   if (variant === 'pill') {
     return (
       <button
         type="button"
         onClick={cycle}
-        aria-label={`Switch theme (current: ${label})`}
-        title={`Theme: ${label} — click to cycle`}
-        className={`inline-flex items-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-xs text-[#c8c8d4] transition-colors hover:border-white/20 hover:text-[#ececec] ${className}`}
+        aria-label={`Theme: ${label}. Click to switch to ${labelFor(next)}`}
+        title={tooltip}
+        className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs transition-colors ${className}`}
+        style={{
+          borderColor: 'hsl(var(--border))',
+          color: 'hsl(var(--text-secondary))',
+        }}
       >
         <Icon size={14} strokeWidth={1.6} />
         <span className="font-mono uppercase tracking-wider">{label}</span>
@@ -78,9 +110,13 @@ export function ThemeToggle({ variant = 'icon', className = '' }: ThemeTogglePro
     <button
       type="button"
       onClick={cycle}
-      aria-label={`Switch theme (current: ${label})`}
-      title={`Theme: ${label} — click to cycle`}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-[#c8c8d4] transition-colors hover:border-white/20 hover:text-[#ececec] ${className}`}
+      aria-label={`Theme: ${label}. Click to switch to ${labelFor(next)}`}
+      title={tooltip}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-md border transition-colors hover:opacity-100 ${className}`}
+      style={{
+        borderColor: 'hsl(var(--border))',
+        color: 'hsl(var(--text-secondary))',
+      }}
     >
       <Icon size={14} strokeWidth={1.6} />
     </button>
