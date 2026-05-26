@@ -1244,8 +1244,6 @@ function CodeTab({ active, onClick, children }: { active: boolean; onClick: () =
       role="tab"
       aria-selected={active}
       onClick={onClick}
-      role="tab"
-      aria-selected={active}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       onFocus={() => setIsFocused(true)}
