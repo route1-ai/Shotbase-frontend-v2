@@ -44,8 +44,11 @@ export default function RadialOrbitalTimeline({
     setPulseEffect({});
   };
 
-  const openItem = (id: number) => {
-    if (activeNodeId === id) return;
+  const openItem = (id: number, shouldRotate = false) => {
+    if (activeNodeId === id) {
+      if (shouldRotate) centerViewOnNode(id);
+      return;
+    }
     setExpandedItems({ [id]: true });
     setActiveNodeId(id);
     setAutoRotate(false);
@@ -56,6 +59,10 @@ export default function RadialOrbitalTimeline({
       newPulseEffect[relId] = true;
     });
     setPulseEffect(newPulseEffect);
+
+    if (shouldRotate) {
+      centerViewOnNode(id);
+    }
   };
 
   useEffect(() => {
@@ -163,16 +170,23 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
-                ref={(el) => { nodeRefs.current[item.id] = el; }}
+                type="button"
+                ref={(el) => {
+                  nodeRefs.current[item.id] = el;
+                }}
                 className="orbital-node"
+                aria-expanded={isExpanded}
+                aria-label={`View details for ${item.title}`}
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onClick={() => openItem(item.id, true)}
+                onFocus={() => openItem(item.id, true)}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -191,12 +205,9 @@ export default function RadialOrbitalTimeline({
                 {/* Node circle */}
                 <div
                   className={`orbital-node-circle ${
-                    isExpanded
-                      ? "expanded"
-                      : isRelated
-                      ? "related"
-                      : ""
+                    isExpanded ? "expanded" : isRelated ? "related" : ""
                   }`}
+                  aria-hidden="true"
                   style={{
                     borderColor: isExpanded || isRelated
                       ? getStatusColor(item.status)
@@ -210,12 +221,15 @@ export default function RadialOrbitalTimeline({
                 </div>
 
                 {/* Label */}
-                <div className={`orbital-node-label ${isExpanded ? "active" : ""}`}>
+                <div
+                  className={`orbital-node-label ${isExpanded ? "active" : ""}`}
+                  aria-hidden="true"
+                >
                   {item.title}
                 </div>
 
                 {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
@@ -274,7 +288,7 @@ export default function RadialOrbitalTimeline({
                               className="orbital-card-related-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openItem(relatedId);
+                                openItem(relatedId, true);
                               }}
                             >
                               {relatedItem?.title} →
