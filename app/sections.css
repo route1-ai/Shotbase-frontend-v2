@@ -210,6 +210,16 @@
   color: hsl(var(--brand));
   animation: orbitalRelatedPulse 1.5s ease-in-out infinite;
 }
+.orbital-node:focus-visible .orbital-node-circle {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 4px;
+  background: hsl(var(--brand) / 0.1);
+  color: hsl(var(--brand));
+}
+.orbital-node:focus-visible .orbital-node-label {
+  color: hsl(var(--brand));
+  font-weight: 600;
+}
 @keyframes orbitalRelatedPulse {
   0%, 100% { border-color: hsl(var(--brand) / 0.4); }
   50% { border-color: hsl(var(--brand) / 0.8); }
