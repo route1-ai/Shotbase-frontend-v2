@@ -201,6 +201,12 @@
   color: hsl(var(--brand));
   transform: scale(1.1);
 }
+.orbital-node:focus-visible .orbital-node-circle {
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand));
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--brand));
+}
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
   color: hsl(var(--brand));
@@ -230,6 +236,10 @@
 }
 .orbital-node-label.active {
   color: hsl(var(--brand));
+}
+.orbital-node:focus-visible .orbital-node-label {
+  color: hsl(var(--brand));
+  font-weight: 600;
 }
 
 /* Expanded card */
