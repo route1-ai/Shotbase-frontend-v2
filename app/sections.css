@@ -164,13 +164,17 @@
 }
 
 /* Nodes */
-.orbital-node {
+button.orbital-node {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
 }
 
 .orbital-node-glow {
@@ -201,6 +205,12 @@
   color: hsl(var(--brand));
   transform: scale(1.1);
 }
+button.orbital-node:focus-visible .orbital-node-circle {
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand));
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--brand));
+  transform: scale(1.1);
+}
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
   color: hsl(var(--brand));
@@ -229,6 +239,9 @@
   text-overflow: ellipsis;
 }
 .orbital-node-label.active {
+  color: hsl(var(--brand));
+}
+button.orbital-node:focus-visible .orbital-node-label {
   color: hsl(var(--brand));
 }
 
