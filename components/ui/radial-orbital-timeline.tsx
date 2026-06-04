@@ -52,13 +52,13 @@ export default function RadialOrbitalTimeline({
   };
 
   const openItem = (id: number, shouldRotate: boolean = false) => {
+    if (shouldRotate) {
+      centerViewOnNode(id);
+    }
     if (activeNodeId === id) return;
     setExpandedItems({ [id]: true });
     setActiveNodeId(id);
     setAutoRotate(false);
-    if (shouldRotate) {
-      centerViewOnNode(id);
-    }
 
     const relatedItems = getRelatedItems(id);
     const newPulseEffect: Record<number, boolean> = {};
