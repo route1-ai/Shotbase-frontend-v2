@@ -131,7 +131,18 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  const copyToClipboard = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
 
   return (
     <div>
@@ -168,8 +179,21 @@ export default function ApiExplorerPage() {
                     borderRadius: 6,
                     padding: "8px 10px",
                     cursor: "pointer",
-                    color: "inherit",
+                    color: active ? "#f0f0f0" : "#888",
                     textAlign: "left",
+                    transition: "all 0.1s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.03)"
+                      e.currentTarget.style.color = "#ccc"
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.background = "transparent"
+                      e.currentTarget.style.color = "#888"
+                    }
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -208,10 +232,22 @@ export default function ApiExplorerPage() {
 
           {selected.request && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Request body
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Request body
+                </div>
+                <button
+                  onClick={() => copyToClipboard("req", selected.request!)}
+                  aria-live="polite"
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === "req" ? "#00e87b" : "#444", background: "none", border: "none", cursor: "pointer", transition: "color 0.1s" }}
+                >
+                  {copiedId === "req" ? "✓ Copied" : "Copy"}
+                </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+              <pre
+                data-lenis-prevent
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}
+              >
                 {selected.request}
               </pre>
             </div>
@@ -219,10 +255,22 @@ export default function ApiExplorerPage() {
 
           {selected.response && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Response
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Response
+                </div>
+                <button
+                  onClick={() => copyToClipboard("res", selected.response!)}
+                  aria-live="polite"
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === "res" ? "#00e87b" : "#444", background: "none", border: "none", cursor: "pointer", transition: "color 0.1s" }}
+                >
+                  {copiedId === "res" ? "✓ Copied" : "Copy"}
+                </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+              <pre
+                data-lenis-prevent
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}
+              >
                 {selected.response}
               </pre>
             </div>
