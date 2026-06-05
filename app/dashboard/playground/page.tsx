@@ -368,15 +368,29 @@ function PlaygroundInner() {
   const [copied, setCopied] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
-  // ESC closes the lightbox
+  // Global keyboard shortcuts (Esc to close, F to expand)
   useEffect(() => {
-    if (!expanded) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExpanded(false)
+      // Always let Escape close the lightbox regardless of focus
+      if (e.key === 'Escape' && expanded) {
+        setExpanded(false)
+        return
+      }
+
+      // Don't trigger 'f' if modifier keys are pressed (e.g. Cmd+F)
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+
+      // Don't trigger 'f' if user is typing in an input or textarea
+      const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')
+      if (isInput) return
+
+      if (e.key.toLowerCase() === 'f' && result && !expanded) {
+        setExpanded(true)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [expanded])
+  }, [expanded, result])
 
   // For now we don't fetch the user's real API key — the public endpoint isn't
   // shipped yet. When `/api/keys/list` is exposed for the active key, fill this in.
