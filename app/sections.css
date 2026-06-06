@@ -201,6 +201,12 @@
   color: hsl(var(--brand));
   transform: scale(1.1);
 }
+.orbital-node:focus-visible .orbital-node-circle {
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand));
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px hsl(var(--brand) / 0.3);
+}
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
   color: hsl(var(--brand));
@@ -229,6 +235,9 @@
   text-overflow: ellipsis;
 }
 .orbital-node-label.active {
+  color: hsl(var(--brand));
+}
+.orbital-node:focus-visible .orbital-node-label {
   color: hsl(var(--brand));
 }
 
@@ -357,6 +366,10 @@
 .orbital-card-related-btn:hover {
   background: hsl(var(--brand) / 0.12);
   border-color: hsl(var(--brand) / 0.3);
+}
+.orbital-card-related-btn:focus-visible {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 2px;
 }
 
 
