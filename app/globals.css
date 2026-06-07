@@ -345,8 +345,15 @@ aside,
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
-.integrations-marquee:hover .integrations-track {
+.integrations-marquee:hover .integrations-track,
+.integrations-marquee:focus-within .integrations-track {
   animation-play-state: paused;
+}
+
+.integrations-marquee:focus-visible {
+  outline: 1px solid hsl(var(--brand));
+  outline-offset: 4px;
+  border-radius: 4px;
 }
 
 /* Ambient — one gentle bloom */
