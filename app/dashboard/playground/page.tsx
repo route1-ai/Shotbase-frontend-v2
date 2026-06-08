@@ -43,10 +43,11 @@ function PillButton({
   title?: string
 }) {
   const [hover, setHover] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   // Keep IDLE_BG as a solid base; hover BRIGHTENS the border + text, not lightens
   // the background. Earlier the hover used a near-transparent rgba which let the
   // underlying screenshot bleed through and looked overlapping.
-  const bg = active ? ACTIVE_BG : IDLE_BG
+  const bg = active ? ACTIVE_BG : isFocused ? 'rgba(0, 232, 123, 0.05)' : IDLE_BG
   const border = active ? ACTIVE_BORDER : hover ? HOVER_BORDER : IDLE_BORDER
   const color = active ? '#00e87b' : hover ? '#f0f0f0' : '#888'
   return (
@@ -55,6 +56,8 @@ function PillButton({
       aria-pressed={active}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
       title={title}
       style={{
         fontFamily: 'var(--font-ibm-plex)',
@@ -66,6 +69,8 @@ function PillButton({
         color,
         cursor: 'pointer',
         transition: 'all 0.15s',
+        outline: isFocused ? '1px solid #00e87b' : 'none',
+        outlineOffset: -1,
       }}
     >
       {children}
