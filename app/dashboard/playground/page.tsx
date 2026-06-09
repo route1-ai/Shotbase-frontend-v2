@@ -43,18 +43,21 @@ function PillButton({
   title?: string
 }) {
   const [hover, setHover] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   // Keep IDLE_BG as a solid base; hover BRIGHTENS the border + text, not lightens
   // the background. Earlier the hover used a near-transparent rgba which let the
   // underlying screenshot bleed through and looked overlapping.
-  const bg = active ? ACTIVE_BG : IDLE_BG
-  const border = active ? ACTIVE_BORDER : hover ? HOVER_BORDER : IDLE_BORDER
-  const color = active ? '#00e87b' : hover ? '#f0f0f0' : '#888'
+  const bg = active ? ACTIVE_BG : isFocused ? 'rgba(0, 232, 123, 0.05)' : IDLE_BG
+  const border = active ? ACTIVE_BORDER : (hover || isFocused) ? HOVER_BORDER : IDLE_BORDER
+  const color = active ? '#00e87b' : (hover || isFocused) ? '#f0f0f0' : '#888'
   return (
     <button
       onClick={onClick}
       aria-pressed={active}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
       title={title}
       style={{
         fontFamily: 'var(--font-ibm-plex)',
@@ -66,6 +69,8 @@ function PillButton({
         color,
         cursor: 'pointer',
         transition: 'all 0.15s',
+        outline: isFocused ? '1px solid #00e87b' : 'none',
+        outlineOffset: -1,
       }}
     >
       {children}
@@ -368,16 +373,6 @@ function PlaygroundInner() {
   const [copied, setCopied] = useState(false)
   const [expanded, setExpanded] = useState(false)
 
-  // ESC closes the lightbox
-  useEffect(() => {
-    if (!expanded) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExpanded(false)
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [expanded])
-
   // For now we don't fetch the user's real API key — the public endpoint isn't
   // shipped yet. When `/api/keys/list` is exposed for the active key, fill this in.
   const [apiKey] = useState<string>('')
@@ -453,9 +448,22 @@ function PlaygroundInner() {
     }
   }, [user, config, width, height])
 
-  // Cmd/Ctrl+Enter triggers run from anywhere on the page
+  // Keyboard shortcuts (F to expand, Cmd+Enter to run, ESC to close)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && expanded) {
+        setExpanded(false)
+        return
+      }
+
+      const isTyping = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')
+      if (isTyping) return
+
+      if ((e.key === 'f' || e.key === 'F') && result && !loading) {
+        e.preventDefault()
+        setExpanded(prev => !prev)
+      }
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault()
         run()
@@ -463,7 +471,7 @@ function PlaygroundInner() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [run])
+  }, [expanded, result, loading, run])
 
   const code = generateCode(codeLang, config, apiKey)
 
