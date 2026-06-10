@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface TimelineItem {
   id: number;
@@ -37,27 +37,30 @@ export default function RadialOrbitalTimeline({
     }
   };
 
-  const closeItem = () => {
+  const closeItem = useCallback(() => {
     setActiveNodeId(null);
     setAutoRotate(true);
     setExpandedItems({});
     setPulseEffect({});
-  };
+  }, []);
 
-  const openItem = (id: number, shouldRotate = false) => {
-    if (shouldRotate) centerViewOnNode(id);
-    if (activeNodeId === id) return;
-    setExpandedItems({ [id]: true });
-    setActiveNodeId(id);
-    setAutoRotate(false);
+  const openItem = useCallback(
+    (id: number, shouldRotate = false) => {
+      if (shouldRotate) centerViewOnNode(id);
+      if (activeNodeId === id) return;
+      setExpandedItems({ [id]: true });
+      setActiveNodeId(id);
+      setAutoRotate(false);
 
-    const relatedItems = getRelatedItems(id);
-    const newPulseEffect: Record<number, boolean> = {};
-    relatedItems.forEach((relId) => {
-      newPulseEffect[relId] = true;
-    });
-    setPulseEffect(newPulseEffect);
-  };
+      const relatedItems = getRelatedItems(id);
+      const newPulseEffect: Record<number, boolean> = {};
+      relatedItems.forEach((relId) => {
+        newPulseEffect[relId] = true;
+      });
+      setPulseEffect(newPulseEffect);
+    },
+    [activeNodeId, timelineData, rotationAngle]
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -67,7 +70,7 @@ export default function RadialOrbitalTimeline({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeNodeId]);
+  }, [activeNodeId, closeItem]);
 
   useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
@@ -88,14 +91,14 @@ export default function RadialOrbitalTimeline({
     };
   }, [autoRotate]);
 
-  const centerViewOnNode = (nodeId: number) => {
+  function centerViewOnNode(nodeId: number) {
     const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
     const totalNodes = timelineData.length;
     const targetAngle = (nodeIndex / totalNodes) * 360;
     setRotationAngle(270 - targetAngle);
-  };
+  }
 
-  const calculateNodePosition = (index: number, total: number) => {
+  function calculateNodePosition(index: number, total: number) {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
     const radius = 250;
     const radian = (angle * Math.PI) / 180;
@@ -118,18 +121,18 @@ export default function RadialOrbitalTimeline({
     };
   };
 
-  const getRelatedItems = (itemId: number): number[] => {
+  function getRelatedItems(itemId: number): number[] {
     const currentItem = timelineData.find((item) => item.id === itemId);
     return currentItem ? currentItem.relatedIds : [];
   };
 
-  const isRelatedToActive = (itemId: number): boolean => {
+  function isRelatedToActive(itemId: number): boolean {
     if (!activeNodeId) return false;
     const relatedItems = getRelatedItems(activeNodeId);
     return relatedItems.includes(itemId);
   };
 
-  const getStatusColor = (status: TimelineItem["status"]): string => {
+  function getStatusColor(status: TimelineItem["status"]): string {
     switch (status) {
       case "completed":
         return "#00e87b";
