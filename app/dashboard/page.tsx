@@ -9,6 +9,7 @@ const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
 const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
+
 const CHART_DATA = [12, 28, 19, 44, 61, 38, 72, 55, 90, 78, 103, 88, 120, 98, 134, 115, 142, 128, 160, 145, 172, 158, 188, 174]
 
 const cardStyle: React.CSSProperties = {
@@ -214,16 +215,16 @@ export default function OverviewPage() {
                 style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}
               >
 {`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: ${"Bearer"} YOUR_API_KEY' \\
+  -H 'Authorization: Bearer your_api_key' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
   --output screenshot.png`}
               </pre>
               <CopyButton text={`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: ${"Bearer"} YOUR_API_KEY' \\
-  -H 'Content-Type: application/json' \\
-  -d '{"url": "https://stripe.com"}' \\
-  --output screenshot.png`} />
+-H 'Authorization: Bearer your_api_key' \\
+-H 'Content-Type: application/json' \\
+-d '{"url": "https://stripe.com"}' \\
+--output screenshot.png`} />
             </div>
           </div>
         )}
@@ -327,13 +328,13 @@ export default function OverviewPage() {
             >
 {`curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: ${"Bearer"} YOUR_KEY' \\
+  -H 'Authorization: Bearer your_api_key' \\
   -d '{"url":"https://stripe.com"}'`}
             </pre>
             <CopyButton text={`curl -X POST \\
-  'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: ${"Bearer"} YOUR_KEY' \\
-  -d '{"url":"https://stripe.com"}'`} />
+'https://api.shotbase.dev/v1/screenshot' \\
+-H 'Authorization: Bearer your_api_key' \\
+-d '{"url":"https://stripe.com"}'`} />
           </div>
           <Link href="/dashboard/keys" style={{ display: "block", marginTop: 10, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>
             Get your API key →
