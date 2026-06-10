@@ -20,7 +20,7 @@ export function CopyButton({ text }: { text: string }) {
     <button
       onClick={handleCopy}
       className="ccopy"
-      style={{ position: "absolute", top: 8, right: 8, padding: "4px 8px" }}
+      style={{ position: "absolute", top: 8, right: 8, padding: "4px 8px", margin: 0 }}
       aria-label={copied ? "Copied" : "Copy to clipboard"}
     >
       {copied ? <Check size={14} /> : <Copy size={14} />}
