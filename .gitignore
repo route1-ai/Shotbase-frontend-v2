@@ -57,3 +57,11 @@ NOTES.md
 *.plan.md
 security-audit.md
 someday.md
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
