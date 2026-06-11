@@ -43,29 +43,34 @@ function PillButton({
   title?: string
 }) {
   const [hover, setHover] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   // Keep IDLE_BG as a solid base; hover BRIGHTENS the border + text, not lightens
   // the background. Earlier the hover used a near-transparent rgba which let the
   // underlying screenshot bleed through and looked overlapping.
   const bg = active ? ACTIVE_BG : IDLE_BG
-  const border = active ? ACTIVE_BORDER : hover ? HOVER_BORDER : IDLE_BORDER
-  const color = active ? '#00e87b' : hover ? '#f0f0f0' : '#888'
+  const border = active ? ACTIVE_BORDER : (hover || isFocused) ? HOVER_BORDER : IDLE_BORDER
+  const color = active ? '#00e87b' : (hover || isFocused) ? '#f0f0f0' : '#888'
   return (
     <button
       onClick={onClick}
       aria-pressed={active}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
       title={title}
       style={{
         fontFamily: 'var(--font-ibm-plex)',
         fontSize,
         padding,
-        background: bg,
+        background: isFocused ? 'rgba(0, 232, 123, 0.05)' : bg,
         border: `1px solid ${border}`,
         borderRadius: 6,
         color,
         cursor: 'pointer',
         transition: 'all 0.15s',
+        outline: isFocused ? '1px solid #00e87b' : 'none',
+        outlineOffset: -1,
       }}
     >
       {children}
@@ -367,6 +372,7 @@ function PlaygroundInner() {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [isRunFocused, setIsRunFocused] = useState(false)
 
   // ESC closes the lightbox
   useEffect(() => {
@@ -453,17 +459,22 @@ function PlaygroundInner() {
     }
   }, [user, config, width, height])
 
-  // Cmd/Ctrl+Enter triggers run from anywhere on the page
+  // Keyboard shortcuts (Cmd+Enter, F)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault()
         run()
+      } else if (!isInput && e.key.toLowerCase() === 'f' && result) {
+        e.preventDefault()
+        setExpanded((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [run])
+  }, [run, result])
 
   const code = generateCode(codeLang, config, apiKey)
 
@@ -730,6 +741,8 @@ function PlaygroundInner() {
             )}
             <button
               onClick={run}
+              onFocus={() => setIsRunFocused(true)}
+              onBlur={() => setIsRunFocused(false)}
               disabled={loading || !user}
               style={{
                 width: '100%',
@@ -747,6 +760,8 @@ function PlaygroundInner() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
+                outline: isRunFocused ? '2px solid #00e87b' : 'none',
+                outlineOffset: 2,
               }}
             >
               {loading ? (
