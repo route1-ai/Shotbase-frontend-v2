@@ -267,10 +267,21 @@ aside,
 .nbg:hover { color: hsl(var(--text-primary)); border-color: hsl(var(--text-muted)); }
 .np {
   font-family: var(--font-ibm-plex), monospace; font-size: 12px; font-weight: 700;
-  color: #000; background: hsl(var(--brand)); border: none; padding: 8px 16px;
-  border-radius: 6px; cursor: pointer; text-decoration: none; transition: all 0.2s;
+  color: #000; border: none; padding: 8px 16px;
+  border-radius: 6px; cursor: pointer; text-decoration: none; transition: box-shadow 0.2s, transform 0.2s;
+  position: relative; overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--brand)) 0%,
+    hsl(var(--brand)) 38%,
+    #5dffc0 50%,
+    hsl(var(--brand)) 62%,
+    hsl(var(--brand)) 100%
+  );
+  background-size: 250% 100%;
+  animation: ctaShimmer 3.2s linear infinite;
 }
-.np:hover { box-shadow: 0 0 28px hsl(var(--brand) / 0.4); transform: translateY(-1px); }
+.np:hover { box-shadow: 0 0 32px hsl(var(--brand) / 0.5); transform: translateY(-1px); }
 
 /* ─── HERO ───────────────────────────────────────────── */
 .hero {
@@ -723,10 +734,17 @@ aside,
 }
 .plan { background: hsl(var(--surface)); padding: 44px 32px; transition: background 0.2s; position: relative; }
 .plan:hover { background: hsl(var(--surface-elevated)); }
-.plan.ft { background: hsl(var(--surface-elevated)); border: 1px solid hsl(var(--brand)); outline-offset: -1px; }
+.plan.ft {
+  background: hsl(var(--surface-elevated));
+  border: 1px solid hsl(var(--brand) / 0.6);
+  outline-offset: -1px;
+  box-shadow: 0 0 40px hsl(var(--brand) / 0.08), inset 0 0 0 1px hsl(var(--brand) / 0.08);
+  animation: planGlow 4s ease-in-out infinite;
+}
 .plan.ft::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg, transparent, hsl(var(--brand)), transparent);
+  animation: borderGlow 4s ease-in-out infinite;
 }
 .pb {
   font-family: var(--font-ibm-plex), monospace; font-size: 10px; text-transform: uppercase;
@@ -806,6 +824,18 @@ aside,
 @keyframes fu { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:none } }
 @keyframes lu { from { transform:translateY(110%) } to { transform:translateY(0) } }
 @keyframes draw { from { stroke-dashoffset: var(--l,300) } to { stroke-dashoffset: 0 } }
+@keyframes ctaShimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+@keyframes planGlow {
+  0%, 100% { box-shadow: 0 0 32px hsl(var(--brand) / 0.08), inset 0 0 0 1px hsl(var(--brand) / 0.08); }
+  50%       { box-shadow: 0 0 52px hsl(var(--brand) / 0.18), inset 0 0 0 1px hsl(var(--brand) / 0.12); }
+}
 
 /* ─── Infinite Grid Background ───────────────────────── */
 .infinite-grid-wrap {

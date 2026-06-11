@@ -50,6 +50,11 @@ next-env.d.ts
 /test-unkey.js
 /uploads/
 
+# playwright / local agent artifacts
+/test-results/
+/playwright-report/
+/.claude/
+
 # strategy / planning artifacts — never commit
 PLAN.md
 ROADMAP.md

@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { MotionValue, motion, useScroll, useTransform } from "motion/react";
 import { cn } from "@/lib/utils";
+import { ShotbaseMark } from "@/components/shotbase-mark";
 import {
   IconBrightnessDown,
   IconBrightnessUp,
@@ -119,6 +120,114 @@ export const MacbookScroll = ({
   );
 };
 
+/** Inline dashboard preview — renders inside the MacBook screen */
+const DashboardMockup = () => (
+  <div className="absolute inset-0 rounded-lg bg-[#08080d] flex flex-col overflow-hidden">
+    {/* Top bar */}
+    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-white/[0.06] bg-[#0d0d12] shrink-0">
+      <div className="w-1.5 h-1.5 rounded-full bg-[#00e87b]" />
+      <div className="flex-1 bg-white/[0.05] rounded text-[4px] text-white/30 px-2 py-0.5 font-mono">
+        shotbase.dev/dashboard
+      </div>
+    </div>
+    {/* Layout */}
+    <div className="flex flex-1 overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-[72px] bg-[#0b0b10] border-r border-white/[0.04] flex flex-col gap-0.5 p-1.5 shrink-0">
+        <div className="flex items-center gap-1 px-1.5 py-1 rounded mb-1">
+          <div className="w-2 h-2 bg-[#00e87b] rounded-[2px]" />
+          <span className="text-[4px] font-bold text-[#00e87b] font-mono">shotbase</span>
+        </div>
+        {[
+          { label: "Overview", active: true },
+          { label: "API Keys", active: false },
+          { label: "Logs", active: false },
+          { label: "Usage", active: false },
+          { label: "Billing", active: false },
+        ].map(({ label, active }) => (
+          <div
+            key={label}
+            className={`px-1.5 py-1 rounded text-[4px] ${
+              active
+                ? "bg-[#00e87b]/10 text-[#00e87b]"
+                : "text-white/25 hover:text-white/50"
+            }`}
+          >
+            {label}
+          </div>
+        ))}
+      </div>
+      {/* Main */}
+      <div className="flex-1 p-2.5 flex flex-col gap-2 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between shrink-0">
+          <span className="text-[6px] font-bold text-white/80">Overview</span>
+          <div className="bg-[#00e87b] text-black text-[4px] font-bold px-2 py-0.5 rounded">
+            + New Key
+          </div>
+        </div>
+        {/* Metric cards */}
+        <div className="grid grid-cols-3 gap-1.5 shrink-0">
+          {[
+            { label: "Screenshots", val: "8,432", delta: "+12%" },
+            { label: "Avg Time", val: "187ms", delta: "–4ms" },
+            { label: "Cache Hit", val: "64%", delta: "+3%" },
+          ].map((m) => (
+            <div
+              key={m.label}
+              className="bg-[#0f0f16] rounded border border-white/[0.05] p-1.5"
+            >
+              <div className="text-[3.5px] text-white/30 mb-0.5">{m.label}</div>
+              <div className="text-[7px] font-bold text-white">{m.val}</div>
+              <div className="text-[3px] mt-0.5" style={{ color: "#00e87b" }}>{m.delta}</div>
+            </div>
+          ))}
+        </div>
+        {/* Chart */}
+        <div className="bg-[#0f0f16] rounded border border-white/[0.05] p-2 flex-1 min-h-0">
+          <div className="text-[4px] text-white/30 mb-1.5">24h Activity</div>
+          <div className="flex items-end gap-[2px] h-[calc(100%-12px)]">
+            {[30, 52, 41, 68, 55, 82, 64, 90, 58, 96, 73, 100, 88, 72, 60, 84].map(
+              (h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 rounded-[1px]"
+                  style={{
+                    height: `${h}%`,
+                    background:
+                      i === 15
+                        ? "#00e87b"
+                        : `rgba(0,232,123,${0.12 + (h / 100) * 0.28})`,
+                  }}
+                />
+              )
+            )}
+          </div>
+        </div>
+        {/* Recent logs */}
+        <div className="bg-[#0f0f16] rounded border border-white/[0.05] shrink-0">
+          <div className="flex gap-2 px-2 py-1 border-b border-white/[0.04]">
+            <span className="text-[4px] text-white/25 font-mono flex-1">URL</span>
+            <span className="text-[4px] text-white/25 font-mono w-8">Time</span>
+            <span className="text-[4px] text-white/25 font-mono w-8">Status</span>
+          </div>
+          {[
+            { url: "stripe.com/pricing", ms: "142ms", ok: true },
+            { url: "vercel.com", ms: "98ms", ok: true },
+            { url: "notion.so/about", ms: "211ms", ok: true },
+          ].map((row, i) => (
+            <div key={i} className="flex gap-2 px-2 py-1 border-b border-white/[0.03] last:border-0">
+              <span className="text-[4px] text-white/50 font-mono flex-1 truncate">{row.url}</span>
+              <span className="text-[4px] font-mono w-8" style={{ color: "#00e87b" }}>{row.ms}</span>
+              <span className="text-[4px] font-mono w-8" style={{ color: "#00e87b" }}>200 ✓</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export const Lid = ({
   scaleX,
   scaleY,
@@ -132,6 +241,7 @@ export const Lid = ({
   translate: MotionValue<number>;
   src?: string;
 }) => {
+  const isExternalSrc = src && (src.startsWith("http://") || src.startsWith("https://"));
   return (
     <div className="relative [perspective:800px]">
       <div
@@ -164,12 +274,16 @@ export const Lid = ({
         }}
         className="absolute inset-0 h-96 w-[32rem] rounded-2xl bg-[#010101] p-2"
       >
-        <div className="absolute inset-0 rounded-lg bg-[#272729]" />
-        <img
-          src={src as string}
-          alt="Shotbase dashboard preview"
-          className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top"
-        />
+        <div className="absolute inset-0 rounded-lg bg-[#08080d]" />
+        {isExternalSrc ? (
+          <img
+            src={src}
+            alt="Shotbase dashboard preview"
+            className="absolute inset-0 h-full w-full rounded-lg object-cover object-left-top"
+          />
+        ) : (
+          <DashboardMockup />
+        )}
       </motion.div>
     </div>
   );
@@ -633,22 +747,14 @@ export const OptionKey = ({ className }: { className: string }) => {
   );
 };
 
-/** Shotbase logo — green bracket icon matching the navbar */
+/** Shotbase logo — green rounded square with the capture-bracket "S" mark */
 const ShotbaseLogo = () => {
   return (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-4 w-4"
+    <div
+      className="flex h-4 w-4 items-center justify-center"
+      style={{ background: "#00e87b", borderRadius: 4 }}
     >
-      <rect width="40" height="40" rx="8" fill="#00e87b" />
-      <path
-        d="M12 10h6v4h-2v12h2v4h-6v-4h2V14h-2v-4zM22 10h6v4h-2v12h2v4h-6v-4h2V14h-2v-4z"
-        fill="#0B0B0F"
-      />
-    </svg>
+      <ShotbaseMark size={11} fill="#0B0B0F" />
+    </div>
   );
 };

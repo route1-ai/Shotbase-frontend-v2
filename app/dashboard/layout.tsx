@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
 import Lenis from "lenis"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ShotbaseMark } from "@/components/shotbase-mark"
 
 // ----- Shell tokens -----
 const SIDEBAR_W = 240
@@ -344,14 +345,8 @@ function Logo({ collapsed }: { collapsed: boolean }) {
   return (
     <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "20px 14px 16px" : "20px 16px 16px", textDecoration: "none", justifyContent: collapsed ? "center" : "flex-start" }}>
       <div style={{ width: 26, height: 26, background: "#00e87b", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-        {/* Viewfinder / capture-bracket mark — four corner brackets + shutter dot. */}
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M2.5 4.5V2.5H4.5"   stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M11.5 2.5H13.5V4.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M2.5 11.5V13.5H4.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M11.5 13.5H13.5V11.5" stroke="#000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="8" cy="8" r="1.7" fill="#000" />
-        </svg>
+        {/* Shotbase capture-bracket "S" mark */}
+        <ShotbaseMark size={16} fill="#000" />
       </div>
       {!collapsed && (
         <span style={{ fontFamily: "var(--font-ibm-plex)", fontWeight: 600, fontSize: 14, color: "#f0f0f0" }}>shotbase</span>
