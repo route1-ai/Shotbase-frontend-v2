@@ -277,7 +277,7 @@ export default function WebhooksPage() {
         <div style={{ ...cardStyle, marginTop: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontWeight: 500, fontSize: 13 }}>Verifying webhook signatures</div>
-            <a href="/docs/webhooks" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
           </div>
           <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
 {`// Every delivery includes a 'Shotbase-Signature' header.

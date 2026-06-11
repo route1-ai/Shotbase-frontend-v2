@@ -11,6 +11,7 @@ import IntegrationsMarquee from "@/components/ui/integrations-marquee"
 import { MacbookScroll } from "@/components/ui/macbook-scroll"
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { ShotbaseMark } from "@/components/shotbase-mark"
 
 const CODE_SNIPPETS: Record<string, string> = {
   js: `// npm install @shotbase/sdk
@@ -148,19 +149,12 @@ export default function Home() {
     <>
       <nav id="nav" className="navbar">
         <Link href="/" className="nlogo" aria-label="Shotbase Home">
-          <svg width="28" height="28" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-            <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-            <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-            <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-            <path d="M30,66 L14,66 L14,48" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-          </svg>
+          <ShotbaseMark size={28} fill="#00e87b" />
           <span className="nw">shotbase</span>
         </Link>
         <ul className="nl">
           <li><Link href="/docs">Docs</Link></li>
-          <li><Link href="/pricing">Pricing</Link></li>
           <li><Link href="/playground">Playground</Link></li>
-          <li><Link href="/">Status&nbsp;<span role="img" aria-label="Online" style={{ color: "#00e87b", fontSize: "9px", verticalAlign: "middle" }}>●</span></Link></li>
         </ul>
         <div className="nr">
           <ThemeToggle />
@@ -171,10 +165,6 @@ export default function Home() {
 
       <div className="sk-container">
         <Hero
-          trustBadge={{
-            text: "Integrations from",
-            icons: ["✨"]
-          }}
           headline={{
             line1: "Screenshot any URL.",
             line2: "One API call."
@@ -196,12 +186,11 @@ export default function Home() {
         <div className="w-full overflow-hidden bg-transparent">
           <MacbookScroll
             title={
-              <span className="text-white">
+              <>
                 See your API response <br />
                 <span style={{ color: '#00e87b' }}>come to life.</span>
-              </span>
+              </>
             }
-            src="/shotbase-dashboard.png"
             showGradient={false}
           />
         </div>
@@ -227,7 +216,7 @@ export default function Home() {
         </div>
 
         <IntegrationsMarquee
-          label="Integrations from"
+          label=""
           integrations={[
             { name: "Linear" },
             { name: "Stripe" },
@@ -331,15 +320,15 @@ export default function Home() {
               <span>api-response.json</span>
             </div>
             <div className="detail-visual-body">
-              <span style={{ color: "#555" }}>{"// POST /v1/screenshot"}</span><br />
+              <span className="co">{"// POST /v1/screenshot"}</span><br />
               {"{ "}<br />
-              &nbsp;&nbsp;<span style={{ color: "#888" }}>"screenshot_url"</span>: <span style={{ color: "#c8a869" }}>"cdn.shotbase.io/sc/k9xp..."</span>,<br />
-              &nbsp;&nbsp;<span style={{ color: "#888" }}>"took_ms"</span>: <span style={{ color: "#00e87b" }}>142</span>,<br />
-              &nbsp;&nbsp;<span style={{ color: "#888" }}>"ai_data"</span>: {"{ "}<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#888" }}>"prices"</span>: [<span style={{ color: "#c8a869" }}>"$29/mo"</span>, <span style={{ color: "#c8a869" }}>"$99/mo"</span>],<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#888" }}>"headings"</span>: [<span style={{ color: "#c8a869" }}>"Pricing"</span>, <span style={{ color: "#c8a869" }}>"Enterprise"</span>],<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#888" }}>"ctas"</span>: [<span style={{ color: "#c8a869" }}>"Get Started"</span>, <span style={{ color: "#c8a869" }}>"Contact Sales"</span>],<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span style={{ color: "#888" }}>"meta_description"</span>: <span style={{ color: "#c8a869" }}>"..."</span><br />
+              &nbsp;&nbsp;<span className="ck">"screenshot_url"</span>: <span style={{ color: "#c8a869" }}>"cdn.shotbase.io/sc/k9xp..."</span>,<br />
+              &nbsp;&nbsp;<span className="ck">"took_ms"</span>: <span style={{ color: "#00e87b" }}>142</span>,<br />
+              &nbsp;&nbsp;<span className="ck">"ai_data"</span>: {"{ "}<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"prices"</span>: [<span style={{ color: "#c8a869" }}>"$29/mo"</span>, <span style={{ color: "#c8a869" }}>"$99/mo"</span>],<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"headings"</span>: [<span style={{ color: "#c8a869" }}>"Pricing"</span>, <span style={{ color: "#c8a869" }}>"Enterprise"</span>],<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"ctas"</span>: [<span style={{ color: "#c8a869" }}>"Get Started"</span>, <span style={{ color: "#c8a869" }}>"Contact Sales"</span>],<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"meta_description"</span>: <span style={{ color: "#c8a869" }}>"..."</span><br />
               &nbsp;&nbsp;{"} "}<br />
               {"} "}
             </div>
@@ -671,26 +660,21 @@ export default function Home() {
           </div>
         </section>
 
-        <footer className="relative overflow-hidden border-t border-white/5">
+        <footer className="relative overflow-hidden border-t border-[hsl(var(--border))]">
           <div className="absolute inset-0 z-0">
             <SmoothShaderBg />
-            <div className="absolute inset-0 bg-black/35 z-[1]" />
+            <div className="absolute inset-0 dark:bg-black/35 bg-white/90 z-[1]" />
           </div>
           <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>
               <div className="flogo">
-                <svg width="20" height="20" viewBox="0 0 80 80" fill="none">
-                  <path d="M14,44 L14,14 L44,14" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                  <path d="M50,14 L66,14 L66,32" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                  <path d="M66,48 L66,66 L36,66" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                  <path d="M30,66 L14,66 L14,48" stroke="#00e87b" strokeWidth="10" strokeLinecap="square" />
-                </svg>
+                <ShotbaseMark size={20} fill="#00e87b" />
                 shotbase
               </div>
               <p>Screenshot any URL.<br />One API call.<br /><br />A Route1AI product</p>
             </div>
             <div className="fcols">
-              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/playground">Playground</Link></li><li><Link href="/pricing">Pricing</Link></li><li><Link href="/">Changelog</Link></li></ul></div>
+              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/playground">Playground</Link></li><li><Link href="/">Changelog</Link></li></ul></div>
               <div className="fcol"><h4>Developers</h4><ul><li><Link href="/docs">API Reference</Link></li><li><Link href="/">JS SDK</Link></li><li><Link href="/">Python SDK</Link></li><li><Link href="/">MCP Server</Link></li></ul></div>
               <div className="fcol"><h4>Company</h4><ul><li><Link href="/">Route1AI</Link></li><li><Link href="/">Blog</Link></li><li><Link href="/">GitHub</Link></li></ul></div>
             </div>
