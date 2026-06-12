@@ -269,15 +269,31 @@
   border-bottom: 8px solid hsl(var(--border-strong));
 }
 
+.orbital-card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: hsl(var(--text-muted));
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
 .orbital-card-close:hover {
-  background: hsl(var(--hover-bg)) !important;
-  color: hsl(var(--text-primary)) !important;
+  background: hsl(var(--hover-bg));
+  color: hsl(var(--text-primary));
 }
 .orbital-card-close:focus-visible {
   outline: 2px solid hsl(var(--brand));
   outline-offset: -2px;
-  background: hsl(var(--hover-bg)) !important;
-  color: hsl(var(--text-primary)) !important;
+  background: hsl(var(--hover-bg));
+  color: hsl(var(--text-primary));
 }
 
 .orbital-card-header {

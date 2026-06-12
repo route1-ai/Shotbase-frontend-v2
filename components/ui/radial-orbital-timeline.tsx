@@ -228,8 +228,6 @@ export default function RadialOrbitalTimeline({
                 <div className={`orbital-node-label ${isExpanded ? "active" : ""}`}>
                   {item.title}
                 </div>
-
-                {/* Removed Expanded card from node */}
               </button>
             );
           })}
@@ -252,22 +250,6 @@ export default function RadialOrbitalTimeline({
                     }}
                     aria-label="Close detail view"
                     title="Close"
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'none',
-                      border: 'none',
-                      color: 'hsl(var(--text-muted))',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 10,
-                      borderRadius: '4px',
-                      transition: 'all 0.2s',
-                    }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
