@@ -201,6 +201,12 @@
   color: hsl(var(--brand));
   transform: scale(1.1);
 }
+.orbital-node:focus-visible .orbital-node-circle {
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand));
+  box-shadow: 0 0 0 2px hsl(var(--brand) / 0.3);
+  transform: scale(1.1);
+}
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
   color: hsl(var(--brand));
@@ -261,6 +267,17 @@
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-bottom: 8px solid hsl(var(--border-strong));
+}
+
+.orbital-card-close:hover {
+  background: hsl(var(--hover-bg)) !important;
+  color: hsl(var(--text-primary)) !important;
+}
+.orbital-card-close:focus-visible {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: -2px;
+  background: hsl(var(--hover-bg)) !important;
+  color: hsl(var(--text-primary)) !important;
 }
 
 .orbital-card-header {
@@ -357,6 +374,11 @@
 .orbital-card-related-btn:hover {
   background: hsl(var(--brand) / 0.12);
   border-color: hsl(var(--brand) / 0.3);
+}
+.orbital-card-related-btn:focus-visible {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 2px;
+  background: hsl(var(--brand) / 0.12);
 }
 
 

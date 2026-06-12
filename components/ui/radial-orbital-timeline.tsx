@@ -26,7 +26,7 @@ export default function RadialOrbitalTimeline({
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const nodeRefs = useRef<Record<number, HTMLElement | null>>({});
 
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === containerRef.current || e.target === orbitRef.current) {
@@ -44,7 +44,11 @@ export default function RadialOrbitalTimeline({
     setPulseEffect({});
   };
 
-  const openItem = (id: number) => {
+  const openItem = (id: number, shouldRotate: boolean = false) => {
+    if (shouldRotate) {
+      centerViewOnNode(id);
+    }
+
     if (activeNodeId === id) return;
     setExpandedItems({ [id]: true });
     setActiveNodeId(id);
@@ -163,16 +167,27 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
+                aria-label={`View details for ${item.title}`}
+                aria-expanded={isExpanded}
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  outline: 'none',
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openItem(item.id, true);
+                }}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -215,7 +230,7 @@ export default function RadialOrbitalTimeline({
                 </div>
 
                 {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
@@ -229,6 +244,36 @@ export default function RadialOrbitalTimeline({
                   onMouseEnter={() => setAutoRotate(false)}
                 >
                   <div className="orbital-card-connector" />
+                  <button
+                    className="orbital-card-close"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeItem();
+                    }}
+                    aria-label="Close detail view"
+                    title="Close"
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'hsl(var(--text-muted))',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10,
+                      borderRadius: '4px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                   <div className="orbital-card-header">
                     <span
                       className="orbital-card-status"
