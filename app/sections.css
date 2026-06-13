@@ -171,6 +171,7 @@
   align-items: center;
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  background: none; border: none; padding: 0; outline: none;
 }
 
 .orbital-node-glow {
@@ -200,6 +201,10 @@
   border-color: hsl(var(--brand));
   color: hsl(var(--brand));
   transform: scale(1.1);
+}
+.orbital-node:focus-visible .orbital-node-circle {
+  border-color: hsl(var(--brand)); color: hsl(var(--brand));
+  box-shadow: 0 0 0 2px hsl(var(--brand) / 0.2); transform: scale(1.1);
 }
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
@@ -358,6 +363,7 @@
   background: hsl(var(--brand) / 0.12);
   border-color: hsl(var(--brand) / 0.3);
 }
+.orbital-card-related-btn:focus-visible { outline: 2px solid hsl(var(--brand)); outline-offset: 1px; }
 
 
 /* ─── DETAIL SECTIONS (alternating text+visual) ──────── */
