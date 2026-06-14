@@ -132,20 +132,12 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [focusedId, setFocusedId] = useState<string | null>(null)
   const [copiedType, setCopiedType] = useState<string | null>(null)
-
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
 
   const handleCopy = useCallback(async (text: string, type: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedType(type)
-      setTimeout(() => setCopiedType(null), 1500)
-    } catch (err) {
-      console.error("Failed to copy:", err)
-    }
+    await navigator.clipboard.writeText(text).catch(() => {})
+    setCopiedType(type); setTimeout(() => setCopiedType(null), 1500)
   }, [])
 
   return (
@@ -168,32 +160,23 @@ export default function ApiExplorerPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {ENDPOINTS.map((e) => {
               const active = e.id === selectedId
-              const hovered = e.id === hoveredId
-              const focused = e.id === focusedId
               return (
                 <button
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
-                  onMouseEnter={() => setHoveredId(e.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  onFocus={() => setFocusedId(e.id)}
-                  onBlur={() => setFocusedId(null)}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 8,
                     width: "100%",
-                    background: active ? ACTIVE_BG : (hovered || focused) ? "rgba(255,255,255,0.03)" : "transparent",
-                    border: `1px solid ${active ? ACTIVE_BORDER : (focused) ? "rgba(0,232,123,0.3)" : "transparent"}`,
+                    background: active ? ACTIVE_BG : "transparent",
+                    border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`,
                     borderRadius: 6,
                     padding: "8px 10px",
                     cursor: "pointer",
                     color: "inherit",
                     textAlign: "left",
-                    outline: focused ? "1px solid #00e87b" : "none",
-                    outlineOffset: -1,
-                    transition: "all 0.15s ease",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -233,40 +216,24 @@ export default function ApiExplorerPage() {
           {selected.request && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Request body
-                </div>
-                <button
-                  onClick={() => handleCopy(selected.request!, "request")}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: copiedType === "request" ? "#00e87b" : "#444", display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-ibm-plex)", fontSize: 10, transition: "color 0.15s" }}
-                >
-                  {copiedType === "request" ? <Check size={10} /> : <Copy size={10} />}
-                  {copiedType === "request" ? "Copied" : "Copy"}
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Request body</div>
+                <button onClick={() => handleCopy(selected.request!, "req")} style={{ background: "none", border: "none", cursor: "pointer", color: copiedType === "req" ? "#00e87b" : "#444", display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-ibm-plex)", fontSize: 10 }}>
+                  {copiedType === "req" ? <Check size={10} /> : <Copy size={10} />} {copiedType === "req" ? "Copied" : "Copy"}
                 </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.request}</pre>
             </div>
           )}
 
           {selected.response && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Response
-                </div>
-                <button
-                  onClick={() => handleCopy(selected.response!, "response")}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: copiedType === "response" ? "#00e87b" : "#444", display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-ibm-plex)", fontSize: 10, transition: "color 0.15s" }}
-                >
-                  {copiedType === "response" ? <Check size={10} /> : <Copy size={10} />}
-                  {copiedType === "response" ? "Copied" : "Copy"}
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Response</div>
+                <button onClick={() => handleCopy(selected.response!, "res")} style={{ background: "none", border: "none", cursor: "pointer", color: copiedType === "res" ? "#00e87b" : "#444", display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-ibm-plex)", fontSize: 10 }}>
+                  {copiedType === "res" ? <Check size={10} /> : <Copy size={10} />} {copiedType === "res" ? "Copied" : "Copy"}
                 </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.response}</pre>
             </div>
           )}
 
