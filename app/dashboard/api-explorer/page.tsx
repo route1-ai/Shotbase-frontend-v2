@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -131,7 +132,19 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }
 
   return (
     <div>
@@ -153,23 +166,28 @@ export default function ApiExplorerPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {ENDPOINTS.map((e) => {
               const active = e.id === selectedId
+              const hovered = e.id === hoveredId
               return (
                 <button
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
+                  onMouseEnter={() => setHoveredId(e.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  aria-label={`View documentation for ${e.method} ${e.path}`}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 8,
                     width: "100%",
-                    background: active ? ACTIVE_BG : "transparent",
-                    border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`,
+                    background: active ? ACTIVE_BG : hovered ? "rgba(255,255,255,0.03)" : "transparent",
+                    border: `1px solid ${active ? ACTIVE_BORDER : hovered ? "rgba(255,255,255,0.06)" : "transparent"}`,
                     borderRadius: 6,
                     padding: "8px 10px",
                     cursor: "pointer",
                     color: "inherit",
                     textAlign: "left",
+                    transition: "all 0.15s",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -208,10 +226,24 @@ export default function ApiExplorerPage() {
 
           {selected.request && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Request body
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Request body
+                </div>
+                <button
+                  className="ccopy"
+                  onClick={() => copyToClipboard(selected.request!, "request")}
+                  aria-label={copiedId === "request" ? "Copied!" : "Copy request body to clipboard"}
+                  style={{ padding: "4px 8px", marginRight: 0 }}
+                >
+                  {copiedId === "request" ? <Check size={12} /> : <Copy size={12} />}
+                  <span style={{ marginLeft: 4 }}>{copiedId === "request" ? "Copied" : "Copy"}</span>
+                </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+              <pre
+                data-lenis-prevent
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}
+              >
                 {selected.request}
               </pre>
             </div>
@@ -219,10 +251,24 @@ export default function ApiExplorerPage() {
 
           {selected.response && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Response
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Response
+                </div>
+                <button
+                  className="ccopy"
+                  onClick={() => copyToClipboard(selected.response!, "response")}
+                  aria-label={copiedId === "response" ? "Copied!" : "Copy response to clipboard"}
+                  style={{ padding: "4px 8px", marginRight: 0 }}
+                >
+                  {copiedId === "response" ? <Check size={12} /> : <Copy size={12} />}
+                  <span style={{ marginLeft: 4 }}>{copiedId === "response" ? "Copied" : "Copy"}</span>
+                </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+              <pre
+                data-lenis-prevent
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}
+              >
                 {selected.response}
               </pre>
             </div>
