@@ -42,7 +42,7 @@ export default function RadialOrbitalTimeline({
     const totalNodes = timelineData.length;
     const targetAngle = (nodeIndex / totalNodes) * 360;
     setRotationAngle(270 - targetAngle);
-  };
+  }
 
   const closeItem = () => {
     setActiveNodeId(null);
@@ -77,7 +77,7 @@ export default function RadialOrbitalTimeline({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeNodeId]);
+  }, [activeNodeId, closeItem]);
 
   useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
