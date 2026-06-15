@@ -26,16 +26,7 @@ export default function RadialOrbitalTimeline({
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
-
-  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === containerRef.current || e.target === orbitRef.current) {
-      setExpandedItems({});
-      setActiveNodeId(null);
-      setPulseEffect({});
-      setAutoRotate(true);
-    }
-  };
+  const nodeRefs = useRef<Record<number, HTMLElement | null>>({});
 
   const closeItem = () => {
     setActiveNodeId(null);
@@ -44,7 +35,23 @@ export default function RadialOrbitalTimeline({
     setPulseEffect({});
   };
 
-  const openItem = (id: number) => {
+  const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === containerRef.current || e.target === orbitRef.current) {
+      closeItem();
+    }
+  };
+
+  function centerViewOnNode(nodeId: number) {
+    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
+    const totalNodes = timelineData.length;
+    const targetAngle = (nodeIndex / totalNodes) * 360;
+    setRotationAngle(270 - targetAngle);
+  }
+
+  const openItem = (id: number, shouldRotate: boolean = false) => {
+    if (shouldRotate) {
+      centerViewOnNode(id);
+    }
     if (activeNodeId === id) return;
     setExpandedItems({ [id]: true });
     setActiveNodeId(id);
@@ -57,6 +64,14 @@ export default function RadialOrbitalTimeline({
     });
     setPulseEffect(newPulseEffect);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeItem();
+    };
+    if (activeNodeId !== null) window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeNodeId]);
 
   useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
@@ -76,13 +91,6 @@ export default function RadialOrbitalTimeline({
       }
     };
   }, [autoRotate]);
-
-  const centerViewOnNode = (nodeId: number) => {
-    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
-    const totalNodes = timelineData.length;
-    const targetAngle = (nodeIndex / totalNodes) * 360;
-    setRotationAngle(270 - targetAngle);
-  };
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
@@ -163,16 +171,23 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
+                aria-label={`${item.title} - ${item.category}`}
+                aria-expanded={isExpanded}
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openItem(item.id, true);
+                }}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -213,9 +228,7 @@ export default function RadialOrbitalTimeline({
                 <div className={`orbital-node-label ${isExpanded ? "active" : ""}`}>
                   {item.title}
                 </div>
-
-                {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
@@ -274,7 +287,7 @@ export default function RadialOrbitalTimeline({
                               className="orbital-card-related-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openItem(relatedId);
+                                openItem(relatedId, true);
                               }}
                             >
                               {relatedItem?.title} →
