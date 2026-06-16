@@ -437,15 +437,43 @@ export default function Home() {
           </div>
           <div className="code-panel-wrap" ref={codePanelRef}>
             <div className="ctabs">
-              <div className="ctab-list">
-                <button className={`ctab ${activeTab === "js" ? "a" : ""}`} onClick={() => setActiveTab("js")}>JavaScript</button>
-                <button className={`ctab ${activeTab === "py" ? "a" : ""}`} onClick={() => setActiveTab("py")}>Python</button>
-                <button className={`ctab ${activeTab === "cu" ? "a" : ""}`} onClick={() => setActiveTab("cu")}>cURL</button>
+              <div className="ctab-list" role="tablist" aria-label="Code language selection">
+                <button
+                  id="tab-js"
+                  role="tab"
+                  aria-selected={activeTab === "js"}
+                  aria-controls="panel-js"
+                  className={`ctab ${activeTab === "js" ? "a" : ""}`}
+                  onClick={() => setActiveTab("js")}
+                >
+                  JavaScript
+                </button>
+                <button
+                  id="tab-py"
+                  role="tab"
+                  aria-selected={activeTab === "py"}
+                  aria-controls="panel-py"
+                  className={`ctab ${activeTab === "py" ? "a" : ""}`}
+                  onClick={() => setActiveTab("py")}
+                >
+                  Python
+                </button>
+                <button
+                  id="tab-cu"
+                  role="tab"
+                  aria-selected={activeTab === "cu"}
+                  aria-controls="panel-cu"
+                  className={`ctab ${activeTab === "cu" ? "a" : ""}`}
+                  onClick={() => setActiveTab("cu")}
+                >
+                  cURL
+                </button>
               </div>
               <button
                 className="ccopy"
                 onClick={handleCopy}
                 aria-label={copied ? "Copied!" : "Copy code to clipboard"}
+                aria-live="polite"
                 title={copied ? "Copied!" : "Copy code"}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
@@ -454,7 +482,12 @@ export default function Home() {
             </div>
             <div className="cblock">
               {activeTab === "js" && (
-                <div className="cpanel a">
+                <div
+                  id="panel-js"
+                  role="tabpanel"
+                  aria-labelledby="tab-js"
+                  className="cpanel a"
+                >
                   <span className="co">{"// npm install @shotbase/sdk"}</span><br />
                   <span className="cc">import</span> <span className="cs">{"{ Shotbase }"}</span> <span className="cc">from</span> <span className="cs">&apos;@shotbase/sdk&apos;</span>;<br /><br />
                   <span className="cc">const</span> sb = <span className="cc">new</span> <span className="cv">Shotbase</span>{"({ "} <span className="ck">apiKey</span>: <span className="cs">&apos;sk-live-...&apos;</span> {" });"}<br /><br />
@@ -468,7 +501,12 @@ export default function Home() {
                 </div>
               )}
               {activeTab === "py" && (
-                <div className="cpanel a">
+                <div
+                  id="panel-py"
+                  role="tabpanel"
+                  aria-labelledby="tab-py"
+                  className="cpanel a"
+                >
                   <span className="co">{"# pip install shotbase"}</span><br />
                   <span className="cc">from</span> <span className="ck">shotbase</span> <span className="cc">import</span> <span className="cv">Shotbase</span><br /><br />
                   sb = <span className="cv">Shotbase</span>(<span className="ck">api_key</span>=&quot;sk-live-...&quot;)<br />
@@ -482,7 +520,12 @@ export default function Home() {
                 </div>
               )}
               {activeTab === "cu" && (
-                <div className="cpanel a">
+                <div
+                  id="panel-cu"
+                  role="tabpanel"
+                  aria-labelledby="tab-cu"
+                  className="cpanel a"
+                >
                   <span className="cc">curl</span> <span className="cf">-X POST</span> \<br />
                   &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">&quot;Authorization: Bearer sk-live-...&quot;</span> \<br />
                   &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">&quot;Content-Type: application/json&quot;</span> \<br />
