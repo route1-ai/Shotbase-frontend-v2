@@ -186,9 +186,6 @@ export default function RadialOrbitalTimeline({
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
-                  background: "none",
-                  border: "none",
-                  padding: 0,
                 }}
                 onMouseEnter={() => openItem(item.id)}
                 onFocus={() => openItem(item.id)}
