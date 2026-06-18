@@ -226,10 +226,22 @@ export default function ApiExplorerPage() {
                   Request body
                 </div>
                 <button
-                  className="ccopy"
                   onClick={() => handleCopy(selected.request!, "req")}
                   aria-label={copiedId === "req" ? "Copied!" : "Copy request body"}
-                  style={{ padding: "4px 8px", margin: 0, background: "transparent", color: copiedId === "req" ? "#00e87b" : undefined }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontFamily: "var(--font-ibm-plex), monospace",
+                    fontSize: 11,
+                    color: copiedId === "req" ? "#00e87b" : "#666",
+                    padding: "4px 8px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    borderRadius: 4,
+                  }}
                 >
                   {copiedId === "req" ? <Check size={12} /> : <Copy size={12} />}
                   <span>{copiedId === "req" ? "Copied" : "Copy"}</span>
@@ -248,10 +260,22 @@ export default function ApiExplorerPage() {
                   Response
                 </div>
                 <button
-                  className="ccopy"
                   onClick={() => handleCopy(selected.response!, "res")}
                   aria-label={copiedId === "res" ? "Copied!" : "Copy response"}
-                  style={{ padding: "4px 8px", margin: 0, background: "transparent", color: copiedId === "res" ? "#00e87b" : undefined }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontFamily: "var(--font-ibm-plex), monospace",
+                    fontSize: 11,
+                    color: copiedId === "res" ? "#00e87b" : "#666",
+                    padding: "4px 8px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                    borderRadius: 4,
+                  }}
                 >
                   {copiedId === "res" ? <Check size={12} /> : <Copy size={12} />}
                   <span>{copiedId === "res" ? "Copied" : "Copy"}</span>
