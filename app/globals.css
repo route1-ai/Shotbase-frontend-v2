@@ -687,6 +687,8 @@ aside,
 .ccopy:focus-visible { outline: 1px solid hsl(var(--brand)); outline-offset: -2px; }
 .ccopy svg { flex-shrink: 0; }
 
+.ccopy span { font-weight: 500; }
+
 .cblock {
   background: hsl(var(--code-bg)); border: 1px solid hsl(var(--border));
   border-top: none; border-radius: 0 0 10px 10px;
