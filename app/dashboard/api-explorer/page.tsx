@@ -133,7 +133,6 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [focusedId, setFocusedId] = useState<string | null>(null)
 
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
 
@@ -171,8 +170,6 @@ export default function ApiExplorerPage() {
                 <button
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
-                  onFocus={() => setFocusedId(e.id)}
-                  onBlur={() => setFocusedId(null)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -180,7 +177,7 @@ export default function ApiExplorerPage() {
                     gap: 8,
                     width: "100%",
                     background: active ? ACTIVE_BG : "transparent",
-                    border: `1px solid ${active ? ACTIVE_BORDER : focusedId === e.id ? ACTIVE_BORDER : "transparent"}`,
+                    border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`,
                     borderRadius: 6,
                     padding: "8px 10px",
                     cursor: "pointer",
@@ -232,7 +229,7 @@ export default function ApiExplorerPage() {
                   className="ccopy"
                   onClick={() => handleCopy(selected.request!, "req")}
                   aria-label={copiedId === "req" ? "Copied!" : "Copy request body"}
-                  style={{ padding: "4px 8px", margin: 0 }}
+                  style={{ padding: "4px 8px", margin: 0, background: "transparent", color: copiedId === "req" ? "#00e87b" : undefined }}
                 >
                   {copiedId === "req" ? <Check size={12} /> : <Copy size={12} />}
                   <span>{copiedId === "req" ? "Copied" : "Copy"}</span>
@@ -254,7 +251,7 @@ export default function ApiExplorerPage() {
                   className="ccopy"
                   onClick={() => handleCopy(selected.response!, "res")}
                   aria-label={copiedId === "res" ? "Copied!" : "Copy response"}
-                  style={{ padding: "4px 8px", margin: 0 }}
+                  style={{ padding: "4px 8px", margin: 0, background: "transparent", color: copiedId === "res" ? "#00e87b" : undefined }}
                 >
                   {copiedId === "res" ? <Check size={12} /> : <Copy size={12} />}
                   <span>{copiedId === "res" ? "Copied" : "Copy"}</span>
