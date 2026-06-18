@@ -234,13 +234,13 @@ export default function ApiExplorerPage() {
                     gap: 6,
                     fontFamily: "var(--font-ibm-plex), monospace",
                     fontSize: 11,
-                    color: copiedId === "req" ? "#00e87b" : "#666",
-                    padding: "4px 8px",
-                    background: "none",
-                    border: "none",
+                    color: copiedId === "req" ? "#00e87b" : "#888",
+                    padding: "5px 10px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${copiedId === "req" ? "rgba(0,232,123,0.2)" : "rgba(255,255,255,0.1)"}`,
+                    borderRadius: 6,
                     cursor: "pointer",
                     transition: "all 0.15s",
-                    borderRadius: 4,
                   }}
                 >
                   {copiedId === "req" ? <Check size={12} /> : <Copy size={12} />}
@@ -268,13 +268,13 @@ export default function ApiExplorerPage() {
                     gap: 6,
                     fontFamily: "var(--font-ibm-plex), monospace",
                     fontSize: 11,
-                    color: copiedId === "res" ? "#00e87b" : "#666",
-                    padding: "4px 8px",
-                    background: "none",
-                    border: "none",
+                    color: copiedId === "res" ? "#00e87b" : "#888",
+                    padding: "5px 10px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: `1px solid ${copiedId === "res" ? "rgba(0,232,123,0.2)" : "rgba(255,255,255,0.1)"}`,
+                    borderRadius: 6,
                     cursor: "pointer",
                     transition: "all 0.15s",
-                    borderRadius: 4,
                   }}
                 >
                   {copiedId === "res" ? <Check size={12} /> : <Copy size={12} />}
