@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 interface TimelineItem {
   id: number;
@@ -26,7 +26,23 @@ export default function RadialOrbitalTimeline({
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const nodeRefs = useRef<Record<number, HTMLElement | null>>({});
+
+  const closeItem = useCallback(() => {
+    setActiveNodeId(null);
+    setAutoRotate(true);
+    setExpandedItems({});
+    setPulseEffect({});
+  }, []);
+
+  useEffect(() => {
+    if (!activeNodeId) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeItem();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeNodeId, closeItem]);
 
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === containerRef.current || e.target === orbitRef.current) {
@@ -35,13 +51,6 @@ export default function RadialOrbitalTimeline({
       setPulseEffect({});
       setAutoRotate(true);
     }
-  };
-
-  const closeItem = () => {
-    setActiveNodeId(null);
-    setAutoRotate(true);
-    setExpandedItems({});
-    setPulseEffect({});
   };
 
   const openItem = (id: number) => {
@@ -163,9 +172,11 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
-                ref={(el) => { nodeRefs.current[item.id] = el; }}
+                ref={(el) => {
+                  nodeRefs.current[item.id] = el;
+                }}
                 className="orbital-node"
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px)`,
@@ -173,6 +184,11 @@ export default function RadialOrbitalTimeline({
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  centerViewOnNode(item.id);
+                }}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -191,16 +207,13 @@ export default function RadialOrbitalTimeline({
                 {/* Node circle */}
                 <div
                   className={`orbital-node-circle ${
-                    isExpanded
-                      ? "expanded"
-                      : isRelated
-                      ? "related"
-                      : ""
+                    isExpanded ? "expanded" : isRelated ? "related" : ""
                   }`}
                   style={{
-                    borderColor: isExpanded || isRelated
-                      ? getStatusColor(item.status)
-                      : "rgba(255,255,255,0.25)",
+                    borderColor:
+                      isExpanded || isRelated
+                        ? getStatusColor(item.status)
+                        : "rgba(255,255,255,0.25)",
                     boxShadow: isExpanded
                       ? `0 0 20px ${getStatusColor(item.status)}40`
                       : "none",
@@ -210,12 +223,14 @@ export default function RadialOrbitalTimeline({
                 </div>
 
                 {/* Label */}
-                <div className={`orbital-node-label ${isExpanded ? "active" : ""}`}>
+                <div
+                  className={`orbital-node-label ${isExpanded ? "active" : ""}`}
+                >
                   {item.title}
                 </div>
 
                 {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
