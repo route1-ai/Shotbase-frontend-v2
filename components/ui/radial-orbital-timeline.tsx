@@ -149,7 +149,6 @@ export default function RadialOrbitalTimeline({
       onClick={handleContainerClick}
       onMouseLeave={closeItem}
       onBlur={(e) => {
-        // If we focus something outside the container, resume rotation
         if (!containerRef.current?.contains(e.relatedTarget as Node)) {
           closeItem();
         }
