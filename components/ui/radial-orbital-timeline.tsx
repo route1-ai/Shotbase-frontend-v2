@@ -61,7 +61,6 @@ export default function RadialOrbitalTimeline({
         closeItem();
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [closeItem]);
@@ -84,7 +83,6 @@ export default function RadialOrbitalTimeline({
       }
     };
   }, [autoRotate]);
-
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
@@ -140,7 +138,7 @@ export default function RadialOrbitalTimeline({
       onClick={handleContainerClick}
       onMouseLeave={closeItem}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) {
+        if (e.relatedTarget instanceof Node && !e.currentTarget.contains(e.relatedTarget)) {
           closeItem();
         }
       }}
