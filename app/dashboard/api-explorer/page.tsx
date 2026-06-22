@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useCallback } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -129,6 +130,39 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
   DELETE: "#ff6060",
 }
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+    }
+  }, [text])
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="ccopy"
+      style={{
+        position: "absolute",
+        top: 6,
+        right: 6,
+        padding: "4px 8px",
+        height: "auto",
+      }}
+      aria-label={copied ? "Copied!" : "Copy code to clipboard"}
+      title={copied ? "Copied!" : "Copy code"}
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+      <span style={{ fontSize: 10, marginLeft: 4 }}>{copied ? "Copied" : "Copy"}</span>
+    </button>
+  )
+}
+
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
@@ -211,9 +245,12 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Request body
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 70, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.request}
+                </pre>
+                <CopyButton text={selected.request} />
+              </div>
             </div>
           )}
 
@@ -222,9 +259,12 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Response
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 70, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.response}
+                </pre>
+                <CopyButton text={selected.response} />
+              </div>
             </div>
           )}
 
