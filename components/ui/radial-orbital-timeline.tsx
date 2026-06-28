@@ -50,11 +50,6 @@ export default function RadialOrbitalTimeline({
     setActiveNodeId(id);
     setAutoRotate(false);
 
-    const getRelatedItems = (itemId: number): number[] => {
-      const currentItem = timelineData.find((item) => item.id === itemId);
-      return currentItem ? currentItem.relatedIds : [];
-    };
-
     const relatedItems = getRelatedItems(id);
     const newPulseEffect: Record<number, boolean> = {};
     relatedItems.forEach((relId) => {
