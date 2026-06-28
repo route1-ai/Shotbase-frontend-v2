@@ -119,7 +119,7 @@ export default function RadialOrbitalTimeline({
     return relatedItems.includes(itemId);
   }, [activeNodeId, getRelatedItems]);
 
-  const getStatusColor = useCallback((status: TimelineItem["status"]): string => {
+  const getStatusColor = (status: TimelineItem["status"]): string => {
     switch (status) {
       case "completed":
         return "#00e87b";
@@ -130,7 +130,7 @@ export default function RadialOrbitalTimeline({
       default:
         return "#888899";
     }
-  }, []);
+  };
 
   return (
     <div
@@ -224,8 +224,6 @@ export default function RadialOrbitalTimeline({
                 <div className={`orbital-node-label ${isExpanded ? "active" : ""}`}>
                   {item.title}
                 </div>
-
-                {/* Removed Expanded card from node */}
               </button>
             );
           })}
