@@ -37,6 +37,11 @@ export default function RadialOrbitalTimeline({
     }
   };
 
+  const getRelatedItems = useCallback((itemId: number): number[] => {
+    const currentItem = timelineData.find((item) => item.id === itemId);
+    return currentItem ? currentItem.relatedIds : [];
+  }, [timelineData]);
+
   const closeItem = useCallback(() => {
     setActiveNodeId(null);
     setAutoRotate(true);
@@ -50,14 +55,13 @@ export default function RadialOrbitalTimeline({
     setActiveNodeId(id);
     setAutoRotate(false);
 
-    const currentItem = timelineData.find((item) => item.id === id);
-    const relatedItems = currentItem ? currentItem.relatedIds : [];
+    const relatedItems = getRelatedItems(id);
     const newPulseEffect: Record<number, boolean> = {};
     relatedItems.forEach((relId) => {
       newPulseEffect[relId] = true;
     });
     setPulseEffect(newPulseEffect);
-  }, [activeNodeId, timelineData]);
+  }, [activeNodeId, getRelatedItems]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -109,18 +113,13 @@ export default function RadialOrbitalTimeline({
     };
   };
 
-  const getRelatedItems = (itemId: number): number[] => {
-    const currentItem = timelineData.find((item) => item.id === itemId);
-    return currentItem ? currentItem.relatedIds : [];
-  };
-
-  const isRelatedToActive = (itemId: number): boolean => {
+  const isRelatedToActive = useCallback((itemId: number): boolean => {
     if (!activeNodeId) return false;
     const relatedItems = getRelatedItems(activeNodeId);
     return relatedItems.includes(itemId);
-  };
+  }, [activeNodeId, getRelatedItems]);
 
-  const getStatusColor = (status: TimelineItem["status"]): string => {
+  const getStatusColor = useCallback((status: TimelineItem["status"]): string => {
     switch (status) {
       case "completed":
         return "#00e87b";
@@ -131,7 +130,7 @@ export default function RadialOrbitalTimeline({
       default:
         return "#888899";
     }
-  };
+  }, []);
 
   return (
     <div
