@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useCallback, useRef, useEffect } from "react"
 import Link from "next/link"
+import { Check, Copy } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -129,8 +130,41 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
   DELETE: "#ff6060",
 }
 
+function CopyButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(content)
+    setCopied(true)
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => setCopied(false), 2000)
+  }, [content])
+
+  useEffect(() => () => { if (timeoutRef.current) clearTimeout(timeoutRef.current) }, [])
+
+  return (
+    <button
+      onClick={handleCopy}
+      aria-label={copied ? "Copied!" : "Copy to clipboard"}
+      style={{
+        position: "absolute", top: 6, right: 6,
+        background: "rgba(10,10,10,0.8)", backdropFilter: "blur(4px)",
+        border: `1px solid ${BORDER}`, borderRadius: 4, padding: "4px 8px",
+        cursor: "pointer", color: copied ? "#00e87b" : "#888",
+        fontSize: 10, fontFamily: "var(--font-ibm-plex)",
+        display: "flex", alignItems: "center", gap: 4, transition: "all 0.2s"
+      }}
+    >
+      {copied ? <Check size={12} /> : <Copy size={12} />}
+      {copied ? "Copied" : "Copy"}
+    </button>
+  )
+}
+
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [focusedId, setFocusedId] = useState<string | null>(null)
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
 
   return (
@@ -153,10 +187,14 @@ export default function ApiExplorerPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {ENDPOINTS.map((e) => {
               const active = e.id === selectedId
+              const isFocused = e.id === focusedId
               return (
                 <button
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
+                  onFocus={() => setFocusedId(e.id)}
+                  onBlur={() => setFocusedId(null)}
+                  aria-pressed={active}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -164,12 +202,15 @@ export default function ApiExplorerPage() {
                     gap: 8,
                     width: "100%",
                     background: active ? ACTIVE_BG : "transparent",
-                    border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`,
+                    border: `1px solid ${isFocused ? "#00e87b" : active ? ACTIVE_BORDER : "transparent"}`,
                     borderRadius: 6,
                     padding: "8px 10px",
                     cursor: "pointer",
                     color: "inherit",
                     textAlign: "left",
+                    outline: "none",
+                    boxShadow: isFocused ? "0 0 0 1px rgba(0,232,123,0.2)" : "none",
+                    transition: "all 0.15s ease",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -211,9 +252,12 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Request body
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.request}
+                </pre>
+                <CopyButton content={selected.request} />
+              </div>
             </div>
           )}
 
@@ -222,9 +266,12 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Response
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.response}
+                </pre>
+                <CopyButton content={selected.response} />
+              </div>
             </div>
           )}
 
