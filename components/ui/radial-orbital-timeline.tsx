@@ -76,7 +76,7 @@ export default function RadialOrbitalTimeline({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [activeNodeId]);
 
   useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
