@@ -215,6 +215,11 @@
   50% { border-color: hsl(var(--brand) / 0.8); }
 }
 
+.orbital-node:focus-visible .orbital-node-circle {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 4px;
+}
+
 /* Node label */
 .orbital-node-label {
   margin-top: 6px;
