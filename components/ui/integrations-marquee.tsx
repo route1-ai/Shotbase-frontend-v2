@@ -37,8 +37,13 @@ export default function IntegrationsMarquee({
   return (
     <div className="integrations-band" aria-label={`${label} ${items.join(", ")}`.trim()}>
       {label ? <div className="integrations-label">{label}</div> : null}
-      <div className="integrations-marquee" role="presentation">
-        <ul className="integrations-track" aria-hidden="true">
+      <div
+        className="integrations-marquee"
+        role="region"
+        aria-label={`${label} list`.trim()}
+        tabIndex={0}
+      >
+        <ul className="integrations-track">
           {rendered.map((name, idx) => (
             <Item key={`${name}-${idx}`} name={name} />
           ))}
