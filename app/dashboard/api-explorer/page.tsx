@@ -166,6 +166,23 @@ function CopyButton({ text }: { text: string }) {
         cursor: "pointer",
         display: "flex",
         transition: "all 0.15s",
+        outline: "none",
+      }}
+      onMouseEnter={(e) => {
+        if (!copied) e.currentTarget.style.color = "#aaa"
+        e.currentTarget.style.background = "rgba(10,10,10,0.9)"
+      }}
+      onMouseLeave={(e) => {
+        if (!copied) e.currentTarget.style.color = "#666"
+        e.currentTarget.style.background = "rgba(10,10,10,0.8)"
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = ACTIVE_BORDER
+        e.currentTarget.style.boxShadow = "0 0 0 2px rgba(0,232,123,0.15)"
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = BORDER
+        e.currentTarget.style.boxShadow = "none"
       }}
     >
       {copied ? <Check size={14} /> : <Copy size={14} />}
