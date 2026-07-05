@@ -1,14 +1,51 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
 const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
+const GETTING_STARTED_CODE = `curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
+  -H 'Authorization: Bearer YOUR_API_KEY' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"url": "https://stripe.com"}' \\
+  --output screenshot.png`
+
+const SIDEBAR_CODE = `curl -X POST \\
+  'https://api.shotbase.dev/v1/screenshot' \\
+  -H 'Authorization: Bearer YOUR_KEY' \\
+  -d '{"url":"https://stripe.com"}'`
+
 const CHART_DATA = [12, 28, 19, 44, 61, 38, 72, 55, 90, 78, 103, 88, 120, 98, 134, 115, 142, 128, 160, 145, 172, 158, 188, 174]
+
+interface LogRow {
+  id: string
+  url: string
+  status: number
+  ms?: number
+  format?: string
+  ts?: string
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = useCallback(async () => {
+    try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch (err) { console.error("Failed to copy:", err) }
+  }, [text])
+  return (
+    <button onClick={handleCopy} aria-label={copied ? "Copied!" : "Copy code"} title={copied ? "Copied!" : "Copy code"}
+      style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: copied ? "#00e87b" : "#666", background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 4, transition: "all 0.15s" }}
+      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = "#888"; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
+      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = "#666"; e.currentTarget.style.background = "none" }}
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />} <span>{copied ? "Copied" : "Copy"}</span>
+    </button>
+  )
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -90,7 +127,7 @@ function ThumbPlaceholder({ idx, label }: { idx: number; label: string }) {
 export default function OverviewPage() {
   const { user } = useUser()
   const [usage, setUsage] = useState({ count: 0, plan: "Free", limit: 10000 })
-  const [logs, setLogs] = useState<any[]>([])
+  const [logs, setLogs] = useState<LogRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showFirstCall, setShowFirstCall] = useState(true)
 
@@ -194,7 +231,8 @@ export default function OverviewPage() {
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 500 }}>Make your first call</span>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                <CopyButton text={GETTING_STARTED_CODE} />
                 <Link href="/dashboard/playground" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
                   Try in Playground →
                 </Link>
@@ -208,11 +246,7 @@ export default function OverviewPage() {
               </div>
             </div>
             <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
-{`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer YOUR_API_KEY' \\
-  -H 'Content-Type: application/json' \\
-  -d '{"url": "https://stripe.com"}' \\
-  --output screenshot.png`}
+{GETTING_STARTED_CODE}
             </pre>
           </div>
         )}
@@ -287,7 +321,7 @@ export default function OverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.slice(0, 5).map((r: any, i: number) => (
+                {logs.slice(0, 5).map((r: LogRow, i: number) => (
                   <tr key={r.id || i} style={{ borderBottom: i < Math.min(5, logs.length) - 1 ? `1px solid ${BORDER}` : "none" }}>
                     <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 16px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                     <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 16px 11px 0", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
@@ -306,14 +340,14 @@ export default function OverviewPage() {
       {/* ----- Right rail (code samples + quick links — ScreenshotOne/Resend pattern) ----- */}
       <aside style={{ minWidth: 0 }}>
         <div style={{ ...cardStyle, marginBottom: 12, padding: 16 }}>
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-            Copy & paste
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Copy & paste
+            </div>
+            <CopyButton text={SIDEBAR_CODE} />
           </div>
           <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
-{`curl -X POST \\
-  'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer YOUR_KEY' \\
-  -d '{"url":"https://stripe.com"}'`}
+{SIDEBAR_CODE}
           </pre>
           <Link href="/dashboard/keys" style={{ display: "block", marginTop: 10, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>
             Get your API key →
