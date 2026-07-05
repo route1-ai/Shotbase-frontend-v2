@@ -206,6 +206,13 @@
   outline: 2px solid hsl(var(--brand));
   outline-offset: 4px;
 }
+
+.orbital-node-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  outline: none;
+}
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
   color: hsl(var(--brand));
