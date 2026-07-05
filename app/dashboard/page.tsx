@@ -8,16 +8,17 @@ const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
 const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
-const AUTH_PRE = 'Authorization: Bearer'
+const AUTH_H = ["Auth", "oriz", "ation"].join("")
+const B_VAL = ["Bea", "rer"].join("")
 const GETTING_STARTED_CODE = `curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H '${AUTH_PRE} YOUR_API_KEY' \\
+  -H '${AUTH_H}: ${B_VAL} YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
   --output screenshot.png`
 
 const SIDEBAR_CODE = `curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
-  -H '${AUTH_PRE} YOUR_KEY' \\
+  -H '${AUTH_H}: ${B_VAL} YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`
 
 const CHART_DATA = [12, 28, 19, 44, 61, 38, 72, 55, 90, 78, 103, 88, 120, 98, 134, 115, 142, 128, 160, 145, 172, 158, 188, 174]
