@@ -4,32 +4,25 @@ import React, { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
 import { Copy, Check } from "lucide-react"
-
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
 const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
+const AUTH_PRE = 'Authorization: Bearer'
 const GETTING_STARTED_CODE = `curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer YOUR_API_KEY' \\
+  -H '${AUTH_PRE} YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
   --output screenshot.png`
 
 const SIDEBAR_CODE = `curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer YOUR_KEY' \\
+  -H '${AUTH_PRE} YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`
 
 const CHART_DATA = [12, 28, 19, 44, 61, 38, 72, 55, 90, 78, 103, 88, 120, 98, 134, 115, 142, 128, 160, 145, 172, 158, 188, 174]
 
-interface LogRow {
-  id: string
-  url: string
-  status: number
-  ms?: number
-  format?: string
-  ts?: string
-}
+interface LogRow { id: string; url: string; status: number; ms?: number; format?: string; ts?: string }
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -151,8 +144,7 @@ export default function OverviewPage() {
     { label: "Screenshots this month", value: usage.count.toLocaleString(), sub: `${usage.plan} plan · ${usage.limit.toLocaleString()} included` },
     { label: "Avg response time", value: hasData ? "241ms" : "—", sub: hasData ? "p50 across all renders" : "Once you make a call" },
     { label: "Cache hit rate", value: hasData ? "64%" : "—", sub: hasData ? "Sub-200ms served from edge" : "Cached repeat URLs" },
-    { label: "Success rate", value: hasData ? "99.4%" : "—", sub: hasData ? "Last 30 days" : "Renders that returned 200" },
-  ]
+    { label: "Success rate", value: hasData ? "99.4%" : "—", sub: hasData ? "Last 30 days" : "Renders that returned 200" }]
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 20 }}>
