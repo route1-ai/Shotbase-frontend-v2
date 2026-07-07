@@ -235,10 +235,10 @@ export default function OverviewPage() {
               </div>
             </div>
             <div style={{ position: "relative" }}>
-              <CopyButton text={`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer sk_live_...' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"url": "https://stripe.com"}' \\\n  --output screenshot.png`} />
+              <CopyButton text={`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"url": "https://stripe.com"}' \\\n  --output screenshot.png`} />
               <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
 {`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer sk_live_...' \\
+  -H 'Authorization: Bearer <API_KEY>' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
   --output screenshot.png`}
@@ -340,11 +340,11 @@ export default function OverviewPage() {
             Copy & paste
           </div>
           <div style={{ position: "relative" }}>
-            <CopyButton text={`curl -X POST \\\n  'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer sk_live_...' \\\n  -d '{"url":"https://stripe.com"}'`} />
+            <CopyButton text={`curl -X POST \\\n  'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -d '{"url":"https://stripe.com"}'`} />
             <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
 {`curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer sk_live_...' \\
+  -H 'Authorization: Bearer <API_KEY>' \\
   -d '{"url":"https://stripe.com"}'`}
             </pre>
           </div>
