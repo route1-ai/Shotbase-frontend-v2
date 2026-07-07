@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
-import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -23,32 +22,6 @@ const metricCard: React.CSSProperties = {
   border: `1px solid ${BORDER}`,
   borderRadius: 10,
   padding: "18px 22px",
-}
-
-interface LogEntry {
-  id: string
-  url: string
-  status: number
-  ms?: number
-  format?: string
-  ts?: string
-}
-
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false)
-  const tid = useRef<NodeJS.Timeout | null>(null)
-  const onCopy = async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    if (tid.current) clearTimeout(tid.current)
-    tid.current = setTimeout(() => setCopied(false), 2000)
-  }
-  useEffect(() => () => tid.current && clearTimeout(tid.current), [])
-  return (
-    <button onClick={onCopy} aria-label={copied ? "Copied!" : "Copy code"} style={{ position: "absolute", top: 8, right: 8, display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: copied ? "#00e87b" : "#888", background: "rgba(5,5,5,0.8)", border: `1px solid ${copied ? "rgba(0,232,123,0.3)" : "rgba(255,255,255,0.15)"}`, padding: "4px 8px", borderRadius: 4, cursor: "pointer", zIndex: 1 }}>
-      {copied ? <Check size={11} /> : <Copy size={11} />} {copied ? "Copied" : "Copy"}
-    </button>
-  )
 }
 
 function MiniChart() {
@@ -117,7 +90,7 @@ function ThumbPlaceholder({ idx, label }: { idx: number; label: string }) {
 export default function OverviewPage() {
   const { user } = useUser()
   const [usage, setUsage] = useState({ count: 0, plan: "Free", limit: 10000 })
-  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showFirstCall, setShowFirstCall] = useState(true)
 
@@ -234,16 +207,13 @@ export default function OverviewPage() {
                 </button>
               </div>
             </div>
-            <div style={{ position: "relative" }}>
-              <CopyButton text={`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"url": "https://stripe.com"}' \\\n  --output screenshot.png`} />
-              <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
+            <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
 {`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
+  -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
   --output screenshot.png`}
-              </pre>
-            </div>
+            </pre>
           </div>
         )}
 
@@ -317,7 +287,7 @@ export default function OverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.slice(0, 5).map((r, i) => (
+                {logs.slice(0, 5).map((r: any, i: number) => (
                   <tr key={r.id || i} style={{ borderBottom: i < Math.min(5, logs.length) - 1 ? `1px solid ${BORDER}` : "none" }}>
                     <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 16px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                     <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 16px 11px 0", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
@@ -339,15 +309,12 @@ export default function OverviewPage() {
           <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
             Copy & paste
           </div>
-          <div style={{ position: "relative" }}>
-            <CopyButton text={`curl -X POST \\\n  'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -d '{"url":"https://stripe.com"}'`} />
-            <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
+          <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
 {`curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
-  -H 'Authorization: Bearer <API_KEY>' \\
+  -H 'Authorization: Bearer YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`}
-            </pre>
-          </div>
+          </pre>
           <Link href="/dashboard/keys" style={{ display: "block", marginTop: 10, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>
             Get your API key →
           </Link>
