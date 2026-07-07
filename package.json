@@ -46,12 +46,10 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "pnpm": {
-    "overrides": {
-      "fast-uri": "^3.1.2",
-      "js-cookie": "^3.0.6",
-      "ws": "^8.21.0",
-      "hono": "^4.12.25"
-    }
+  "overrides": {
+    "fast-uri": "^3.1.2",
+    "js-cookie": "^3.0.6",
+    "ws": "^8.21.0",
+    "hono": "^4.12.25"
   }
 }
