@@ -26,7 +26,7 @@ export default function RadialOrbitalTimeline({
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const nodeRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === containerRef.current || e.target === orbitRef.current) {
@@ -59,6 +59,16 @@ export default function RadialOrbitalTimeline({
   };
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && activeNodeId !== null) {
+        closeItem();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeNodeId]);
+
+  useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
 
     if (autoRotate) {
@@ -76,13 +86,6 @@ export default function RadialOrbitalTimeline({
       }
     };
   }, [autoRotate]);
-
-  const centerViewOnNode = (nodeId: number) => {
-    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
-    const totalNodes = timelineData.length;
-    const targetAngle = (nodeIndex / totalNodes) * 360;
-    setRotationAngle(270 - targetAngle);
-  };
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
@@ -163,7 +166,7 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
@@ -173,6 +176,10 @@ export default function RadialOrbitalTimeline({
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                onClick={() => openItem(item.id)}
+                type="button"
+                aria-label={`View details for ${item.title}`}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -215,7 +222,7 @@ export default function RadialOrbitalTimeline({
                 </div>
 
                 {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
