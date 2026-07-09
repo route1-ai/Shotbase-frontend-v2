@@ -201,6 +201,13 @@
   color: hsl(var(--brand));
   transform: scale(1.1);
 }
+.orbital-node:focus-visible {
+  outline: none;
+}
+.orbital-node:focus-visible .orbital-node-circle {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 4px;
+}
 .orbital-node-circle.expanded {
   background: hsl(var(--brand) / 0.1);
   color: hsl(var(--brand));
