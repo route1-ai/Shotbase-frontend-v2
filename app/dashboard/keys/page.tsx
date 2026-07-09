@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useCallback, useRef } from "react"
+import { Copy, Check, Eye, EyeOff } from "lucide-react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -9,14 +10,43 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface ApiKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const copyKey = useCallback(async (id: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedId(id)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy:", err)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -90,6 +120,7 @@ export default function KeysPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Key name (e.g. Production)"
+              aria-label="Key name"
               onKeyDown={(e) => e.key === "Enter" && createKey()}
               style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none" }}
             />
@@ -137,14 +168,29 @@ export default function KeysPage() {
                   </td>
                   <td style={{ padding: "14px 16px 14px 0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
+                      <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: revealed[k.id] ? "#f0f0f0" : "#888", background: "#050505", padding: "4px 8px", borderRadius: 4, border: "1px solid rgba(255,255,255,0.05)" }}>
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
+                        title={revealed[k.id] ? "Hide" : "Show"}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "#666", display: "flex", alignItems: "center", borderRadius: 4, transition: "all 0.15s" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#888")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#666")}
                       >
-                        {revealed[k.id] ? "hide" : "show"}
+                        {revealed[k.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                      <button
+                        onClick={() => copyKey(k.id, k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx")}
+                        disabled={!revealed[k.id]}
+                        aria-label="Copy API key"
+                        title={!revealed[k.id] ? "Reveal key to copy" : "Copy to clipboard"}
+                        style={{ background: "none", border: "none", cursor: revealed[k.id] ? "pointer" : "not-allowed", padding: 4, color: copiedId === k.id ? "#00e87b" : "#666", display: "flex", alignItems: "center", borderRadius: 4, transition: "all 0.15s", opacity: revealed[k.id] ? 1 : 0.3 }}
+                        onMouseEnter={(e) => revealed[k.id] && (e.currentTarget.style.color = copiedId === k.id ? "#00e87b" : "#888")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = copiedId === k.id ? "#00e87b" : "#666")}
+                      >
+                        {copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}
                       </button>
                     </div>
                   </td>
