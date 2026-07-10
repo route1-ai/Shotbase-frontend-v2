@@ -77,13 +77,6 @@ export default function RadialOrbitalTimeline({
     };
   }, [autoRotate]);
 
-  const centerViewOnNode = (nodeId: number) => {
-    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
-    const totalNodes = timelineData.length;
-    const targetAngle = (nodeIndex / totalNodes) * 360;
-    setRotationAngle(270 - targetAngle);
-  };
-
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
     const radius = 250;
@@ -137,6 +130,11 @@ export default function RadialOrbitalTimeline({
       ref={containerRef}
       onClick={handleContainerClick}
       onMouseLeave={closeItem}
+      onBlur={(e) => {
+        if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node)) {
+          closeItem();
+        }
+      }}
     >
       <div className="orbital-viewport">
         <div
@@ -167,12 +165,22 @@ export default function RadialOrbitalTimeline({
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
+                role="button"
+                tabIndex={0}
+                aria-label={item.title}
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openItem(item.id);
+                  }
+                }}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (

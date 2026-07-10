@@ -172,6 +172,13 @@
   cursor: pointer;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
+.orbital-node:focus {
+  outline: none;
+}
+.orbital-node:focus-visible .orbital-node-circle {
+  outline: 2px solid hsl(var(--brand));
+  outline-offset: 4px;
+}
 
 .orbital-node-glow {
   position: absolute;
@@ -357,6 +364,10 @@
 .orbital-card-related-btn:hover {
   background: hsl(var(--brand) / 0.12);
   border-color: hsl(var(--brand) / 0.3);
+}
+.orbital-card-related-btn:focus-visible {
+  outline: 1px solid hsl(var(--brand));
+  outline-offset: 1px;
 }
 
 
