@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Copy, Check } from "lucide-react"
 
@@ -133,12 +133,15 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   const timer = useRef<NodeJS.Timeout | null>(null)
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied(false), 2000)
-  }
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(() => setCopied(false), 2000)
+    } catch (err) { console.error("Copy failed", err) }
+  }, [text])
   return (
     <button className="ccopy" onClick={handleCopy} aria-label={copied ? "Copied" : "Copy to clipboard"}>
       {copied ? <Check size={12} /> : <Copy size={12} />}
