@@ -1,6 +1,9 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Eye, EyeOff, Copy, Check } from "lucide-react"
+
+interface APIKey { id: string; name: string; key?: string; createdAt?: number; last?: string; requests?: number; active?: boolean }
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +13,26 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    return () => { if (copyTimeout.current) clearTimeout(copyTimeout.current) }
+  }, [])
+
+  const copyToClipboard = (id: string, text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    if (copyTimeout.current) clearTimeout(copyTimeout.current)
+    copyTimeout.current = setTimeout(() => setCopiedId(null), 2000)
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -136,16 +152,28 @@ export default function KeysPage() {
                     <div style={{ fontWeight: 500, fontSize: 13 }}>{k.name}</div>
                   </td>
                   <td style={{ padding: "14px 16px 14px 0" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
-                      <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                      >
-                        {revealed[k.id] ? "hide" : "show"}
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                          aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
+                          style={{ color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+                        >
+                          {revealed[k.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                        {revealed[k.id] && k.key && (
+                          <button
+                            onClick={() => copyToClipboard(k.id, k.key!)}
+                            aria-label="Copy API key"
+                            style={{ color: copiedId === k.id ? "#00e87b" : "#444", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+                          >
+                            {copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
