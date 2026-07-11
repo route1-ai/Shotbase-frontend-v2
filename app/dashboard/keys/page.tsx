@@ -23,13 +23,10 @@ export default function KeysPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const copyTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  useEffect(() => {
-    return () => { if (copyTimeout.current) clearTimeout(copyTimeout.current) }
-  }, [])
+  useEffect(() => () => { if (copyTimeout.current) clearTimeout(copyTimeout.current) }, [])
 
   const copyToClipboard = (id: string, text: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedId(id)
+    navigator.clipboard.writeText(text); setCopiedId(id)
     if (copyTimeout.current) clearTimeout(copyTimeout.current)
     copyTimeout.current = setTimeout(() => setCopiedId(null), 2000)
   }
@@ -168,7 +165,7 @@ export default function KeysPage() {
                           <button
                             onClick={() => copyToClipboard(k.id, k.key!)}
                             aria-label="Copy API key"
-                            style={{ color: copiedId === k.id ? "#00e87b" : "#444", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+                            style={{ color: copiedId === k.id ? "hsl(var(--brand))" : "#444", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
                           >
                             {copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}
                           </button>
