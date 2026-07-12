@@ -1,11 +1,13 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useCallback, useRef, useEffect } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
 const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
+const HOVER_BG = "rgba(255,255,255,0.04)"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -131,7 +133,23 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [copiedType, setCopiedType] = useState<"request" | "response" | null>(null)
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    }
+  }, [])
+
+  const copy = useCallback(async (text: string, type: "request" | "response") => {
+    await navigator.clipboard.writeText(text); setCopiedType(type)
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    copyTimeoutRef.current = setTimeout(() => setCopiedType(null), 2000)
+  }, [])
 
   return (
     <div>
@@ -157,19 +175,23 @@ export default function ApiExplorerPage() {
                 <button
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
+                  onMouseEnter={() => setHoveredId(e.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  aria-current={active ? "true" : undefined}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
                     gap: 8,
                     width: "100%",
-                    background: active ? ACTIVE_BG : "transparent",
-                    border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`,
+                    background: active ? ACTIVE_BG : hoveredId === e.id ? HOVER_BG : "transparent",
+                    border: `1px solid ${active ? ACTIVE_BORDER : hoveredId === e.id ? BORDER : "transparent"}`,
                     borderRadius: 6,
                     padding: "8px 10px",
                     cursor: "pointer",
                     color: "inherit",
                     textAlign: "left",
+                    transition: "all 0.15s",
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -208,23 +230,26 @@ export default function ApiExplorerPage() {
 
           {selected.request && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Request body
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Request body</div>
+                <button onClick={() => copy(selected.request!, "request")} aria-label="Copy request body" style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 6, color: copiedType === "request" ? "#00e87b" : "#444", transition: "all 0.15s" }}>
+                  {copiedType === "request" ? <Check size={12} /> : <Copy size={12} />}
+                  <span style={{ fontSize: 10, fontWeight: 600 }}>{copiedType === "request" ? "Copied" : "Copy"}</span>
+                </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.request}</pre>
             </div>
           )}
-
           {selected.response && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Response
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Response</div>
+                <button onClick={() => copy(selected.response!, "response")} aria-label="Copy response body" style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 4, display: "flex", alignItems: "center", gap: 6, color: copiedType === "response" ? "#00e87b" : "#444", transition: "all 0.15s" }}>
+                  {copiedType === "response" ? <Check size={12} /> : <Copy size={12} />}
+                  <span style={{ fontSize: 10, fontWeight: 600 }}>{copiedType === "response" ? "Copied" : "Copy"}</span>
+                </button>
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.response}</pre>
             </div>
           )}
 
