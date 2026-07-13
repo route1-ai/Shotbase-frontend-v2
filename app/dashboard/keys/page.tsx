@@ -3,15 +3,7 @@
 import React, { useEffect, useState, useRef } from "react"
 import { Copy, Check, Eye, EyeOff } from "lucide-react"
 
-interface APIKey {
-  id: string
-  name: string
-  key?: string
-  createdAt?: number
-  active?: boolean
-  last?: string
-  requests?: number
-}
+interface APIKey { id: string; name: string; key?: string; createdAt?: number; active?: boolean; last?: string; requests?: number; }
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -37,11 +29,8 @@ export default function KeysPage() {
 
   const copyToClipboard = async (id: string, text: string) => {
     if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedId(id)
-      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
-    } catch (err) { console.error("Failed to copy:", err) }
+    try { await navigator.clipboard.writeText(text); setCopiedId(id); copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000) }
+    catch (err) { console.error("Failed to copy:", err) }
   }
 
   useEffect(() => {
@@ -166,21 +155,9 @@ export default function KeysPage() {
                       <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
-                      <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: revealed[k.id] ? "hsl(var(--brand))" : "#444", display: "flex", alignItems: "center" }}
-                        aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
-                      >
-                        {revealed[k.id] ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
+                      <button onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: revealed[k.id] ? "hsl(var(--brand))" : "#444", display: "flex", alignItems: "center" }} aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}>{revealed[k.id] ? <EyeOff size={14} /> : <Eye size={14} />}</button>
                       {revealed[k.id] && k.key && (
-                        <button
-                          onClick={() => copyToClipboard(k.id, k.key!)}
-                          style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: copiedId === k.id ? "hsl(var(--brand))" : "#444", display: "flex", alignItems: "center" }}
-                          aria-label="Copy API key to clipboard"
-                        >
-                          {copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}
-                        </button>
+                        <button onClick={() => copyToClipboard(k.id, k.key!)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: copiedId === k.id ? "hsl(var(--brand))" : "#444", display: "flex", alignItems: "center" }} aria-label="Copy API key to clipboard">{copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}</button>
                       )}
                     </div>
                   </td>
