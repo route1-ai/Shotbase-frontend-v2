@@ -1,6 +1,17 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Copy, Check, Eye, EyeOff } from "lucide-react"
+
+interface APIKey {
+  id: string
+  name: string
+  key: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +21,19 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current) }
+  }, [])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -64,6 +81,13 @@ export default function KeysPage() {
     } finally {
       setRevoking(null)
     }
+  }
+
+  const copyToClipboard = (id: string, text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
   }
 
   return (
@@ -137,15 +161,25 @@ export default function KeysPage() {
                   </td>
                   <td style={{ padding: "14px 16px 14px 0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
+                      <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", background: "#111", padding: "2px 6px", borderRadius: 4 }}>
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        aria-label={revealed[k.id] ? "Hide key" : "Show key"}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", color: "#444" }}
                       >
-                        {revealed[k.id] ? "hide" : "show"}
+                        {revealed[k.id] ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
+                      {revealed[k.id] && (
+                        <button
+                          onClick={() => copyToClipboard(k.id, k.key || "")}
+                          aria-label="Copy key"
+                          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", color: copiedId === k.id ? "hsl(var(--brand))" : "#444" }}
+                        >
+                          {copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
