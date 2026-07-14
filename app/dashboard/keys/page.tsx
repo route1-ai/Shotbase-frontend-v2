@@ -21,13 +21,13 @@ export default function KeysPage() {
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const copyToClipboard = async (text: string, id: string) => {
     try {
       await navigator.clipboard.writeText(text); setCopiedId(id)
       if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
       copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
-    } catch (err) {}
+    } catch {}
   }
 
   useEffect(() => {
