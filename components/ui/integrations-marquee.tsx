@@ -35,10 +35,15 @@ export default function IntegrationsMarquee({
   const rendered = React.useMemo(() => [...items, ...items], [items])
 
   return (
-    <div className="integrations-band" aria-label={`${label} ${items.join(", ")}`.trim()}>
+    <div className="integrations-band">
       {label ? <div className="integrations-label">{label}</div> : null}
-      <div className="integrations-marquee" role="presentation">
-        <ul className="integrations-track" aria-hidden="true">
+      <div
+        className="integrations-marquee"
+        role="region"
+        aria-label="Integrations marquee"
+        tabIndex={0}
+      >
+        <ul className="integrations-track" aria-label={`Integrations: ${items.join(", ")}`}>
           {rendered.map((name, idx) => (
             <Item key={`${name}-${idx}`} name={name} />
           ))}
