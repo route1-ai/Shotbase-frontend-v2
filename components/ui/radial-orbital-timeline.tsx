@@ -60,7 +60,6 @@ export default function RadialOrbitalTimeline({
 
   useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
-
     if (autoRotate) {
       rotationTimer = setInterval(() => {
         setRotationAngle((prev) => {
@@ -69,20 +68,18 @@ export default function RadialOrbitalTimeline({
         });
       }, 50);
     }
-
     return () => {
-      if (rotationTimer) {
-        clearInterval(rotationTimer);
-      }
+      if (rotationTimer) clearInterval(rotationTimer);
     };
   }, [autoRotate]);
 
-  const centerViewOnNode = (nodeId: number) => {
-    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
-    const totalNodes = timelineData.length;
-    const targetAngle = (nodeIndex / totalNodes) * 360;
-    setRotationAngle(270 - targetAngle);
-  };
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && activeNodeId !== null) closeItem();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [activeNodeId]);
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
@@ -137,6 +134,9 @@ export default function RadialOrbitalTimeline({
       ref={containerRef}
       onClick={handleContainerClick}
       onMouseLeave={closeItem}
+      onBlur={(e) => {
+        if (!containerRef.current?.contains(e.relatedTarget)) closeItem();
+      }}
     >
       <div className="orbital-viewport">
         <div
@@ -173,6 +173,16 @@ export default function RadialOrbitalTimeline({
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                tabIndex={0}
+                role="button"
+                aria-label={`View details for ${item.title}`}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openItem(item.id);
+                  }
+                }}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
