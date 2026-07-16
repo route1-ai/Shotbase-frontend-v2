@@ -30,18 +30,17 @@ export default function RadialOrbitalTimeline({
 
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === containerRef.current || e.target === orbitRef.current) {
-      setExpandedItems({});
-      setActiveNodeId(null);
-      setPulseEffect({});
-      setAutoRotate(true);
+      closeItem();
     }
   };
 
   const closeItem = () => {
-    setActiveNodeId(null);
-    setAutoRotate(true);
-    setExpandedItems({});
-    setPulseEffect({});
+    if (activeNodeId !== null) {
+      setActiveNodeId(null);
+      setAutoRotate(true);
+      setExpandedItems({});
+      setPulseEffect({});
+    }
   };
 
   const openItem = (id: number) => {
@@ -76,13 +75,6 @@ export default function RadialOrbitalTimeline({
       }
     };
   }, [autoRotate]);
-
-  const centerViewOnNode = (nodeId: number) => {
-    const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
-    const totalNodes = timelineData.length;
-    const targetAngle = (nodeIndex / totalNodes) * 360;
-    setRotationAngle(270 - targetAngle);
-  };
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
@@ -131,12 +123,19 @@ export default function RadialOrbitalTimeline({
     }
   };
 
+  const handleBlur = (e: React.FocusEvent) => {
+    if (containerRef.current && !containerRef.current.contains(e.relatedTarget as Node)) {
+      closeItem();
+    }
+  };
+
   return (
     <div
       className="orbital-container"
       ref={containerRef}
       onClick={handleContainerClick}
       onMouseLeave={closeItem}
+      onBlur={handleBlur}
     >
       <div className="orbital-viewport">
         <div
@@ -167,12 +166,24 @@ export default function RadialOrbitalTimeline({
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
+                role="button"
+                tabIndex={0}
+                aria-label={`View details for ${item.title}`}
                 style={{
                   transform: `translate(${position.x}px, ${position.y}px)`,
                   zIndex: isExpanded ? 200 : position.zIndex,
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openItem(item.id);
+                  } else if (e.key === "Escape") {
+                    closeItem();
+                  }
+                }}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
