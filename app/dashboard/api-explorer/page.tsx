@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -133,6 +134,26 @@ export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
 
+  const [copiedType, setCopiedType] = useState<"request" | "response" | null>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  const handleCopy = async (text: string, type: "request" | "response") => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedType(type)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => setCopiedType(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+    }
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -211,9 +232,19 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Request body
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: "12px 64px 12px 12px", borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.request}
+                </pre>
+                <button
+                  onClick={() => handleCopy(selected.request || "", "request")}
+                  aria-label={copiedType === "request" ? "Copied request body!" : "Copy request body"}
+                  className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] text-[#888] hover:text-[#00e87b] hover:bg-[rgba(0,232,123,0.08)] hover:border-[rgba(0,232,123,0.25)] focus-visible:outline-2 focus-visible:outline-[#00e87b] transition-all cursor-pointer font-mono"
+                >
+                  {copiedType === "request" ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedType === "request" ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -222,9 +253,19 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Response
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: "12px 64px 12px 12px", borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.response}
+                </pre>
+                <button
+                  onClick={() => handleCopy(selected.response || "", "response")}
+                  aria-label={copiedType === "response" ? "Copied response!" : "Copy response"}
+                  className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[10px] border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] text-[#888] hover:text-[#00e87b] hover:bg-[rgba(0,232,123,0.08)] hover:border-[rgba(0,232,123,0.25)] focus-visible:outline-2 focus-visible:outline-[#00e87b] transition-all cursor-pointer font-mono"
+                >
+                  {copiedType === "response" ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedType === "response" ? "Copied" : "Copy"}</span>
+                </button>
+              </div>
             </div>
           )}
 
