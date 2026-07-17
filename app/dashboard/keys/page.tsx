@@ -1,6 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string; name: string; key?: string; createdAt?: number;
+  active?: boolean; last?: string; requests?: number;
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +16,28 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => () => {
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+  }, [])
+
+  const handleCopyKey = async (id: string, keyValue: string) => {
+    try {
+      await navigator.clipboard.writeText(keyValue)
+      setCopiedId(id)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) { console.error(err) }
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -142,10 +163,34 @@ export default function KeysPage() {
                       </code>
                       <button
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                        aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {k.key && (
+                        <button
+                          onClick={() => handleCopyKey(k.id, k.key!)}
+                          aria-label={copiedId === k.id ? "API key copied" : "Copy API key to clipboard"}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 10,
+                            color: copiedId === k.id ? "hsl(var(--brand))" : "#444",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                            marginLeft: 4,
+                            transition: "color 0.15s ease",
+                          }}
+                        >
+                          {copiedId === k.id ? <Check size={10} /> : <Copy size={10} />}
+                          <span>{copiedId === k.id ? "copied" : "copy"}</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
