@@ -2,8 +2,28 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
+
+function CopyBtn({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const timer = React.useRef<NodeJS.Timeout | null>(null)
+  const copy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  React.useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+  return (
+    <button onClick={copy} className="ccopy" aria-label="Copy to clipboard" style={{ position: "absolute", top: 8, right: 8, padding: "6px 10px", background: "rgba(10,10,10,0.8)", border: `1px solid ${BORDER}`, borderRadius: 5, color: copied ? "#00e87b" : "#888", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, backdropFilter: "blur(4px)" }}>
+      {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy"}
+    </button>
+  )
+}
+
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
 const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
@@ -211,9 +231,12 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Request body
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 64, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.request}
+                </pre>
+                <CopyBtn text={selected.request} />
+              </div>
             </div>
           )}
 
@@ -222,9 +245,12 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Response
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 64, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.response}
+                </pre>
+                <CopyBtn text={selected.response} />
+              </div>
             </div>
           )}
 
