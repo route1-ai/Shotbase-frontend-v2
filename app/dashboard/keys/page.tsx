@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef, useId } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -9,14 +9,28 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const inputId = useId()
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -26,7 +40,36 @@ export default function KeysPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [])
+
+  const copyToClipboard = async (id: string, text: string) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      timeoutRef.current = setTimeout(() => setCopiedId(null), 1500)
+    } catch {
+      // Fallback for older browsers
+      const ta = document.createElement("textarea")
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      try {
+        document.execCommand("copy")
+        setCopiedId(id)
+        timeoutRef.current = setTimeout(() => setCopiedId(null), 1500)
+      } catch {}
+      document.body.removeChild(ta)
+    }
+  }
 
   const createKey = async () => {
     if (!newName.trim()) return
@@ -75,6 +118,7 @@ export default function KeysPage() {
         </div>
         <button
           onClick={() => setShowNew(true)}
+          aria-label="Create new API key"
           style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
         >
           + Create key
@@ -83,9 +127,12 @@ export default function KeysPage() {
 
       {showNew && (
         <div style={{ ...cardStyle, marginBottom: 16, border: "1px solid rgba(0,232,123,0.25)" }}>
-          <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 14 }}>New API key</div>
+          <label htmlFor={inputId} style={{ display: "block", fontWeight: 500, fontSize: 14, marginBottom: 14 }}>
+            New API key
+          </label>
           <div style={{ display: "flex", gap: 10 }}>
             <input
+              id={inputId}
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -142,10 +189,20 @@ export default function KeysPage() {
                       </code>
                       <button
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                        aria-label={revealed[k.id] ? `Hide key for ${k.name}` : `Show key for ${k.name}`}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          onClick={() => copyToClipboard(k.id, k.key!)}
+                          aria-label={copiedId === k.id ? `Key copied successfully` : `Copy key for ${k.name}`}
+                          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === k.id ? "#00e87b" : "#444", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: copiedId === k.id ? "600" : "normal" }}
+                        >
+                          {copiedId === k.id ? "copied!" : "copy"}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
@@ -158,6 +215,7 @@ export default function KeysPage() {
                       <button
                         onClick={() => revokeKey(k.id)}
                         disabled={revoking === k.id}
+                        aria-label={`Revoke key ${k.name}`}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
                       >
                         {revoking === k.id ? "Revoking…" : "Revoke"}
