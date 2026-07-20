@@ -99,6 +99,7 @@ export default function OverviewPage() {
 
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startedPreRef = useRef<HTMLPreElement>(null), railPreRef = useRef<HTMLPreElement>(null)
   const handleCopy = async (id: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -225,7 +226,7 @@ export default function OverviewPage() {
               </div>
             </div>
             <div style={{ position: "relative" }}>
-              <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 64px 14px 14px", fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
+              <pre ref={startedPreRef} style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 64px 14px 14px", fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
 {`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
@@ -233,7 +234,7 @@ export default function OverviewPage() {
   --output screenshot.png`}
               </pre>
               <button
-                onClick={() => handleCopy("started", `curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"url": "https://stripe.com"}' \\\n  --output screenshot.png`)}
+                onClick={() => startedPreRef.current && handleCopy("started", startedPreRef.current.textContent || "")}
                 className="ccopy"
                 style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
                 aria-label={copiedId === "started" ? "Copied code snippet to clipboard" : "Copy code snippet to clipboard"}
@@ -339,14 +340,14 @@ export default function OverviewPage() {
             Copy & paste
           </div>
           <div style={{ position: "relative" }}>
-            <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "12px 64px 12px 12px", fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
+            <pre ref={railPreRef} style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "12px 64px 12px 12px", fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
 {`curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
   -H 'Authorization: Bearer YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`}
             </pre>
             <button
-              onClick={() => handleCopy("rail", `curl -X POST \\\n  'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer YOUR_KEY' \\\n  -d '{"url":"https://stripe.com"}'`)}
+              onClick={() => railPreRef.current && handleCopy("rail", railPreRef.current.textContent || "")}
               className="ccopy"
               style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
               aria-label={copiedId === "rail" ? "Copied code snippet to clipboard" : "Copy code snippet to clipboard"}
