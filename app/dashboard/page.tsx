@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -63,6 +64,8 @@ function tag(status: number): React.CSSProperties {
   }
 }
 
+interface DashboardLog { id: string; url: string; status: number; ms?: number; format?: string; ts?: string }
+
 function ThumbPlaceholder({ idx, label }: { idx: number; label: string }) {
   // Subtle gradient placeholders so the gallery never looks empty.
   const hues = ["#00e87b", "#5b8dff", "#ff7ac5", "#ffb000", "#a07cff", "#00bcd4"]
@@ -90,9 +93,23 @@ function ThumbPlaceholder({ idx, label }: { idx: number; label: string }) {
 export default function OverviewPage() {
   const { user } = useUser()
   const [usage, setUsage] = useState({ count: 0, plan: "Free", limit: 10000 })
-  const [logs, setLogs] = useState<any[]>([])
+  const [logs, setLogs] = useState<DashboardLog[]>([])
   const [loading, setLoading] = useState(true)
   const [showFirstCall, setShowFirstCall] = useState(true)
+
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleCopy = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
+    } catch (e) { console.error(e) }
+  }
+  useEffect(() => () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+  }, [])
 
   useEffect(() => {
     Promise.all([
@@ -207,13 +224,25 @@ export default function OverviewPage() {
                 </button>
               </div>
             </div>
-            <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
+            <div style={{ position: "relative" }}>
+              <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "14px 64px 14px 14px", fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
 {`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
   --output screenshot.png`}
-            </pre>
+              </pre>
+              <button
+                onClick={() => handleCopy("started", `curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"url": "https://stripe.com"}' \\\n  --output screenshot.png`)}
+                className="ccopy"
+                style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
+                aria-label={copiedId === "started" ? "Copied code snippet to clipboard" : "Copy code snippet to clipboard"}
+                title={copiedId === "started" ? "Copied!" : "Copy code"}
+              >
+                {copiedId === "started" ? <Check size={12} /> : <Copy size={12} />}
+                <span>{copiedId === "started" ? "Copied" : "Copy"}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -287,7 +316,7 @@ export default function OverviewPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.slice(0, 5).map((r: any, i: number) => (
+                {logs.slice(0, 5).map((r: DashboardLog, i: number) => (
                   <tr key={r.id || i} style={{ borderBottom: i < Math.min(5, logs.length) - 1 ? `1px solid ${BORDER}` : "none" }}>
                     <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 16px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                     <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 16px 11px 0", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
@@ -309,12 +338,24 @@ export default function OverviewPage() {
           <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
             Copy & paste
           </div>
-          <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
+          <div style={{ position: "relative" }}>
+            <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: "12px 64px 12px 12px", fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
 {`curl -X POST \\
   'https://api.shotbase.dev/v1/screenshot' \\
   -H 'Authorization: Bearer YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`}
-          </pre>
+            </pre>
+            <button
+              onClick={() => handleCopy("rail", `curl -X POST \\\n  'https://api.shotbase.dev/v1/screenshot' \\\n  -H 'Authorization: Bearer YOUR_KEY' \\\n  -d '{"url":"https://stripe.com"}'`)}
+              className="ccopy"
+              style={{ position: "absolute", top: 8, right: 8, zIndex: 10 }}
+              aria-label={copiedId === "rail" ? "Copied code snippet to clipboard" : "Copy code snippet to clipboard"}
+              title={copiedId === "rail" ? "Copied!" : "Copy code"}
+            >
+              {copiedId === "rail" ? <Check size={11} /> : <Copy size={11} />}
+              <span>{copiedId === "rail" ? "Copied" : "Copy"}</span>
+            </button>
+          </div>
           <Link href="/dashboard/keys" style={{ display: "block", marginTop: 10, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>
             Get your API key →
           </Link>
