@@ -179,6 +179,7 @@ export default function KeysPage() {
                             padding: "2px 6px",
                             fontSize: 10,
                             color: copiedId === k.id ? "#00e87b" : "#888",
+                            background: "none", border: "none", cursor: "pointer",
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
