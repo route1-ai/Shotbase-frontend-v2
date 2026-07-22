@@ -1,6 +1,17 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +21,15 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -26,6 +39,12 @@ export default function KeysPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    }
   }, [])
 
   const createKey = async () => {
@@ -63,6 +82,17 @@ export default function KeysPage() {
       if (res.ok) setKeys((ks) => ks.filter((k) => k.id !== id))
     } finally {
       setRevoking(null)
+    }
+  }
+
+  const copyKey = async (id: string, keyVal: string) => {
+    try {
+      await navigator.clipboard.writeText(keyVal)
+      setCopiedId(id)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 1500)
+    } catch (err) {
+      console.error("Failed to copy API key:", err)
     }
   }
 
@@ -146,6 +176,34 @@ export default function KeysPage() {
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {k.key && (
+                        <button
+                          onClick={() => copyKey(k.id, k.key!)}
+                          className="ccopy"
+                          style={{
+                            padding: "4px 8px",
+                            marginRight: 0,
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 10,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                          aria-label={copiedId === k.id ? "Copied" : "Copy key"}
+                        >
+                          {copiedId === k.id ? (
+                            <>
+                              <Check size={10} style={{ color: "#00e87b" }} />
+                              <span style={{ color: "#00e87b" }}>copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={10} />
+                              <span>copy</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
