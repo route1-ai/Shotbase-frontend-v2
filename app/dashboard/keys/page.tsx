@@ -1,6 +1,17 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
+import { Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +21,32 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    }
+  }, [])
+
+  const handleCopy = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
+    } catch (err) {
+      console.error("Failed to copy key: ", err)
+    }
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -146,6 +176,17 @@ export default function KeysPage() {
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {k.key && (
+                        <button
+                          onClick={() => handleCopy(k.id, k.key!)}
+                          className="ccopy"
+                          style={{ padding: "2px 6px", fontSize: 10, display: "inline-flex", gap: 4, alignItems: "center" }}
+                          aria-label={copiedId === k.id ? "Copied key to clipboard" : "Copy key to clipboard"}
+                        >
+                          {copiedId === k.id ? <Check size={11} style={{ color: "hsl(var(--brand))" }} /> : <Copy size={11} />}
+                          <span>{copiedId === k.id ? "copied" : "copy"}</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
