@@ -1,6 +1,17 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +21,38 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleCopy = async (id: string, textToCopy: string) => {
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current)
+    }
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      setCopiedId(id)
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopiedId(null)
+      }, 2000)
+    } catch (err) {
+      console.error("Failed to copy text: ", err)
+    }
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -141,11 +177,50 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                        onClick={() => {
+                          setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))
+                          if (copiedId === k.id) {
+                            setCopiedId(null)
+                            if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+                          }
+                        }}
+                        aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
+                        title={revealed[k.id] ? "Hide API key" : "Show API key"}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          onClick={() => handleCopy(k.id, k.key!)}
+                          aria-label="Copy API key to clipboard"
+                          title="Copy API key to clipboard"
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 10,
+                            color: copiedId === k.id ? "#00e87b" : "#444",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4
+                          }}
+                        >
+                          {copiedId === k.id ? (
+                            <>
+                              <Check size={11} />
+                              <span style={{ color: "#00e87b" }}>copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={11} />
+                              <span>copy</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
