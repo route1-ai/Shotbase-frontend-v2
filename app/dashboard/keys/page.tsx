@@ -9,14 +9,43 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  const handleCopy = async (id: string, keyText: string) => {
+    try {
+      await navigator.clipboard.writeText(keyText)
+      setCopiedId(id)
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      timeoutRef.current = setTimeout(() => {
+        setCopiedId(null)
+      }, 1500)
+    } catch {}
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -146,6 +175,25 @@ export default function KeysPage() {
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          onClick={() => handleCopy(k.id, k.key!)}
+                          aria-label={`Copy API key for ${k.name}`}
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 10,
+                            color: copiedId === k.id ? "#00e87b" : "#444",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                            fontWeight: copiedId === k.id ? 600 : 400,
+                            marginLeft: 8,
+                          }}
+                        >
+                          {copiedId === k.id ? "copied!" : "copy"}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
