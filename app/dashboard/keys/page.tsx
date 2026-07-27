@@ -1,6 +1,18 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import * as React from "react"
+import { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +22,31 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  const handleCopy = (id: string, secretKey: string) => {
+    navigator.clipboard.writeText(secretKey).then(() => {
+      setCopiedId(id)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopiedId(null), 2000)
+    }).catch((err) => {
+      console.error("Failed to copy:", err)
+    })
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -141,11 +171,40 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                        onClick={() => {
+                          const isCurrentlyRevealed = !!revealed[k.id]
+                          if (isCurrentlyRevealed && copiedId === k.id) {
+                            setCopiedId(null)
+                            if (timerRef.current) clearTimeout(timerRef.current)
+                          }
+                          setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))
+                        }}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          onClick={() => handleCopy(k.id, k.key!)}
+                          aria-label={copiedId === k.id ? "Copied!" : "Copy API key to clipboard"}
+                          title={copiedId === k.id ? "Copied!" : "Copy key"}
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 10,
+                            color: copiedId === k.id ? "#00e87b" : "#444",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
+                          {copiedId === k.id ? <Check size={11} /> : <Copy size={11} />}
+                          <span>{copiedId === k.id ? "copied" : "copy"}</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
