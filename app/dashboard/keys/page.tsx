@@ -9,8 +9,18 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
