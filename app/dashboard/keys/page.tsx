@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -9,14 +10,34 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -49,6 +70,37 @@ export default function KeysPage() {
       }
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleCopy = (id: string, textToCopy: string) => {
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current)
+    }
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        setCopiedId(id)
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopiedId(null)
+        }, 2000)
+      })
+      .catch((err) => {
+        console.error("Failed to copy API key: ", err)
+      })
+  }
+
+  const toggleReveal = (id: string) => {
+    setRevealed((prev) => {
+      const nextState = !prev[id]
+      return { ...prev, [id]: nextState }
+    })
+
+    // Synchronously reset copiedId and clear timeout if the key is now hidden
+    if (copiedId === id) {
+      setCopiedId(null)
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
     }
   }
 
@@ -141,11 +193,29 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                        onClick={() => toggleReveal(k.id)}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        aria-label={revealed[k.id] ? "Hide API Key" : "Show API Key"}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          onClick={() => handleCopy(k.id, k.key!)}
+                          className="ccopy"
+                          style={{ padding: "4px 8px", margin: 0, display: "inline-flex", alignItems: "center" }}
+                          aria-label="Copy API key to clipboard"
+                        >
+                          {copiedId === k.id ? (
+                            <Check size={12} style={{ color: "hsl(var(--brand))" }} />
+                          ) : (
+                            <Copy size={12} />
+                          )}
+                          <span style={{ fontSize: 9, marginLeft: 4 }}>
+                            {copiedId === k.id ? "Copied!" : "Copy"}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
