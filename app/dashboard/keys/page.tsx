@@ -9,14 +9,30 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey { id: string; name: string; key?: string; createdAt?: number; active?: boolean; last?: string; requests?: number }
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const copyKey = async (id: string, keyVal: string) => {
+    await navigator.clipboard.writeText(keyVal).then(() => {
+      setCopiedId(id)
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 2000)
+    }).catch(console.error)
+  }
+
+  useEffect(() => {
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current) }
+  }, [])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -141,11 +157,27 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
+                        onClick={() => {
+                          const nextRevealed = !revealed[k.id]
+                          setRevealed((r) => ({ ...r, [k.id]: nextRevealed }))
+                          if (!nextRevealed && copiedId === k.id) {
+                            setCopiedId(null)
+                            if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+                          }
+                        }}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {k.key && (
+                        <button
+                          onClick={() => copyKey(k.id, k.key!)}
+                          aria-label={`Copy secret key for ${k.name}`}
+                          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === k.id ? "#00e87b" : "#444", background: "none", border: "none", cursor: "pointer", padding: 0, marginLeft: 8 }}
+                        >
+                          {copiedId === k.id ? "copied!" : "copy"}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
