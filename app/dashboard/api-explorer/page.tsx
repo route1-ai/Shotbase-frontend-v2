@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import * as React from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -130,8 +131,52 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 }
 
 export default function ApiExplorerPage() {
-  const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [selectedId, setSelectedId] = React.useState<string>("screenshot")
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  const [copiedReq, setCopiedReq] = React.useState(false)
+  const [copiedRes, setCopiedRes] = React.useState(false)
+
+  const reqTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const resTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (reqTimerRef.current) clearTimeout(reqTimerRef.current)
+      if (resTimerRef.current) clearTimeout(resTimerRef.current)
+    }
+  }, [])
+
+  const handleSelectEndpoint = (id: string) => {
+    setSelectedId(id)
+    setCopiedReq(false)
+    setCopiedRes(false)
+    if (reqTimerRef.current) {
+      clearTimeout(reqTimerRef.current)
+      reqTimerRef.current = null
+    }
+    if (resTimerRef.current) {
+      clearTimeout(resTimerRef.current)
+      resTimerRef.current = null
+    }
+  }
+
+  const copyToClipboard = async (text: string, type: "req" | "res") => {
+    try {
+      await navigator.clipboard.writeText(text)
+      if (type === "req") {
+        setCopiedReq(true)
+        if (reqTimerRef.current) clearTimeout(reqTimerRef.current)
+        reqTimerRef.current = setTimeout(() => setCopiedReq(false), 2000)
+      } else {
+        setCopiedRes(true)
+        if (resTimerRef.current) clearTimeout(resTimerRef.current)
+        resTimerRef.current = setTimeout(() => setCopiedRes(false), 2000)
+      }
+    } catch (err) {
+      console.error("Failed to copy text: ", err)
+    }
+  }
 
   return (
     <div>
@@ -156,7 +201,7 @@ export default function ApiExplorerPage() {
               return (
                 <button
                   key={e.id}
-                  onClick={() => setSelectedId(e.id)}
+                  onClick={() => handleSelectEndpoint(e.id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -208,8 +253,20 @@ export default function ApiExplorerPage() {
 
           {selected.request && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Request body
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Request body
+                </div>
+                <button
+                  onClick={() => copyToClipboard(selected.request || "", "req")}
+                  aria-label={copiedReq ? "Copied request body" : "Copy request body"}
+                  title={copiedReq ? "Copied!" : "Copy request body"}
+                  className="ccopy"
+                  style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedReq ? "#00e87b" : "#666", cursor: "pointer", background: "none", border: "none", padding: "2px 6px" }}
+                >
+                  {copiedReq ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedReq ? "Copied" : "Copy"}</span>
+                </button>
               </div>
               <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
                 {selected.request}
@@ -219,8 +276,20 @@ export default function ApiExplorerPage() {
 
           {selected.response && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Response
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                  Response
+                </div>
+                <button
+                  onClick={() => copyToClipboard(selected.response || "", "res")}
+                  aria-label={copiedRes ? "Copied response body" : "Copy response body"}
+                  title={copiedRes ? "Copied!" : "Copy response body"}
+                  className="ccopy"
+                  style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedRes ? "#00e87b" : "#666", cursor: "pointer", background: "none", border: "none", padding: "2px 6px" }}
+                >
+                  {copiedRes ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedRes ? "Copied" : "Copy"}</span>
+                </button>
               </div>
               <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
                 {selected.response}
