@@ -1,7 +1,9 @@
 "use client"
 
-import React, { useState } from "react"
+import * as React from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -131,7 +133,41 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [copiedType, setCopiedType] = useState<"request" | "response" | null>(null)
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleCopy = (text: string, type: "request" | "response") => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedType(type)
+      timeoutRef.current = setTimeout(() => {
+        setCopiedType(null)
+      }, 2000)
+    }).catch((err) => {
+      console.error("Clipboard copy failed: ", err)
+    })
+  }
+
+  const handleSelectEndpoint = (id: string) => {
+    setSelectedId(id)
+    setCopiedType(null)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+  }
 
   return (
     <div>
@@ -156,7 +192,7 @@ export default function ApiExplorerPage() {
               return (
                 <button
                   key={e.id}
-                  onClick={() => setSelectedId(e.id)}
+                  onClick={() => handleSelectEndpoint(e.id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -211,9 +247,19 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Request body
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 64, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.request}
+                </pre>
+                <button
+                  onClick={() => handleCopy(selected.request!, "request")}
+                  aria-label="Copy request body to clipboard"
+                  className="ccopy"
+                  style={{ position: "absolute", top: 8, right: 8, padding: 6 }}
+                >
+                  {copiedType === "request" ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
             </div>
           )}
 
@@ -222,9 +268,19 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Response
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 64, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.response}
+                </pre>
+                <button
+                  onClick={() => handleCopy(selected.response!, "response")}
+                  aria-label="Copy response to clipboard"
+                  className="ccopy"
+                  style={{ position: "absolute", top: 8, right: 8, padding: 6 }}
+                >
+                  {copiedType === "response" ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
             </div>
           )}
 
