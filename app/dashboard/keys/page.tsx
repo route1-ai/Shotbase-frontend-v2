@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -9,14 +9,38 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey { id: string; name: string; key?: string; createdAt?: number; active?: boolean; last?: string; requests?: number; }
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current) }
+  }, [])
+
+  const copyToClipboard = (id: string, keyText: string) => {
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+    const copy = () => {
+      setCopiedId(id)
+      copyTimeoutRef.current = setTimeout(() => setCopiedId(null), 1500)
+    }
+    navigator.clipboard.writeText(keyText).then(copy).catch(() => {
+      const ta = document.createElement("textarea")
+      ta.value = keyText
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand("copy"); copy() } catch {}
+      document.body.removeChild(ta)
+    })
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -140,9 +164,26 @@ export default function KeysPage() {
                       <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
+                      <span aria-live="polite">
+                        {revealed[k.id] && k.key && (
+                          <button
+                            onClick={() => copyToClipboard(k.id, k.key!)}
+                            aria-label={copiedId === k.id ? "API key copied" : `Copy API key ${k.name}`}
+                            style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === k.id ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: copiedId === k.id ? 600 : 400 }}
+                          >
+                            {copiedId === k.id ? "copied!" : "copy"}
+                          </button>
+                        )}
+                      </span>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        onClick={() => {
+                          if (revealed[k.id] && copiedId === k.id) {
+                            setCopiedId(null)
+                            if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+                          }
+                          setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))
+                        }}
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
