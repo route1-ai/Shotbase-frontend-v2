@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -129,9 +130,80 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
   DELETE: "#ff6060",
 }
 
+function Snippet({ label, text, type, copiedType, onCopy }: { label: string; text: string; type: "request" | "response"; copiedType: string | null; onCopy: (text: string, type: "request" | "response") => void }) {
+  const isCopied = copiedType === type
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ position: "relative" }}>
+        <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, paddingRight: 64, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+          {text}
+        </pre>
+        <div aria-live="polite">
+          <button
+            className="ccopy"
+            onClick={() => onCopy(text, type)}
+            aria-label={isCopied ? `Copied ${label.toLowerCase()} to clipboard` : `Copy ${label.toLowerCase()} to clipboard`}
+            style={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              zIndex: 10,
+              color: isCopied ? "#00e87b" : undefined,
+              background: isCopied ? "rgba(0, 232, 123, 0.08)" : undefined,
+              border: isCopied ? "1px solid rgba(0, 232, 123, 0.25)" : `1px solid ${BORDER}`,
+              borderRadius: 6,
+              padding: "5px 10px",
+            }}
+          >
+            {isCopied ? <Check size={13} style={{ marginRight: 4 }} /> : <Copy size={13} style={{ marginRight: 4 }} />}
+            <span>{isCopied ? "Copied" : "Copy"}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+  const [copiedType, setCopiedType] = useState<"request" | "response" | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  const handleCopy = (text: string, type: "request" | "response") => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        setCopiedType(type)
+        timeoutRef.current = setTimeout(() => setCopiedType(null), 2000)
+      })
+      .catch(() => {
+        try {
+          const ta = document.createElement("textarea")
+          ta.value = text
+          ta.style.position = "absolute"
+          ta.style.left = "-9999px"
+          document.body.appendChild(ta)
+          ta.select()
+          document.execCommand("copy")
+          document.body.removeChild(ta)
+          setCopiedType(type)
+          timeoutRef.current = setTimeout(() => setCopiedType(null), 2000)
+        } catch {}
+      })
+  }
 
   return (
     <div>
@@ -156,7 +228,14 @@ export default function ApiExplorerPage() {
               return (
                 <button
                   key={e.id}
-                  onClick={() => setSelectedId(e.id)}
+                  onClick={() => {
+                    setSelectedId(e.id)
+                    setCopiedType(null)
+                    if (timeoutRef.current) {
+                      clearTimeout(timeoutRef.current)
+                      timeoutRef.current = null
+                    }
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -207,25 +286,11 @@ export default function ApiExplorerPage() {
           <p style={{ fontSize: 13, color: "#888", marginBottom: 18 }}>{selected.summary}</p>
 
           {selected.request && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Request body
-              </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
-            </div>
+            <Snippet label="Request body" text={selected.request} type="request" copiedType={copiedType} onCopy={handleCopy} />
           )}
 
           {selected.response && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Response
-              </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
-            </div>
+            <Snippet label="Response" text={selected.response} type="response" copiedType={copiedType} onCopy={handleCopy} />
           )}
 
           <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
