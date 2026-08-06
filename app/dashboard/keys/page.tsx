@@ -1,6 +1,18 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import * as React from "react"
+import { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string;
+  name: string;
+  key?: string;
+  createdAt?: number;
+  active?: boolean;
+  last?: string;
+  requests?: number;
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +22,15 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -26,6 +40,10 @@ export default function KeysPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
   }, [])
 
   const createKey = async () => {
@@ -112,18 +130,18 @@ export default function KeysPage() {
 
       <div style={cardStyle}>
         {loading ? (
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", padding: "32px 0", textAlign: "center" }}>Loading keys…</div>
+          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "32px 0", textAlign: "center" }}>Loading keys…</div>
         ) : keys.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
             <div style={{ fontSize: 14, color: "#888", marginBottom: 6 }}>No keys yet</div>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444" }}>Create one to start making requests.</div>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>Create one to start making requests.</div>
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {["Name", "Key", "Created", "Last used", "Requests", ""].map((h) => (
-                  <th key={h} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#444", fontWeight: 500, textAlign: "left", padding: "0 16px 12px 0" }}>
+                  <th key={h} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 500, textAlign: "left", padding: "0 16px 12px 0" }}>
                     {h}
                   </th>
                 ))}
@@ -142,10 +160,46 @@ export default function KeysPage() {
                       </code>
                       <button
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {k.key && (
+                        <span aria-live="polite" style={{ display: "inline-flex", alignItems: "center" }}>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(k.key!)
+                                .then(() => {
+                                  setCopiedId(k.id)
+                                  if (timeoutRef.current) clearTimeout(timeoutRef.current)
+                                  timeoutRef.current = setTimeout(() => {
+                                    setCopiedId(null)
+                                  }, 2000)
+                                })
+                                .catch((err) => {
+                                  console.error("Failed to copy secret key:", err)
+                                })
+                            }}
+                            aria-label={copiedId === k.id ? "Copied" : "Copy secret key"}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 0,
+                              fontFamily: "var(--font-ibm-plex)",
+                              fontSize: 10,
+                              color: copiedId === k.id ? "#00e87b" : "#888",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 3,
+                              transition: "color 0.15s"
+                            }}
+                          >
+                            {copiedId === k.id ? <Check size={10} /> : <Copy size={10} />}
+                            <span>{copiedId === k.id ? "copied!" : "copy"}</span>
+                          </button>
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
@@ -158,7 +212,7 @@ export default function KeysPage() {
                       <button
                         onClick={() => revokeKey(k.id)}
                         disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#888" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
                       >
                         {revoking === k.id ? "Revoking…" : "Revoke"}
                       </button>
@@ -171,7 +225,7 @@ export default function KeysPage() {
         )}
       </div>
 
-      <div style={{ marginTop: 16, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444", lineHeight: 1.7 }}>
+      <div style={{ marginTop: 16, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", lineHeight: 1.7 }}>
         <span style={{ color: "#00e87b" }}>→</span> Secret keys are shown once. Store them securely — we cannot recover them.<br />
         <span style={{ color: "#00e87b" }}>→</span> Revoking a key immediately invalidates all requests using it.
       </div>
