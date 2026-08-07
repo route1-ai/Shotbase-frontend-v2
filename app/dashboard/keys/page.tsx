@@ -1,6 +1,17 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Eye, EyeOff, Copy, Check } from "lucide-react"
+
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +21,16 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -27,6 +41,29 @@ export default function KeysPage() {
       })
       .catch(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const copyToClipboard = async (id: string, text: string) => {
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current)
+    }
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      copyTimeoutRef.current = setTimeout(() => {
+        setCopiedId(null)
+      }, 2000)
+    } catch (err) {
+      console.error("Failed to copy text: ", err)
+    }
+  }
 
   const createKey = async () => {
     if (!newName.trim()) return
@@ -141,11 +178,34 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        onClick={() => {
+                          setRevealed((r) => {
+                            const isRevealing = !r[k.id]
+                            return { ...r, [k.id]: isRevealing }
+                          })
+                          // Reset copied state when toggling visibility
+                          setCopiedId(null)
+                          if (copyTimeoutRef.current) {
+                            clearTimeout(copyTimeoutRef.current)
+                          }
+                        }}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: "#888", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                        aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
                       >
-                        {revealed[k.id] ? "hide" : "show"}
+                        {revealed[k.id] ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
+
+                      {revealed[k.id] && k.key && (
+                        <div aria-live="polite" style={{ display: "inline-flex", alignItems: "center" }}>
+                          <button
+                            onClick={() => copyToClipboard(k.id, k.key!)}
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", color: copiedId === k.id ? "#00e87b" : "#888", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                            aria-label={copiedId === k.id ? "API key copied" : "Copy API key"}
+                          >
+                            {copiedId === k.id ? <Check size={16} /> : <Copy size={16} />}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
