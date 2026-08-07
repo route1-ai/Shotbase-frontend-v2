@@ -154,7 +154,7 @@ export default function Home() {
         </Link>
         <ul className="nl">
           <li><Link href="/docs">Docs</Link></li>
-          <li><Link href="/playground">Playground</Link></li>
+          <li><Link href="/dashboard/playground">Playground</Link></li>
         </ul>
         <div className="nr">
           <ThemeToggle />
@@ -177,7 +177,7 @@ export default function Home() {
             },
             secondary: {
               text: "Try the playground →",
-              onClick: () => router.push("/playground")
+              onClick: () => router.push("/dashboard/playground")
             }
           }}
         />
@@ -199,7 +199,7 @@ export default function Home() {
         <div className="demo-bar-wrap">
           <div className="demo-bar">
             <input type="text" placeholder="Enter URL — e.g. https://stripe.com" readOnly />
-            <button onClick={() => router.push("/playground")}>Screenshot</button>
+            <button onClick={() => router.push("/dashboard/playground")}>Screenshot</button>
           </div>
           <div className="feature-pills">
             {["Full Page Screenshot", "URL to PNG", "Block Cookies & Ads", "URL to PDF", "AI Data Extraction", "MCP Server", "Scheduled Captures", "Visual Monitoring"].map((pill) => (
@@ -210,7 +210,7 @@ export default function Home() {
             ))}
           </div>
           <div className="dual-cta">
-            <Link href="/playground" className="dual-cta a cta-outline">Get a Demo →</Link>
+            <Link href="/dashboard/playground" className="dual-cta a cta-outline">Get a Demo →</Link>
             <Link href="/signup" className="dual-cta a cta-fill">Get Started For Free →</Link>
           </div>
         </div>
@@ -347,7 +347,7 @@ export default function Home() {
               <li>Retina / HiDPI support up to 3× scale</li>
               <li>PNG, JPEG, WebP, and PDF output</li>
             </ul>
-            <Link href="/playground" className="detail-cta">Try the playground <span aria-hidden="true">→</span></Link>
+            <Link href="/dashboard/playground" className="detail-cta">Try the playground <span aria-hidden="true">→</span></Link>
           </div>
           <div className="mockup-card">
             <div className="mockup-browser-bar">
@@ -592,7 +592,7 @@ export default function Home() {
           <h2>Ready to capture<br />your first screenshot?</h2>
           <p>500 screenshots per month, free forever. No credit card. Start building in under a minute.</p>
           <div className="dual-cta">
-            <Link href="/playground" className="cta-outline">Get a Demo →</Link>
+            <Link href="/dashboard/playground" className="cta-outline">Get a Demo →</Link>
             <Link href="/signup" className="cta-fill">Get Started For Free →</Link>
           </div>
         </section>
@@ -674,7 +674,7 @@ export default function Home() {
               <p>Screenshot any URL.<br />One API call.<br /><br />A Route1AI product</p>
             </div>
             <div className="fcols">
-              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/playground">Playground</Link></li><li><Link href="/">Changelog</Link></li></ul></div>
+              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/dashboard/playground">Playground</Link></li><li><Link href="/">Changelog</Link></li></ul></div>
               <div className="fcol"><h4>Developers</h4><ul><li><Link href="/docs">API Reference</Link></li><li><Link href="/">JS SDK</Link></li><li><Link href="/">Python SDK</Link></li><li><Link href="/">MCP Server</Link></li></ul></div>
               <div className="fcol"><h4>Company</h4><ul><li><Link href="/">Route1AI</Link></li><li><Link href="/">Blog</Link></li><li><Link href="/">GitHub</Link></li></ul></div>
             </div>
