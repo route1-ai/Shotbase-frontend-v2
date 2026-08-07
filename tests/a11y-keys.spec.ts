@@ -11,7 +11,7 @@ test('API Keys page renders list with Eye/EyeOff icons and supports Copying reve
           {
             id: 'key_123',
             name: 'Production Key',
-            key: 'sk_prod_1234567890abcdef',
+            key: 'sb_key_1234567890abcdef',
             createdAt: Date.now() - 86400000,
             active: true,
             last: '2026-05-15',
@@ -40,7 +40,7 @@ test('API Keys page renders list with Eye/EyeOff icons and supports Copying reve
   await showBtn.click();
 
   // Key should now be revealed
-  await expect(keyCell).toContainText('sk_prod_1234567890abcdef');
+  await expect(keyCell).toContainText('sb_key_1234567890abcdef');
 
   // The show button should now be "Hide API key"
   const hideBtn = page.getByRole('button', { name: 'Hide API key' });
@@ -52,10 +52,23 @@ test('API Keys page renders list with Eye/EyeOff icons and supports Copying reve
 
   // Setup clipboard mock inside browser context to track text copied
   await page.evaluate(() => {
-    (window as any).copiedText = '';
-    navigator.clipboard.writeText = async (text) => {
-      (window as any).copiedText = text;
-    };
+    if (!navigator.clipboard) {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: async (text: string) => {
+            (window as any).copiedText = text;
+            return Promise.resolve();
+          }
+        },
+        configurable: true
+      });
+    } else {
+      (window as any).copiedText = '';
+      navigator.clipboard.writeText = async (text) => {
+        (window as any).copiedText = text;
+        return Promise.resolve();
+      };
+    }
   });
 
   // Click Copy
@@ -67,7 +80,7 @@ test('API Keys page renders list with Eye/EyeOff icons and supports Copying reve
 
   // Check custom clipboard text
   const copiedText = await page.evaluate(() => (window as any).copiedText);
-  expect(copiedText).toBe('sk_prod_1234567890abcdef');
+  expect(copiedText).toBe('sb_key_1234567890abcdef');
 
   // Generate screenshot of our shiny, highly accessible micro-UX interface
   await page.screenshot({ path: 'test-results/api-keys-ux-success.png' });
