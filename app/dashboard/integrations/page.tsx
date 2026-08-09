@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useRef, useEffect } from "react"
 
 type Status = "available" | "soon"
 type Integration = {
@@ -82,12 +82,29 @@ const INTEGRATIONS: Integration[] = [
 function Card({ i }: { i: Integration }) {
   const [copied, setCopied] = React.useState(false)
   const [hover, setHover] = React.useState(false)
+  const [focused, setFocused] = React.useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(i.install)
       setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 1500)
     } catch {}
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      copy()
+    }
   }
 
   return (
@@ -96,7 +113,7 @@ function Card({ i }: { i: Integration }) {
       onMouseLeave={() => setHover(false)}
       style={{
         background: "#0a0a0a",
-        border: `1px solid ${hover ? "rgba(0,232,123,0.25)" : "rgba(255,255,255,0.07)"}`,
+        border: `1px solid ${hover || focused ? "rgba(0,232,123,0.25)" : "rgba(255,255,255,0.07)"}`,
         borderRadius: 12,
         padding: 20,
         display: "flex",
@@ -121,14 +138,21 @@ function Card({ i }: { i: Integration }) {
       <p style={{ fontSize: 12, color: "#888", lineHeight: 1.5, margin: 0 }}>{i.blurb}</p>
       <div style={{ display: "flex", gap: 8 }}>
         <code
+          role="button"
+          tabIndex={0}
           onClick={copy}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           title="Click to copy"
+          aria-label={`Copy installation command: ${i.install}`}
           style={{
             flex: 1,
             fontFamily: "var(--font-ibm-plex)",
             fontSize: 11,
             background: "#050505",
-            border: "1px solid rgba(255,255,255,0.07)",
+            border: focused ? "1px solid #00e87b" : "1px solid rgba(255,255,255,0.07)",
+            outline: "none",
             borderRadius: 6,
             padding: "8px 12px",
             color: copied ? "#00e87b" : "#888",
@@ -136,7 +160,7 @@ function Card({ i }: { i: Integration }) {
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             cursor: "pointer",
-            transition: "color 0.15s",
+            transition: "all 0.15s",
           }}
         >
           {copied ? "✓ Copied" : i.install}
