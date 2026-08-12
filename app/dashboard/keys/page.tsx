@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
+import { Copy, Check } from "lucide-react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -9,14 +10,32 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -141,11 +160,33 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
+                        type="button"
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          type="button"
+                          aria-label="Copy API key to clipboard"
+                          onClick={async () => {
+                            try { await navigator.clipboard.writeText(k.key!) } catch {
+                              try {
+                                const ta = document.createElement("textarea")
+                                ta.value = k.key!; document.body.appendChild(ta); ta.select()
+                                document.execCommand("copy"); document.body.removeChild(ta)
+                              } catch {}
+                            }
+                            setCopiedId(k.id)
+                            if (timerRef.current) clearTimeout(timerRef.current)
+                            timerRef.current = setTimeout(() => setCopiedId(null), 2000)
+                          }}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", padding: "4px", borderRadius: "4px", color: copiedId === k.id ? "#00e87b" : "#888" }}
+                        >
+                          {copiedId === k.id ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
