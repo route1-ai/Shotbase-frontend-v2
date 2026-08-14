@@ -1,0 +1,36 @@
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 594ms
+
+○ Compiling /dashboard/keys ...
+
+[35m
+[Clerk]:[0m You are running in keyless mode.
+You can [35mclaim your keys[0m by visiting https://dashboard.clerk.com/apps/claim?framework=nextjs&token=47o9u7p9xphd5etms264uqnyjggxd18ba9h00yva&return_url=http%3A%2F%2Flocalhost%3A3000%2F
+
+ GET /dashboard/keys 200 in 8.5s (next.js: 6.6s, proxy.ts: 88ms, application-code: 1806ms)
+ POST /dashboard/keys 200 in 678ms (next.js: 401ms, proxy.ts: 27ms, application-code: 250ms)
+  └─ ƒ syncKeylessConfigAction({"apiKeysUrl":"https://dashboard.clerk.com/apps/app_3HtYULmPbSqPMJFOuzFgna2eZgP/instances/ins_3HtYUKKtOKnwOpWiPztkwwQg1jj/api-keys","claimUrl":"https://dashboard.clerk.com/apps/claim?framework=nextjs&token=47o9u7p9xphd5etms264uqnyjggxd18ba9h00yva","...":"3 items not stringified"}) in 35ms node_modules/.pnpm/@clerk+nextjs@7.7.5_next@16.2.4_@babel+core@7.29.7_@playwright+test@1.62.1_react-dom@19_956c04acb672a326e024c92097fc7302/node_modules/@clerk/nextjs/dist/esm-router/keyless-actions.js
+[browser] Clerk: Clerk has been loaded with development keys. Development instances have strict usage limits and should not be used when deploying your application to production. Learn more: https://clerk.com/docs/deployments/overview (https://workable-bonefish-48.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js:12:6133)
+○ Compiling /api/usage ...
+⨯ Error: Clerk: auth() was called but Clerk can't detect usage of clerkMiddleware(). Please ensure the following:
+- Your middleware or proxy file exists at ./middleware.(ts|js) or proxy.(ts|js)
+- clerkMiddleware() is used in your Next.js middleware or proxy file.
+- Your middleware or proxy matcher is configured to match this route or page.
+- If you are using the src directory, make sure the middleware or proxy file is inside of it.
+
+If you've verified your configuration and are still seeing this error, there may be a runtime issue or a problem communicating with Clerk.
+
+For more details, see https://clerk.com/err/auth-middleware
+
+    at async GET (app/api/usage/route.ts:5:22)
+  3 |
+  4 | export async function GET() {
+> 5 |   const { userId } = await auth()
+    |                      ^
+  6 |   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  7 |
+  8 |   try {
+ GET /api/usage 500 in 4.7s (next.js: 4.3s, proxy.ts: 46ms, application-code: 346ms)
+[?25h
