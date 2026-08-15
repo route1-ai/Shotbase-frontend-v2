@@ -1,6 +1,8 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
+
+interface APIKey { id: string; name: string; key?: string; createdAt?: number; active?: boolean; last?: string; requests?: number }
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,13 +12,30 @@ const cardStyle: React.CSSProperties = {
 }
 
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
+    }
+  }, [])
+
+  const copyKey = async (id: string, text: string) => {
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(id)
+      copiedTimeoutRef.current = setTimeout(() => setCopiedId(null), 1500)
+    } catch {}
+  }
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -112,18 +131,18 @@ export default function KeysPage() {
 
       <div style={cardStyle}>
         {loading ? (
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", padding: "32px 0", textAlign: "center" }}>Loading keys…</div>
+          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "32px 0", textAlign: "center" }}>Loading keys…</div>
         ) : keys.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
             <div style={{ fontSize: 14, color: "#888", marginBottom: 6 }}>No keys yet</div>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444" }}>Create one to start making requests.</div>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>Create one to start making requests.</div>
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {["Name", "Key", "Created", "Last used", "Requests", ""].map((h) => (
-                  <th key={h} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#444", fontWeight: 500, textAlign: "left", padding: "0 16px 12px 0" }}>
+                  <th key={h} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 500, textAlign: "left", padding: "0 16px 12px 0" }}>
                     {h}
                   </th>
                 ))}
@@ -141,11 +160,27 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
-                        onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        type="button"
+                        onClick={() => {
+                          if (revealed[k.id] && copiedId === k.id) setCopiedId(null)
+                          setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))
+                        }}
+                        aria-label={revealed[k.id] ? "Hide API key" : "Show API key"}
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {revealed[k.id] && k.key && (
+                        <button
+                          type="button"
+                          onClick={() => copyKey(k.id, k.key!)}
+                          aria-label="Copy API key to clipboard"
+                          aria-live="polite"
+                          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === k.id ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        >
+                          {copiedId === k.id ? "✓ copied" : "copy"}
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
