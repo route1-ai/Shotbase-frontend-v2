@@ -124,13 +124,14 @@ export default function TemplatesPage() {
       </div>
 
       {/* Category tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
+      <div role="group" aria-label="Filter templates by category" style={{ display: "flex", gap: 6, marginBottom: 18, flexWrap: "wrap" }}>
         {[{ id: "all", label: "All" }, ...CATEGORIES.slice(1)].map((c) => {
           const active = filter === c.id
           return (
             <button
               key={c.id}
-              onClick={() => setFilter(c.id as any)}
+              aria-pressed={active}
+              onClick={() => setFilter(c.id as "all" | Template["category"])}
               style={{
                 fontFamily: "var(--font-ibm-plex)",
                 fontSize: 12,
@@ -175,6 +176,7 @@ export default function TemplatesPage() {
             <div style={{ display: "flex", gap: 8 }}>
               <Link
                 href={`/dashboard/playground?${paramsFromConfig(t.config)}`}
+                aria-label={`Use ${t.name} template in Playground`}
                 style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "8px 14px", borderRadius: 7, textDecoration: "none", textAlign: "center" }}
               >
                 Use in Playground →
