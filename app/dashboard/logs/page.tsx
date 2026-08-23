@@ -44,6 +44,17 @@ function tag(status: number): React.CSSProperties {
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!row) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [row, onClose])
+
   const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
