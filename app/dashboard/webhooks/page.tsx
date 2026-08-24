@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -38,6 +38,14 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current) clearTimeout(confirmTimeoutRef.current)
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -66,6 +74,26 @@ export default function WebhooksPage() {
 
   const remove = (id: string) => setEndpoints((es) => es.filter((e) => e.id !== id))
 
+  const handleDeleteClick = (ep: Endpoint) => {
+    if (confirmDeleteId === ep.id) {
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current)
+        confirmTimeoutRef.current = null
+      }
+      setConfirmDeleteId(null)
+      remove(ep.id)
+    } else {
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current)
+      }
+      setConfirmDeleteId(ep.id)
+      confirmTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null)
+        confirmTimeoutRef.current = null
+      }, 3000)
+    }
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
@@ -77,6 +105,7 @@ export default function WebhooksPage() {
         </div>
         {!showCreate && (
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
@@ -164,6 +193,7 @@ export default function WebhooksPage() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button
+              type="button"
               onClick={() => {
                 setShowCreate(false)
                 setNewUrl("")
@@ -173,6 +203,7 @@ export default function WebhooksPage() {
               Cancel
             </button>
             <button
+              type="button"
               onClick={create}
               disabled={!newUrl.trim() || newEvents.length === 0}
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: !newUrl.trim() || newEvents.length === 0 ? "#333" : "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: !newUrl.trim() || newEvents.length === 0 ? "not-allowed" : "pointer" }}
@@ -199,6 +230,7 @@ export default function WebhooksPage() {
             Add an endpoint to start receiving signed callbacks. Common use cases: log every render, update your DB when a screenshot completes, page on quota events.
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
@@ -223,10 +255,26 @@ export default function WebhooksPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
+                    type="button"
+                    onClick={() => handleDeleteClick(ep)}
+                    aria-label={
+                      confirmDeleteId === ep.id
+                        ? `Confirm deletion of webhook endpoint ${ep.url}`
+                        : `Delete webhook endpoint ${ep.url}`
+                    }
+                    style={{
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: "#ff6060",
+                      background: confirmDeleteId === ep.id ? "rgba(255,60,60,0.15)" : "transparent",
+                      border: `1px solid ${confirmDeleteId === ep.id ? "rgba(255,60,60,0.6)" : "rgba(255,60,60,0.2)"}`,
+                      padding: "5px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
                   >
-                    Delete
+                    {confirmDeleteId === ep.id ? "Confirm delete?" : "Delete"}
                   </button>
                 </div>
 
@@ -245,13 +293,17 @@ export default function WebhooksPage() {
                     </div>
                     <div style={{ display: "flex", gap: 12 }}>
                       <button
+                        type="button"
                         onClick={() => setRevealed((r) => ({ ...r, [ep.id]: !r[ep.id] }))}
+                        aria-label={revealed[ep.id] ? "Hide signing secret" : "Show signing secret"}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[ep.id] ? "Hide" : "Show"}
                       </button>
                       <button
+                        type="button"
                         onClick={() => copy(ep.id, ep.secret)}
+                        aria-label={copied === ep.id ? "Signing secret copied" : "Copy signing secret"}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === ep.id ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {copied === ep.id ? "✓ Copied" : "Copy"}
