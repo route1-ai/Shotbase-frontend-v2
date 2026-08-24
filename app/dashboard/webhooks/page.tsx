@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -31,6 +32,21 @@ const EVENT_TYPES = [
   { id: "key.revoked",          label: "API key revoked",      sub: "Fires when a key is revoked" },
 ]
 
+const CODE_SNIPPET = `// Every delivery includes a 'Shotbase-Signature' header.
+// Verify in Node:
+import crypto from 'crypto'
+
+function verifyWebhook(rawBody, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex')
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  )
+}`
+
 export default function WebhooksPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([])
   const [showCreate, setShowCreate] = useState(false)
@@ -38,6 +54,20 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [snippetCopied, setSnippetCopied] = useState(false)
+
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const snippetCopyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current)
+      if (snippetCopyTimeoutRef.current) clearTimeout(snippetCopyTimeoutRef.current)
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -56,15 +86,35 @@ export default function WebhooksPage() {
     setShowCreate(false)
   }
 
-  const copy = async (key: string, text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
+  const copy = (key: string, text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(key)
-      setTimeout(() => setCopied(null), 1500)
-    } catch {}
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current)
+      copyTimeoutRef.current = setTimeout(() => setCopied(null), 1500)
+    }).catch(() => {})
   }
 
-  const remove = (id: string) => setEndpoints((es) => es.filter((e) => e.id !== id))
+  const copySnippet = () => {
+    navigator.clipboard.writeText(CODE_SNIPPET).then(() => {
+      setSnippetCopied(true)
+      if (snippetCopyTimeoutRef.current) clearTimeout(snippetCopyTimeoutRef.current)
+      snippetCopyTimeoutRef.current = setTimeout(() => setSnippetCopied(false), 1500)
+    }).catch(() => {})
+  }
+
+  const handleRemoveClick = (id: string) => {
+    if (confirmDeleteId === id) {
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current)
+      setConfirmDeleteId(null)
+      setEndpoints((es) => es.filter((e) => e.id !== id))
+    } else {
+      setConfirmDeleteId(id)
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current)
+      deleteTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null)
+      }, 3000)
+    }
+  }
 
   return (
     <div>
@@ -77,6 +127,7 @@ export default function WebhooksPage() {
         </div>
         {!showCreate && (
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
@@ -91,10 +142,11 @@ export default function WebhooksPage() {
           <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 14 }}>New webhook endpoint</div>
 
           <div style={{ marginBottom: 18 }}>
-            <label style={{ display: "block", fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+            <label htmlFor="webhook-url-input" style={{ display: "block", fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
               Endpoint URL
             </label>
             <input
+              id="webhook-url-input"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
               placeholder="https://your-app.com/webhooks/shotbase"
@@ -118,6 +170,7 @@ export default function WebhooksPage() {
                     key={e.id}
                     type="button"
                     onClick={() => toggleEvent(e.id)}
+                    aria-pressed={checked}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -164,6 +217,7 @@ export default function WebhooksPage() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button
+              type="button"
               onClick={() => {
                 setShowCreate(false)
                 setNewUrl("")
@@ -173,6 +227,7 @@ export default function WebhooksPage() {
               Cancel
             </button>
             <button
+              type="button"
               onClick={create}
               disabled={!newUrl.trim() || newEvents.length === 0}
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: !newUrl.trim() || newEvents.length === 0 ? "#333" : "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: !newUrl.trim() || newEvents.length === 0 ? "not-allowed" : "pointer" }}
@@ -199,6 +254,7 @@ export default function WebhooksPage() {
             Add an endpoint to start receiving signed callbacks. Common use cases: log every render, update your DB when a screenshot completes, page on quota events.
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
@@ -208,66 +264,84 @@ export default function WebhooksPage() {
       ) : (
         endpoints.length > 0 && (
           <div style={{ display: "grid", gap: 12 }}>
-            {endpoints.map((ep) => (
-              <div key={ep.id} style={cardStyle}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: ep.active ? "#00e87b" : "#666" }} />
-                      <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 13, color: "#f0f0f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {ep.url}
-                      </code>
+            {endpoints.map((ep) => {
+              const isDeleting = confirmDeleteId === ep.id
+              return (
+                <div key={ep.id} style={cardStyle}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: ep.active ? "#00e87b" : "#666" }} />
+                        <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 13, color: "#f0f0f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {ep.url}
+                        </code>
+                      </div>
+                      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>
+                        {ep.events.length} event{ep.events.length === 1 ? "" : "s"} · {ep.active ? "Active" : "Disabled"} · {ep.id}
+                      </div>
                     </div>
-                    <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>
-                      {ep.events.length} event{ep.events.length === 1 ? "" : "s"} · {ep.active ? "Active" : "Disabled"} · {ep.id}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveClick(ep.id)}
+                      aria-label={isDeleting ? "Confirm deletion of webhook endpoint" : "Delete webhook endpoint"}
+                      style={{
+                        fontFamily: "var(--font-ibm-plex)",
+                        fontSize: 11,
+                        fontWeight: isDeleting ? 600 : 400,
+                        color: isDeleting ? "#ffffff" : "#ff6060",
+                        background: isDeleting ? "rgba(255, 60, 60, 0.85)" : "transparent",
+                        border: isDeleting ? "1px solid #ff6060" : "1px solid rgba(255,60,60,0.2)",
+                        padding: "5px 12px",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease-in-out",
+                      }}
+                    >
+                      {isDeleting ? "Confirm delete?" : "Delete"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
-                  >
-                    Delete
-                  </button>
-                </div>
 
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-                  {ep.events.map((e) => (
-                    <span key={e} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, padding: "3px 8px", background: ACTIVE_BG, color: "#00e87b", border: `1px solid ${ACTIVE_BORDER}`, borderRadius: 4 }}>
-                      {e}
-                    </span>
-                  ))}
-                </div>
-
-                <div style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 7, padding: 12, marginBottom: 8 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                      Signing secret
-                    </div>
-                    <div style={{ display: "flex", gap: 12 }}>
-                      <button
-                        onClick={() => setRevealed((r) => ({ ...r, [ep.id]: !r[ep.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                      >
-                        {revealed[ep.id] ? "Hide" : "Show"}
-                      </button>
-                      <button
-                        onClick={() => copy(ep.id, ep.secret)}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === ep.id ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-                      >
-                        {copied === ep.id ? "✓ Copied" : "Copy"}
-                      </button>
-                    </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+                    {ep.events.map((e) => (
+                      <span key={e} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, padding: "3px 8px", background: ACTIVE_BG, color: "#00e87b", border: `1px solid ${ACTIVE_BORDER}`, borderRadius: 4 }}>
+                        {e}
+                      </span>
+                    ))}
                   </div>
-                  <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revealed[ep.id] ? "#f0f0f0" : "#666", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {revealed[ep.id] ? ep.secret : "whsec_•••••••••••••••••••••••••••••••••"}
-                  </code>
-                </div>
 
-                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>
-                  Last delivery: {ep.lastDelivery ? `${ep.lastDelivery.status} · ${ep.lastDelivery.ts}` : "No deliveries yet"}
+                  <div style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 7, padding: 12, marginBottom: 8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }} aria-live="polite">
+                      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Signing secret
+                      </div>
+                      <div style={{ display: "flex", gap: 12 }}>
+                        <button
+                          type="button"
+                          onClick={() => setRevealed((r) => ({ ...r, [ep.id]: !r[ep.id] }))}
+                          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                        >
+                          {revealed[ep.id] ? "Hide" : "Show"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => copy(ep.id, ep.secret)}
+                          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === ep.id ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                        >
+                          {copied === ep.id ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                    <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revealed[ep.id] ? "#f0f0f0" : "#666", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {revealed[ep.id] ? ep.secret : "whsec_•••••••••••••••••••••••••••••••••"}
+                    </code>
+                  </div>
+
+                  <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>
+                    Last delivery: {ep.lastDelivery ? `${ep.lastDelivery.status} · ${ep.lastDelivery.ts}` : "No deliveries yet"}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )
       )}
@@ -277,23 +351,40 @@ export default function WebhooksPage() {
         <div style={{ ...cardStyle, marginTop: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontWeight: 500, fontSize: 13 }}>Verifying webhook signatures</div>
-            <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <button
+                type="button"
+                onClick={copySnippet}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontFamily: "var(--font-ibm-plex)",
+                  fontSize: 11,
+                  color: snippetCopied ? "#00e87b" : "#888",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                {snippetCopied ? (
+                  <>
+                    <Check size={12} />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={12} />
+                    <span>Copy code</span>
+                  </>
+                )}
+              </button>
+              <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            </div>
           </div>
           <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
-{`// Every delivery includes a 'Shotbase-Signature' header.
-// Verify in Node:
-import crypto from 'crypto'
-
-function verifyWebhook(rawBody, signature, secret) {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex')
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  )
-}`}
+{CODE_SNIPPET}
           </pre>
         </div>
       )}
