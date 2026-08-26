@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -38,6 +38,14 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -65,6 +73,20 @@ export default function WebhooksPage() {
   }
 
   const remove = (id: string) => setEndpoints((es) => es.filter((e) => e.id !== id))
+
+  const handleDeleteClick = (id: string) => {
+    if (deleteConfirmId === id) {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setDeleteConfirmId(null)
+      remove(id)
+    } else {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setDeleteConfirmId(id)
+      deleteTimerRef.current = setTimeout(() => {
+        setDeleteConfirmId(null)
+      }, 3000)
+    }
+  }
 
   return (
     <div>
@@ -223,10 +245,22 @@ export default function WebhooksPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
+                    type="button"
+                    onClick={() => handleDeleteClick(ep.id)}
+                    aria-label={deleteConfirmId === ep.id ? `Confirm delete webhook endpoint ${ep.url}` : `Delete webhook endpoint ${ep.url}`}
+                    style={{
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: deleteConfirmId === ep.id ? "#fff" : "#ff6060",
+                      background: deleteConfirmId === ep.id ? "#dc2626" : "transparent",
+                      border: deleteConfirmId === ep.id ? "1px solid #dc2626" : "1px solid rgba(255,60,60,0.2)",
+                      padding: "5px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
                   >
-                    Delete
+                    {deleteConfirmId === ep.id ? "Confirm delete?" : "Delete"}
                   </button>
                 </div>
 
