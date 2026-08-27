@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -31,6 +31,21 @@ const EVENT_TYPES = [
   { id: "key.revoked",          label: "API key revoked",      sub: "Fires when a key is revoked" },
 ]
 
+const VERIFY_CODE = `// Every delivery includes a 'Shotbase-Signature' header.
+// Verify in Node:
+import crypto from 'crypto'
+
+function verifyWebhook(rawBody, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex')
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  )
+}`
+
 export default function WebhooksPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([])
   const [showCreate, setShowCreate] = useState(false)
@@ -38,6 +53,23 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [copiedSnippet, setCopiedSnippet] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    }
+  }, [])
+
+  const copySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(VERIFY_CODE)
+      setCopiedSnippet(true)
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopiedSnippet(false), 1500)
+    } catch {}
+  }
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -277,23 +309,20 @@ export default function WebhooksPage() {
         <div style={{ ...cardStyle, marginTop: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontWeight: 500, fontSize: 13 }}>Verifying webhook signatures</div>
-            <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }} aria-live="polite">
+              <button
+                type="button"
+                onClick={copySnippet}
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: copiedSnippet ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                aria-label={copiedSnippet ? "Code snippet copied" : "Copy verification code snippet"}
+              >
+                {copiedSnippet ? "✓ Copied" : "Copy code"}
+              </button>
+              <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            </div>
           </div>
           <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
-{`// Every delivery includes a 'Shotbase-Signature' header.
-// Verify in Node:
-import crypto from 'crypto'
-
-function verifyWebhook(rawBody, signature, secret) {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex')
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  )
-}`}
+{VERIFY_CODE}
           </pre>
         </div>
       )}
