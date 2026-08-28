@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -38,6 +38,16 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) {
+        clearTimeout(deleteTimerRef.current)
+      }
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -64,7 +74,24 @@ export default function WebhooksPage() {
     } catch {}
   }
 
-  const remove = (id: string) => setEndpoints((es) => es.filter((e) => e.id !== id))
+  const handleDeleteClick = (id: string) => {
+    if (confirmingDeleteId === id) {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setConfirmingDeleteId(null)
+      setEndpoints((es) => es.filter((e) => e.id !== id))
+    } else {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setConfirmingDeleteId(id)
+      deleteTimerRef.current = setTimeout(() => {
+        setConfirmingDeleteId(null)
+      }, 3000)
+    }
+  }
+
+  const cancelDelete = () => {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    setConfirmingDeleteId(null)
+  }
 
   return (
     <div>
@@ -222,12 +249,65 @@ export default function WebhooksPage() {
                       {ep.events.length} event{ep.events.length === 1 ? "" : "s"} · {ep.active ? "Active" : "Disabled"} · {ep.id}
                     </div>
                   </div>
-                  <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
-                  >
-                    Delete
-                  </button>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }} aria-live="polite">
+                    {confirmingDeleteId === ep.id ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(ep.id)}
+                          aria-label={`Confirm deleting endpoint ${ep.url}`}
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "#fff",
+                            background: "#ff4d4d",
+                            border: "none",
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Confirm delete?
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelDelete}
+                          aria-label="Cancel deleting endpoint"
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 11,
+                            color: "#888",
+                            background: "transparent",
+                            border: `1px solid ${BORDER}`,
+                            padding: "5px 10px",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteClick(ep.id)}
+                        aria-label={`Delete endpoint ${ep.url}`}
+                        style={{
+                          fontFamily: "var(--font-ibm-plex)",
+                          fontSize: 11,
+                          color: "#ff6060",
+                          background: "transparent",
+                          border: "1px solid rgba(255,60,60,0.2)",
+                          padding: "5px 12px",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
