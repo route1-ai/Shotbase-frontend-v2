@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -38,6 +38,27 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    }
+  }, [])
+
+  const handleDeleteClick = (id: string) => {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    if (confirmDeleteId === id) {
+      remove(id)
+      setConfirmDeleteId(null)
+    } else {
+      setConfirmDeleteId(id)
+      deleteTimerRef.current = setTimeout(() => {
+        setConfirmDeleteId(null)
+      }, 3000)
+    }
+  }
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -223,10 +244,22 @@ export default function WebhooksPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
+                    type="button"
+                    onClick={() => handleDeleteClick(ep.id)}
+                    aria-label={confirmDeleteId === ep.id ? "Confirm deletion of endpoint" : "Delete endpoint"}
+                    style={{
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: confirmDeleteId === ep.id ? "#fff" : "#ff6060",
+                      background: confirmDeleteId === ep.id ? "rgba(255,60,60,0.85)" : "transparent",
+                      border: "1px solid rgba(255,60,60,0.3)",
+                      padding: "5px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease-in-out",
+                    }}
                   >
-                    Delete
+                    {confirmDeleteId === ep.id ? "Confirm delete?" : "Delete"}
                   </button>
                 </div>
 
