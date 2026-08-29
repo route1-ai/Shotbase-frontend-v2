@@ -328,9 +328,7 @@ export default function WebhooksPage() {
               <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
             </div>
           </div>
-          <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
-            {VERIFY_SNIPPET}
-          </pre>
+          <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>{VERIFY_SNIPPET}</pre>
         </div>
       )}
     </div>
