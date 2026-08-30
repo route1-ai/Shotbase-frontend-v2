@@ -44,6 +44,15 @@ function tag(status: number): React.CSSProperties {
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!row) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [row, onClose])
+
   const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -379,8 +388,19 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View request details for ${r.id || "request"}`}
                       onClick={() => setSelected(r)}
-                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
+                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s, outline 0.15s" }}
+                      onFocus={(e) => (e.currentTarget.style.background = "rgba(0, 232, 123, 0.08)")}
+                      onBlur={(e) => (e.currentTarget.style.background = "transparent")}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
