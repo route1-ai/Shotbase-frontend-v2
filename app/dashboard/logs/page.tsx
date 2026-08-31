@@ -127,6 +127,7 @@ X-Request-Id: ${row.id || "—"}`
             <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b" }}>{row.id || "—"}</div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
             style={{ fontSize: 20, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
@@ -172,6 +173,7 @@ X-Request-Id: ${row.id || "—"}`
                 Request payload
               </div>
               <button
+                type="button"
                 onClick={() => copy("req", reqJson)}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "req" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
@@ -188,6 +190,7 @@ X-Request-Id: ${row.id || "—"}`
                 Response headers
               </div>
               <button
+                type="button"
                 onClick={() => copy("res", resHeaders)}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "res" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
@@ -204,6 +207,7 @@ X-Request-Id: ${row.id || "—"}`
                 Reproduce
               </div>
               <button
+                type="button"
                 onClick={() => copy("curl", curlCmd)}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "curl" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
@@ -217,6 +221,7 @@ X-Request-Id: ${row.id || "—"}`
         {/* Footer actions */}
         <div style={{ display: "flex", gap: 8, padding: "14px 22px", borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
           <button
+            type="button"
             onClick={() => copy("curl", curlCmd)}
             style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#000", background: "#00e87b", border: "none", padding: "9px 14px", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}
           >
@@ -285,6 +290,7 @@ export default function LogsPage() {
           const active = activeTab === t.id
           return (
             <button
+              type="button"
               key={t.id}
               onClick={() => setActiveTab(t.id)}
               style={{
@@ -325,6 +331,7 @@ export default function LogsPage() {
             <div style={{ display: "flex", gap: 4, background: "#0a0a0a", border: `1px solid ${BORDER}`, borderRadius: 7, padding: 3 }}>
               {(["all", "screenshot", "extract", "markdown"] as const).map((e) => (
                 <button
+                  type="button"
                   key={e}
                   onClick={() => setEndpointFilter(e)}
                   style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, padding: "5px 10px", background: endpointFilter === e ? ACTIVE_BG : "transparent", border: "none", borderRadius: 5, color: endpointFilter === e ? "#00e87b" : "#888", cursor: "pointer" }}
@@ -336,6 +343,7 @@ export default function LogsPage() {
             <div style={{ display: "flex", gap: 4, background: "#0a0a0a", border: `1px solid ${BORDER}`, borderRadius: 7, padding: 3 }}>
               {(["all", "ok", "err"] as const).map((s) => (
                 <button
+                  type="button"
                   key={s}
                   onClick={() => setStatusFilter(s)}
                   style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, padding: "5px 10px", background: statusFilter === s ? ACTIVE_BG : "transparent", border: "none", borderRadius: 5, color: statusFilter === s ? "#00e87b" : "#888", cursor: "pointer" }}
@@ -345,6 +353,7 @@ export default function LogsPage() {
               ))}
             </div>
             <button
+              type="button"
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, padding: "8px 14px", background: "#0a0a0a", border: `1px solid ${BORDER}`, borderRadius: 7, color: "#888", cursor: "pointer" }}
             >
               ↓ Export CSV
@@ -379,10 +388,18 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View request details for ${r.id || "request"} - ${r.url || "URL"}`}
                       onClick={() => setSelected(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
+                      className="hover:bg-white/[0.02] focus-visible:bg-[rgba(0,232,123,0.08)] focus-visible:outline-none"
                       style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 14px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 14px 11px 0", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
