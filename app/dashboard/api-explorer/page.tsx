@@ -1,7 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import { Copy, Check } from "lucide-react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.08)"
@@ -131,7 +132,40 @@ const METHOD_COLOR: Record<Endpoint["method"], string> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [copiedBlock, setCopiedBlock] = useState<"request" | "response" | null>(null)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    }
+  }, [])
+
+  const resetCopyState = () => {
+    if (copyTimerRef.current) {
+      clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = null
+    }
+    setCopiedBlock(null)
+  }
+
+  const handleSelectEndpoint = (id: string) => {
+    resetCopyState()
+    setSelectedId(id)
+  }
+
+  const handleCopy = (text: string, block: "request" | "response") => {
+    resetCopyState()
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedBlock(block)
+      copyTimerRef.current = setTimeout(() => {
+        setCopiedBlock(null)
+        copyTimerRef.current = null
+      }, 2000)
+    }).catch(() => {})
+  }
 
   return (
     <div>
@@ -156,7 +190,8 @@ export default function ApiExplorerPage() {
               return (
                 <button
                   key={e.id}
-                  onClick={() => setSelectedId(e.id)}
+                  type="button"
+                  onClick={() => handleSelectEndpoint(e.id)}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -211,9 +246,34 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Request body
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: "12px 64px 12px 12px", borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.request}
+                </pre>
+                <div aria-live="polite" style={{ position: "absolute", top: 8, right: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(selected.request!, "request")}
+                    aria-label="Copy request body"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: copiedBlock === "request" ? "#00e87b" : "#888",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: `1px solid ${copiedBlock === "request" ? "rgba(0, 232, 123, 0.3)" : BORDER}`,
+                      padding: "4px 8px",
+                      borderRadius: 5,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {copiedBlock === "request" ? <Check size={12} /> : <Copy size={12} />}
+                    <span>{copiedBlock === "request" ? "Copied!" : "Copy"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -222,9 +282,34 @@ export default function ApiExplorerPage() {
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
                 Response
               </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
+              <div style={{ position: "relative" }}>
+                <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: "12px 64px 12px 12px", borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+                  {selected.response}
+                </pre>
+                <div aria-live="polite" style={{ position: "absolute", top: 8, right: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(selected.response!, "response")}
+                    aria-label="Copy response body"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: copiedBlock === "response" ? "#00e87b" : "#888",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: `1px solid ${copiedBlock === "response" ? "rgba(0, 232, 123, 0.3)" : BORDER}`,
+                      padding: "4px 8px",
+                      borderRadius: 5,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {copiedBlock === "response" ? <Check size={12} /> : <Copy size={12} />}
+                    <span>{copiedBlock === "response" ? "Copied!" : "Copy"}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
