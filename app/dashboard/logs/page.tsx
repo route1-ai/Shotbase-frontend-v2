@@ -388,7 +388,6 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
-                      role="button"
                       tabIndex={0}
                       aria-label={`View details for request ${r.id || r.url || ""}`}
                       onClick={() => setSelected(r)}
@@ -398,7 +397,7 @@ export default function LogsPage() {
                           setSelected(r)
                         }
                       }}
-                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s", outline: "none" }}
+                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       onFocus={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
