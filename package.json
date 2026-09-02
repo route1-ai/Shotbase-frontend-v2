@@ -50,6 +50,7 @@
     "postcss": "8.5.26",
     "hono": "4.13.2",
     "next": "16.2.11",
+    "browserslist": "4.28.7",
     "eslint-config-next": "16.2.11",
     "fast-uri": "3.1.5",
     "js-cookie": "3.0.8",
