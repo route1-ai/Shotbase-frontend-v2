@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -38,6 +38,28 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    }
+  }, [])
+
+  const handleDeleteClick = (id: string) => {
+    if (confirmingDeleteId === id) {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setConfirmingDeleteId(null)
+      remove(id)
+    } else {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setConfirmingDeleteId(id)
+      deleteTimerRef.current = setTimeout(() => {
+        setConfirmingDeleteId(null)
+      }, 3000)
+    }
+  }
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -77,7 +99,9 @@ export default function WebhooksPage() {
         </div>
         {!showCreate && (
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
+            aria-label="Add new webhook endpoint"
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
             + Add endpoint
@@ -199,7 +223,9 @@ export default function WebhooksPage() {
             Add an endpoint to start receiving signed callbacks. Common use cases: log every render, update your DB when a screenshot completes, page on quota events.
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
+            aria-label="Add new webhook endpoint"
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
             + Add endpoint
@@ -223,10 +249,26 @@ export default function WebhooksPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
+                    type="button"
+                    onClick={() => handleDeleteClick(ep.id)}
+                    aria-label={
+                      confirmingDeleteId === ep.id
+                        ? `Confirm deletion of webhook endpoint ${ep.url}`
+                        : `Delete webhook endpoint ${ep.url}`
+                    }
+                    style={{
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: "#ff6060",
+                      background: confirmingDeleteId === ep.id ? "rgba(255,60,60,0.15)" : "transparent",
+                      border: `1px solid ${confirmingDeleteId === ep.id ? "#ff6060" : "rgba(255,60,60,0.2)"}`,
+                      padding: "5px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
                   >
-                    Delete
+                    {confirmingDeleteId === ep.id ? "Confirm delete?" : "Delete"}
                   </button>
                 </div>
 
@@ -243,15 +285,19 @@ export default function WebhooksPage() {
                     <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                       Signing secret
                     </div>
-                    <div style={{ display: "flex", gap: 12 }}>
+                    <div style={{ display: "flex", gap: 12 }} aria-live="polite">
                       <button
+                        type="button"
                         onClick={() => setRevealed((r) => ({ ...r, [ep.id]: !r[ep.id] }))}
+                        aria-label={revealed[ep.id] ? `Hide signing secret for ${ep.url}` : `Show signing secret for ${ep.url}`}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[ep.id] ? "Hide" : "Show"}
                       </button>
                       <button
+                        type="button"
                         onClick={() => copy(ep.id, ep.secret)}
+                        aria-label={copied === ep.id ? `Signing secret copied for ${ep.url}` : `Copy signing secret for ${ep.url}`}
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === ep.id ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {copied === ep.id ? "✓ Copied" : "Copy"}
