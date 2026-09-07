@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
-const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -379,10 +378,31 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View details for request ${r.id || "entry"}`}
                       onClick={() => setSelected(r)}
-                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
+                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s", outline: "none" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onMouseLeave={(e) => {
+                        if (document.activeElement !== e.currentTarget) {
+                          e.currentTarget.style.background = "transparent"
+                        }
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.background = "rgba(255,255,255,0.04)"
+                        e.currentTarget.style.outline = "1px solid #00e87b"
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.background = "transparent"
+                        e.currentTarget.style.outline = "none"
+                      }}
                     >
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 14px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 14px 11px 0", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
