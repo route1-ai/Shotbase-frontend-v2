@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
-const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -379,8 +378,17 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      tabIndex={0}
+                      aria-label={`View details for request ${r.id || ""}`}
                       onClick={() => setSelected(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
                       style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
+                      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
