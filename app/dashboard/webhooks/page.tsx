@@ -38,9 +38,31 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const confirmTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
+
+  const handleDeleteClick = (id: string) => {
+    if (confirmDeleteId === id) {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirmDeleteId(null)
+      remove(id)
+    } else {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirmDeleteId(id)
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmDeleteId(null)
+      }, 3000)
+    }
+  }
 
   const create = () => {
     if (!newUrl.trim() || newEvents.length === 0) return
@@ -77,7 +99,9 @@ export default function WebhooksPage() {
         </div>
         {!showCreate && (
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
+            aria-label="Add webhook endpoint"
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
             + Add endpoint
@@ -101,7 +125,7 @@ export default function WebhooksPage() {
               autoFocus
               style={{ width: "100%", fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none" }}
             />
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444", marginTop: 6 }}>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", marginTop: 6 }}>
               Must be HTTPS. We retry failed deliveries with exponential backoff for up to 24 hours.
             </div>
           </div>
@@ -164,6 +188,7 @@ export default function WebhooksPage() {
 
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button
+              type="button"
               onClick={() => {
                 setShowCreate(false)
                 setNewUrl("")
@@ -173,6 +198,7 @@ export default function WebhooksPage() {
               Cancel
             </button>
             <button
+              type="button"
               onClick={create}
               disabled={!newUrl.trim() || newEvents.length === 0}
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: !newUrl.trim() || newEvents.length === 0 ? "#333" : "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: !newUrl.trim() || newEvents.length === 0 ? "not-allowed" : "pointer" }}
@@ -199,7 +225,9 @@ export default function WebhooksPage() {
             Add an endpoint to start receiving signed callbacks. Common use cases: log every render, update your DB when a screenshot completes, page on quota events.
           </div>
           <button
+            type="button"
             onClick={() => setShowCreate(true)}
+            aria-label="Add webhook endpoint"
             style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
           >
             + Add endpoint
@@ -223,10 +251,23 @@ export default function WebhooksPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
+                    type="button"
+                    onClick={() => handleDeleteClick(ep.id)}
+                    aria-label={confirmDeleteId === ep.id ? `Confirm deletion of webhook endpoint for ${ep.url}` : `Delete webhook endpoint for ${ep.url}`}
+                    style={{
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: confirmDeleteId === ep.id ? "#000" : "#ff6060",
+                      background: confirmDeleteId === ep.id ? "#ff6060" : "transparent",
+                      border: `1px solid ${confirmDeleteId === ep.id ? "#ff6060" : "rgba(255,60,60,0.2)"}`,
+                      padding: "5px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      fontWeight: confirmDeleteId === ep.id ? 600 : 400,
+                      transition: "all 0.15s ease",
+                    }}
                   >
-                    Delete
+                    {confirmDeleteId === ep.id ? "Confirm delete?" : "Delete"}
                   </button>
                 </div>
 
@@ -238,27 +279,31 @@ export default function WebhooksPage() {
                   ))}
                 </div>
 
-                <div style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 7, padding: 12, marginBottom: 8 }}>
+                <div aria-live="polite" style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 7, padding: 12, marginBottom: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                       Signing secret
                     </div>
                     <div style={{ display: "flex", gap: 12 }}>
                       <button
+                        type="button"
                         onClick={() => setRevealed((r) => ({ ...r, [ep.id]: !r[ep.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                        aria-label={revealed[ep.id] ? "Hide signing secret" : "Show signing secret"}
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {revealed[ep.id] ? "Hide" : "Show"}
                       </button>
                       <button
+                        type="button"
                         onClick={() => copy(ep.id, ep.secret)}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === ep.id ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                        aria-label="Copy signing secret to clipboard"
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === ep.id ? "#00e87b" : "#888", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
                       >
                         {copied === ep.id ? "✓ Copied" : "Copy"}
                       </button>
                     </div>
                   </div>
-                  <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revealed[ep.id] ? "#f0f0f0" : "#666", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revealed[ep.id] ? "#f0f0f0" : "#888", display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {revealed[ep.id] ? ep.secret : "whsec_•••••••••••••••••••••••••••••••••"}
                   </code>
                 </div>
