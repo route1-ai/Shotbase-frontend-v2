@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -9,14 +9,32 @@ const cardStyle: React.CSSProperties = {
   padding: 24,
 }
 
+interface APIKey {
+  id: string
+  name: string
+  key?: string
+  createdAt?: number
+  active?: boolean
+  last?: string
+  requests?: number
+}
+
 export default function KeysPage() {
-  const [keys, setKeys] = useState<any[]>([])
+  const [keys, setKeys] = useState<APIKey[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -52,6 +70,20 @@ export default function KeysPage() {
     }
   }
 
+  const copyKey = async (id: string, valueToCopy?: string) => {
+    if (!valueToCopy) return
+    try {
+      await navigator.clipboard.writeText(valueToCopy)
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current)
+      setCopiedId(id)
+      copiedTimeoutRef.current = setTimeout(() => {
+        setCopiedId(null)
+      }, 1500)
+    } catch {
+      // Fallback or ignore copy errors in non-secure contexts
+    }
+  }
+
   const revokeKey = async (id: string) => {
     setRevoking(id)
     try {
@@ -74,7 +106,9 @@ export default function KeysPage() {
           <p style={{ color: "#888", fontSize: 13 }}>Manage your API keys. Treat them like passwords — anyone with one can hit the API as you.</p>
         </div>
         <button
+          type="button"
           onClick={() => setShowNew(true)}
+          className="focus-visible:ring-1 focus-visible:ring-[#00e87b] focus-visible:outline-none"
           style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
         >
           + Create key
@@ -94,14 +128,18 @@ export default function KeysPage() {
               style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none" }}
             />
             <button
+              type="button"
               onClick={createKey}
               disabled={creating || !newName.trim()}
+              className="focus-visible:ring-1 focus-visible:ring-[#00e87b] focus-visible:outline-none"
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: creating || !newName.trim() ? "#333" : "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: creating || !newName.trim() ? "not-allowed" : "pointer" }}
             >
               {creating ? "Creating…" : "Create"}
             </button>
             <button
+              type="button"
               onClick={() => { setShowNew(false); setNewName("") }}
+              className="focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:outline-none"
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", background: "none", border: "1px solid rgba(255,255,255,0.07)", padding: "9px 14px", borderRadius: 7, cursor: "pointer" }}
             >
               Cancel
@@ -141,11 +179,27 @@ export default function KeysPage() {
                         {revealed[k.id] ? k.key || "sk_prod_xxxxxxxxxxxxxxxxxxxxxxxx" : "sk_prod_••••••••••••••••••••••••"}
                       </code>
                       <button
+                        type="button"
+                        aria-label={revealed[k.id] ? `Hide key for ${k.name}` : `Show key for ${k.name}`}
                         onClick={() => setRevealed((r) => ({ ...r, [k.id]: !r[k.id] }))}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                        className="focus-visible:ring-1 focus-visible:ring-white/20 focus-visible:outline-none rounded"
+                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
                       >
                         {revealed[k.id] ? "hide" : "show"}
                       </button>
+                      {k.key && (
+                        <div aria-live="polite">
+                          <button
+                            type="button"
+                            aria-label={`Copy key for ${k.name}`}
+                            onClick={() => copyKey(k.id, k.key!)}
+                            className="focus-visible:ring-1 focus-visible:ring-[#00e87b] focus-visible:outline-none rounded"
+                            style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copiedId === k.id ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
+                          >
+                            {copiedId === k.id ? "✓ copied" : "copy"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
@@ -156,8 +210,11 @@ export default function KeysPage() {
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
                       <button
+                        type="button"
+                        aria-label={`Revoke key ${k.name}`}
                         onClick={() => revokeKey(k.id)}
                         disabled={revoking === k.id}
+                        className="focus-visible:ring-1 focus-visible:ring-red-500 focus-visible:outline-none"
                         style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
                       >
                         {revoking === k.id ? "Revoking…" : "Revoke"}
