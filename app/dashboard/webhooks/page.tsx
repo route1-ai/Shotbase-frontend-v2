@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -38,6 +38,17 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [snippetCopied, setSnippetCopied] = useState(false)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const snippetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      if (snippetTimerRef.current) clearTimeout(snippetTimerRef.current)
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -64,7 +75,26 @@ export default function WebhooksPage() {
     } catch {}
   }
 
-  const remove = (id: string) => setEndpoints((es) => es.filter((e) => e.id !== id))
+  const remove = (id: string) => {
+    if (confirmDeleteId === id) {
+      setEndpoints((es) => es.filter((e) => e.id !== id))
+      setConfirmDeleteId(null)
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    } else {
+      setConfirmDeleteId(id)
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      deleteTimerRef.current = setTimeout(() => setConfirmDeleteId(null), 3000)
+    }
+  }
+
+  const copySnippet = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setSnippetCopied(true)
+      if (snippetTimerRef.current) clearTimeout(snippetTimerRef.current)
+      snippetTimerRef.current = setTimeout(() => setSnippetCopied(false), 1500)
+    } catch {}
+  }
 
   return (
     <div>
@@ -223,10 +253,22 @@ export default function WebhooksPage() {
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
+                    aria-label={confirmDeleteId === ep.id ? `Confirm deleting endpoint ${ep.url}` : `Delete endpoint ${ep.url}`}
+                    style={{
+                      fontFamily: "var(--font-ibm-plex)",
+                      fontSize: 11,
+                      color: confirmDeleteId === ep.id ? "#fff" : "#ff6060",
+                      background: confirmDeleteId === ep.id ? "rgba(255,60,60,0.8)" : "transparent",
+                      border: "1px solid rgba(255,60,60,0.3)",
+                      padding: "5px 12px",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
                   >
-                    Delete
+                    {confirmDeleteId === ep.id ? "Confirm delete?" : "Delete"}
                   </button>
                 </div>
 
@@ -277,7 +319,40 @@ export default function WebhooksPage() {
         <div style={{ ...cardStyle, marginTop: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <div style={{ fontWeight: 500, fontSize: 13 }}>Verifying webhook signatures</div>
-            <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button
+                type="button"
+                onClick={() =>
+                  copySnippet(`// Every delivery includes a 'Shotbase-Signature' header.
+// Verify in Node:
+import crypto from 'crypto'
+
+function verifyWebhook(rawBody, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex')
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  )
+}`)
+                }
+                aria-label="Copy verification code snippet to clipboard"
+                style={{
+                  fontFamily: "var(--font-ibm-plex)",
+                  fontSize: 11,
+                  color: snippetCopied ? "#00e87b" : "#666",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                {snippetCopied ? "✓ Copied" : "Copy snippet"}
+              </button>
+              <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
+            </div>
           </div>
           <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
 {`// Every delivery includes a 'Shotbase-Signature' header.
