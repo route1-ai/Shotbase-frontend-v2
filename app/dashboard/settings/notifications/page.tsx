@@ -1,70 +1,58 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
+
+const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={value}
+    aria-label={label}
+    onClick={() => onChange(!value)}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      padding: "14px 0",
+      background: "none",
+      border: "none",
+      borderBottomWidth: 1,
+      borderBottomStyle: "solid",
+      borderBottomColor: "rgba(255,255,255,0.07)",
+      cursor: "pointer",
+      textAlign: "left",
+      color: "inherit",
+    }}
+  >
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#666" }}>{sub}</div>
+    </div>
+    <div style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#00e87b" : "#1a1a1a", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+      <div style={{ width: 16, height: 16, borderRadius: 8, background: "#fff", position: "absolute", top: 3, left: value ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
+    </div>
+  </button>
+)
 
 export default function NotificationsPage() {
-  const [format, setFormat] = useState("png")
-  const [width, setWidth] = useState("1280")
-  const [emailUsage, setEmailUsage] = useState(true)
-  const [emailBilling, setEmailBilling] = useState(true)
-  const [emailIncidents, setEmailIncidents] = useState(true)
-  const [emailProduct, setEmailProduct] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  useEffect(() => {
-    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
-    if (prefs) {
+  const [prefs, setPrefs] = useState(() => {
+    const initial = { format: "png", width: "1280", emailUsage: true, emailBilling: true, emailIncidents: true, emailProduct: false }
+    if (typeof window !== "undefined") {
       try {
-        const p = JSON.parse(prefs)
-        if (p.format) setFormat(p.format)
-        if (p.width) setWidth(p.width)
-        if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
-        if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
-        if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
-        if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
+        const p = localStorage.getItem("shotbase_prefs")
+        if (p) Object.assign(initial, JSON.parse(p))
       } catch {}
     }
-  }, [])
+    return initial
+  })
+  const [saved, setSaved] = useState(false)
 
   const save = () => {
-    localStorage.setItem(
-      "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
-    )
+    localStorage.setItem("shotbase_prefs", JSON.stringify(prefs))
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        width: "100%",
-        padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
-        background: "none",
-        border: "none",
-        borderBottomWidth: 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: "rgba(255,255,255,0.07)",
-        cursor: "pointer",
-        textAlign: "left",
-        color: "inherit",
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
-        <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#666" }}>{sub}</div>
-      </div>
-      <div style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#00e87b" : "#1a1a1a", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <div style={{ width: 16, height: 16, borderRadius: 8, background: "#fff", position: "absolute", top: 3, left: value ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
-      </div>
-    </button>
-  )
 
   return (
     <div>
@@ -80,16 +68,17 @@ export default function NotificationsPage() {
             {["png", "jpeg", "webp"].map((f) => (
               <button
                 key={f}
-                onClick={() => setFormat(f)}
+                type="button"
+                onClick={() => setPrefs((p) => ({ ...p, format: f }))}
                 style={{
                   flex: 1,
                   padding: "10px",
-                  background: format === f ? "rgba(0,232,123,0.1)" : "#111",
-                  border: `1px solid ${format === f ? "rgba(0,232,123,0.25)" : "rgba(255,255,255,0.07)"}`,
-                  color: format === f ? "#00e87b" : "#888",
+                  background: prefs.format === f ? "rgba(0,232,123,0.1)" : "#111",
+                  border: `1px solid ${prefs.format === f ? "rgba(0,232,123,0.25)" : "rgba(255,255,255,0.07)"}`,
+                  color: prefs.format === f ? "#00e87b" : "#888",
                   borderRadius: 7,
                   fontSize: 12,
-                  fontWeight: format === f ? 600 : 400,
+                  fontWeight: prefs.format === f ? 600 : 400,
                   cursor: "pointer",
                   textTransform: "uppercase",
                   fontFamily: "var(--font-ibm-plex)",
@@ -108,8 +97,8 @@ export default function NotificationsPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <input
               type="number"
-              value={width}
-              onChange={(e) => setWidth(e.target.value)}
+              value={prefs.width}
+              onChange={(e) => setPrefs((p) => ({ ...p, width: e.target.value }))}
               style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", fontSize: 13, outline: "none", width: 140 }}
             />
             <span style={{ fontFamily: "var(--font-ibm-plex)", color: "#888", fontSize: 12 }}>pixels</span>
@@ -121,10 +110,10 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#666", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={emailUsage} onChange={setEmailUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={emailBilling} onChange={setEmailBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={emailIncidents} onChange={setEmailIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={emailProduct} onChange={setEmailProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={prefs.emailUsage} onChange={(v) => setPrefs((p) => ({ ...p, emailUsage: v }))} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={prefs.emailBilling} onChange={(v) => setPrefs((p) => ({ ...p, emailBilling: v }))} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={prefs.emailIncidents} onChange={(v) => setPrefs((p) => ({ ...p, emailIncidents: v }))} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={prefs.emailProduct} onChange={(v) => setPrefs((p) => ({ ...p, emailProduct: v }))} />
       </div>
 
       <button
