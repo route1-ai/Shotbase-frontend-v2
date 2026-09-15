@@ -85,3 +85,31 @@ test('unauthenticated request is rejected (401) with no backend call', async () 
   assert.equal(res.status, 401)
   assert.equal(called, false)
 })
+
+test('SSRF guard still rejects internal targets (400) with no backend call', async () => {
+  process.env.SHOTBASE_BACKEND_BYPASS_KEY = 'test-secret'
+  process.env.__TEST_CLERK_USER_ID__ = 'user_REAL'
+  let called = false
+  globalThis.fetch = async () => {
+    called = true
+    return new Response(null)
+  }
+  // AWS metadata endpoint — must be blocked by lib/safe-url before any fetch.
+  const res = await POST(makeReq({ url: 'http://169.254.169.254/latest/meta-data/' }))
+  assert.equal(res.status, 400)
+  assert.equal(called, false, 'must not reach the backend for an unsafe URL')
+})
+
+test('input validation still rejects a malformed body (400) with no backend call', async () => {
+  process.env.SHOTBASE_BACKEND_BYPASS_KEY = 'test-secret'
+  process.env.__TEST_CLERK_USER_ID__ = 'user_REAL'
+  let called = false
+  globalThis.fetch = async () => {
+    called = true
+    return new Response(null)
+  }
+  // Missing required `url` → Zod schema rejects before SSRF/backend.
+  const res = await POST(makeReq({ format: 'png' }))
+  assert.equal(res.status, 400)
+  assert.equal(called, false)
+})
