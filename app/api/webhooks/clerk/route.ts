@@ -1,5 +1,6 @@
 import { Webhook } from 'svix'
 import { createClient } from '@supabase/supabase-js'
+import { createKeyForExternalId } from '@/lib/unkey'
 
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET
@@ -36,26 +37,16 @@ export async function POST(req: Request) {
     }
 
     try {
-      const response = await fetch('https://api.unkey.dev/v1/keys.createKey', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          apiId: process.env.UNKEY_API_ID,
-          name: 'Default',
-          ownerId: clerkId,
-          meta: { plan: 'free' }
-        })
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('Unkey API error:', response.status, errorText)
-      }
+      // Unkey v2: create the user's default key, threading identity via
+      // externalId (== Clerk userId) and stamping meta.plan for backend limits.
+      await createKeyForExternalId(clerkId, 'free', 'Default')
     } catch (err) {
-      console.error('Failed to fetch Unkey API:', err)
+      // Non-fatal: the Supabase user row already exists and the user can create
+      // a key from the dashboard. Log without leaking the root key.
+      console.error(
+        'clerk webhook: default key creation failed:',
+        err instanceof Error ? err.message : 'unknown error',
+      )
     }
   }
   return Response.json({ received: true })

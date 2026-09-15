@@ -1,42 +1,37 @@
 import { auth } from '@clerk/nextjs/server'
+import { listKeysByExternalId, deleteKey, UnkeyConfigError } from '@/lib/unkey'
 
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
+  let keyId: unknown
   try {
-    const { keyId } = await req.json()
-    if (!keyId) return Response.json({ error: 'Missing keyId' }, { status: 400 })
+    ;({ keyId } = await req.json())
+  } catch {
+    return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  if (!keyId || typeof keyId !== 'string') {
+    return Response.json({ error: 'Missing keyId' }, { status: 400 })
+  }
 
-    const listRes = await fetch(
-      `https://api.unkey.dev/v1/apis.listKeys?apiId=${process.env.UNKEY_API_ID}&ownerId=${userId}`,
-      { headers: { 'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}` } }
-    )
-    const listData = await listRes.json()
-    const ownsKey = listData.keys?.some((k: any) => k.id === keyId)
-    
+  try {
+    // Ownership check (Unkey v2): the key must belong to this user's externalId
+    // (== Clerk userId) before we allow deletion.
+    const keys = await listKeysByExternalId(userId)
+    const ownsKey = keys.some((k) => k.keyId === keyId)
     if (!ownsKey) {
       return Response.json({ error: 'Unauthorized or key not found' }, { status: 403 })
     }
 
-    const res = await fetch('https://api.unkey.dev/v1/keys.deleteKey', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ keyId })
-    })
-
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error('Unkey API error:', res.status, errorText)
-      return Response.json({ error: 'Failed to revoke key' }, { status: res.status })
-    }
-
+    await deleteKey(keyId)
     return Response.json({ success: true })
   } catch (err) {
-    console.error('Failed to revoke Unkey API key:', err)
-    return Response.json({ error: 'Internal Server Error' }, { status: 500 })
+    if (err instanceof UnkeyConfigError) {
+      console.error('keys/revoke: Unkey not configured')
+      return Response.json({ error: 'Key service not configured' }, { status: 503 })
+    }
+    console.error('keys/revoke failed:', err instanceof Error ? err.message : 'unknown error')
+    return Response.json({ error: 'Failed to revoke key' }, { status: 502 })
   }
 }
