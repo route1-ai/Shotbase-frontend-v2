@@ -89,6 +89,12 @@ export async function POST(req: Request) {
         // surface from the proxy side. The secret is server-only and never logged.
         'Authorization': `Bearer ${backendBypassKey}`,
         'Content-Type': 'application/json',
+        // Trusted identity: the authenticated Clerk userId, sourced ONLY from
+        // auth() above — never from the request body, query, or a client-sent
+        // header — so a caller cannot attribute a render to another user. This
+        // internal header is never copied onto the response returned to the
+        // browser (see the whitelist where we build the response headers below).
+        'X-Shotbase-User-Id': userId,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
