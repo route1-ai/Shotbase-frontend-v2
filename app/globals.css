@@ -874,6 +874,29 @@ aside,
   .fbot { flex-direction: column; gap: 10px; text-align: center; padding: 20px; }
 }
 
+/* ─── Always-dark showcase bands ─────────────────────────
+   The hero and footer render an animated shader over a dark base in BOTH
+   themes (see bg-[#05060a] on those sections). Their text must therefore be
+   light regardless of the site theme — otherwise light-theme tokens make the
+   footer text (and nav-over-hero text) unreadable / render the footer white. */
+.footer-dark .flogo { color: rgba(255,255,255,0.92); }
+.footer-dark .fb p { color: rgba(255,255,255,0.60); }
+.footer-dark .fcol h4 { color: rgba(255,255,255,0.48); }
+.footer-dark .fcol a { color: rgba(255,255,255,0.72); }
+.footer-dark .fcol a:hover { color: #ffffff; }
+.footer-dark .fbot { color: rgba(255,255,255,0.55); border-top-color: rgba(255,255,255,0.10); }
+.footer-dark .fbot span { color: rgba(255,255,255,0.55); }
+
+/* Navbar sits over the always-dark hero until it gains the scrolled `.s`
+   backdrop. While at the top, force light text so it stays legible in the
+   light theme too (dark theme already renders light here). Once scrolled,
+   the theme-aware colors take over against the blurred nav background. */
+.navbar:not(.s) .nl a { color: rgba(255,255,255,0.78); }
+.navbar:not(.s) .nl a:hover { color: #ffffff; }
+.navbar:not(.s) .nbg { color: rgba(255,255,255,0.88); border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.05); }
+.navbar:not(.s) .nbg:hover { color: #ffffff; border-color: rgba(255,255,255,0.4); }
+.navbar:not(.s) .nav-toggle { color: #ffffff; border-color: rgba(255,255,255,0.22); }
+
 /* ─── Keyframes ──────────────────────────────────────── */
 @keyframes fi { from { opacity:0 } to { opacity:1 } }
 @keyframes fu { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:none } }
