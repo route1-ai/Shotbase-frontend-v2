@@ -24,9 +24,26 @@ export default function RadialOrbitalTimeline({
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
   const [pulseEffect, setPulseEffect] = useState<Record<number, boolean>>({});
   const [activeNodeId, setActiveNodeId] = useState<number | null>(null);
+  // Orbit radius scales with the rendered container so nodes + labels stay
+  // inside the viewport on small screens (was a fixed 250 that overflowed
+  // the ~335px mobile container). Capped at 250 so desktop is unchanged.
+  const [radius, setRadius] = useState<number>(250);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      if (w) setRadius(Math.max(90, Math.min(250, w * 0.33)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === containerRef.current || e.target === orbitRef.current) {
@@ -86,7 +103,6 @@ export default function RadialOrbitalTimeline({
 
   const calculateNodePosition = (index: number, total: number) => {
     const angle = ((index / total) * 360 + rotationAngle) % 360;
-    const radius = 250;
     const radian = (angle * Math.PI) / 180;
 
     const x = radius * Math.cos(radian);

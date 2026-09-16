@@ -39,7 +39,7 @@ export default function Hero({
       <SmoothShaderBg />
       <div className="absolute inset-0 bg-black/30 z-[1]" />
       
-      <div className="relative z-[2] w-full max-w-5xl mx-auto px-6 py-32 flex flex-col items-center text-center">
+      <div className="relative z-[2] w-full max-w-5xl mx-auto px-6 py-24 sm:py-28 md:py-32 flex flex-col items-center text-center">
         {trustBadge && (
           <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-sm text-zinc-300">
             {trustBadge.icons && (
@@ -53,12 +53,12 @@ export default function Hero({
           </div>
         )}
 
-        <h1 className="text-white text-6xl md:text-8xl font-bold tracking-tighter mb-6 leading-[1.1]">
+        <h1 className="text-white text-4xl sm:text-6xl md:text-8xl font-bold tracking-tighter mb-6 leading-[1.1] break-words max-w-full">
           <span className="block">{headline.line1}</span>
           <span className="block text-zinc-400">{headline.line2}</span>
         </h1>
 
-        <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-zinc-400 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
           {subtitle}
         </p>
 
