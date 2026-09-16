@@ -82,22 +82,14 @@ with open('screenshot.png', 'wb') as f:
       }
     case "mcp":
       return {
-        lang: "json",
+        lang: "bash",
         code:
-`// Add Shotbase to your MCP client config
-// (Claude Code: ~/.claude/mcp.json · Cursor: settings → MCP)
-// Exposes the "shotbase_capture" tool to your agent.
-{
-  "mcpServers": {
-    "shotbase": {
-      "command": "npx",
-      "args": ["-y", "@shotbase/mcp"],
-      "env": {
-        "SHOTBASE_API_KEY": "${key}"
-      }
-    }
-  }
-}`,
+`# Add Shotbase's hosted MCP server to your agent (HTTP transport).
+# Works with Claude Code, Claude Desktop, and Cursor:
+claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\
+  --header "Authorization: Bearer ${key}"
+
+# Exposes the "shotbase_capture" tool to your agent.`,
       }
   }
 }

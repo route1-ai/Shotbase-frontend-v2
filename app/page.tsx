@@ -616,10 +616,13 @@ export default function Home() {
           </div>
         </section>
 
-        <footer className="relative overflow-hidden border-t border-[hsl(var(--border))]">
+        {/* Always-dark showcase band (dark base + shader + dark scrim), matching
+            the hero — never renders as a white block in light theme. Footer text
+            is forced light via the `.footer-dark` rules in globals.css. */}
+        <footer className="footer-dark relative overflow-hidden border-t border-[hsl(var(--border))] bg-[#05060a]">
           <div className="absolute inset-0 z-0">
             <SmoothShaderBg />
-            <div className="absolute inset-0 dark:bg-black/35 bg-white/90 z-[1]" />
+            <div className="absolute inset-0 bg-black/40 z-[1]" />
           </div>
           <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>

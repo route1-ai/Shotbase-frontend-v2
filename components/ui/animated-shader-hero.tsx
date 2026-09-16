@@ -35,9 +35,12 @@ export default function Hero({
   className = "",
 }: HeroProps) {
   return (
-    <section className={`relative min-h-screen flex items-center justify-center overflow-hidden ${className}`}>
+    // Always-dark showcase band: the dark base (bg-[#05060a]) behind the shader
+    // keeps the hero premium in BOTH light and dark site themes, so the
+    // white/zinc text stays readable instead of washing out to muddy grey.
+    <section className={`relative min-h-screen flex items-center justify-center overflow-hidden bg-[#05060a] ${className}`}>
       <SmoothShaderBg />
-      <div className="absolute inset-0 bg-black/30 z-[1]" />
+      <div className="absolute inset-0 bg-black/40 z-[1]" />
       
       <div className="relative z-[2] w-full max-w-5xl mx-auto px-6 py-24 sm:py-28 md:py-32 flex flex-col items-center text-center">
         {trustBadge && (

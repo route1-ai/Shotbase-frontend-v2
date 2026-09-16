@@ -16,7 +16,7 @@ const INTEGRATIONS: Integration[] = [
   {
     name: "REST API",
     blurb: "Call the API directly from any language — curl, fetch, Python requests. Auth with your API key.",
-    install: "POST https://api.shotbase.dev/v1/screenshot",
+    install: "POST https://api.shotbase.dev/screenshot",
     docs: "/docs",
     status: "available",
     initial: "{}",
@@ -24,7 +24,7 @@ const INTEGRATIONS: Integration[] = [
   {
     name: "MCP Server",
     blurb: "Connect any MCP-compatible agent (Claude Code, Cursor, Continue). Exposes the shotbase_capture tool.",
-    install: "npx -y @shotbase/mcp",
+    install: 'claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp --header "Authorization: Bearer sk_..."',
     docs: "/docs",
     status: "available",
     initial: "M",
