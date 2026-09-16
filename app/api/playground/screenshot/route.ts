@@ -18,6 +18,17 @@ export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Server-only shared secret used to authenticate this proxy to the render
+  // backend (matches the backend's PLAYGROUND_BYPASS_KEY). It must never reach
+  // the browser: read it only here in server route code, never expose it via a
+  // NEXT_PUBLIC_ var, and never log its value. Fail closed if it's absent so we
+  // never fall back to a public/default token.
+  const backendBypassKey = process.env.SHOTBASE_BACKEND_BYPASS_KEY
+  if (!backendBypassKey) {
+    console.error('SHOTBASE_BACKEND_BYPASS_KEY is not configured — refusing to proxy render request')
+    return Response.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
+
   // 1. Parse + validate the request body shape with Zod.
   let rawBody: unknown
   try {
@@ -72,13 +83,18 @@ export async function POST(req: Request) {
     const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {
       method: 'POST',
       headers: {
-        // The literal `playground_bypass` token is the purpose-built shortcut
-        // in the Railway backend's verifyKey. Clerk auth + plan-quota check
-        // above already gate this route, so the bypass doesn't widen the
-        // attack surface from the proxy side. Backend repo should be kept
-        // private so this token stays internal.
-        'Authorization': 'Bearer playground_bypass',
+        // Authenticate to the render backend with the server-only shared secret
+        // resolved above (backend PLAYGROUND_BYPASS_KEY). Clerk auth + plan-quota
+        // check above already gate this route, so this doesn't widen the attack
+        // surface from the proxy side. The secret is server-only and never logged.
+        'Authorization': `Bearer ${backendBypassKey}`,
         'Content-Type': 'application/json',
+        // Trusted identity: the authenticated Clerk userId, sourced ONLY from
+        // auth() above — never from the request body, query, or a client-sent
+        // header — so a caller cannot attribute a render to another user. This
+        // internal header is never copied onto the response returned to the
+        // browser (see the whitelist where we build the response headers below).
+        'X-Shotbase-User-Id': userId,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
