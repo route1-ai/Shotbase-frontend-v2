@@ -468,17 +468,8 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <div className="relative z-20 flex items-center gap-8 text-sm text-[#f0f0f8]/60">
-          <a href="#" className="hover:text-white transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#" className="hover:text-white transition-colors">
-            Terms of Service
-          </a>
-          <a href="#" className="hover:text-white transition-colors">
-            Contact
-          </a>
-        </div>
+        {/* Legal/contact links intentionally omitted until real pages exist —
+            no "#" placeholders. See CONTENT TRUTH REPORT (legal content TODO). */}
 
         {/* Decorative elements */}
         <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
