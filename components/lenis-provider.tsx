@@ -2,7 +2,7 @@
 
 import { ReactLenis } from "lenis/react"
 import { usePathname } from "next/navigation"
-import { ReactNode } from "react"
+import { ReactNode, useEffect, useState } from "react"
 
 /**
  * Smooth-scroll the landing/marketing pages with Lenis — but NEVER on
@@ -21,7 +21,17 @@ export function LenisProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() || ""
   const skipLenis = NO_LENIS_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))
 
-  if (skipLenis) return <>{children}</>
+  // Honour prefers-reduced-motion — fall back to native (un-smoothed) scroll.
+  const [reduced, setReduced] = useState(false)
+  useEffect(() => {
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const update = () => setReduced(mql.matches)
+    update()
+    mql.addEventListener("change", update)
+    return () => mql.removeEventListener("change", update)
+  }, [])
+
+  if (skipLenis || reduced) return <>{children}</>
 
   return (
     <ReactLenis root options={{ lerp: 0.1, duration: 1.5, smoothWheel: true }}>

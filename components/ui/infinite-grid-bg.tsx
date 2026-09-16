@@ -22,8 +22,21 @@ export default function InfiniteGridBg() {
   const mouseX = useMotionValue(-9999);
   const mouseY = useMotionValue(-9999);
 
+  // Freeze the ambient grid animation + cursor spotlight when the user
+  // prefers reduced motion (also spares battery on touch devices with no
+  // cursor, where the spotlight does nothing anyway).
+  const reducedRef = useRef(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => (reducedRef.current = mql.matches);
+    update();
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      if (reducedRef.current) return;
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
     };
@@ -36,6 +49,7 @@ export default function InfiniteGridBg() {
   const gridOffsetY = useMotionValue(0);
 
   useAnimationFrame(() => {
+    if (reducedRef.current) return;
     gridOffsetX.set((gridOffsetX.get() + 0.3) % 40);
     gridOffsetY.set((gridOffsetY.get() + 0.3) % 40);
   });
