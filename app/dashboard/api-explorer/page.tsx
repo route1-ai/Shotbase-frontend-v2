@@ -28,7 +28,7 @@ const ENDPOINTS: Endpoint[] = [
   {
     id: "screenshot",
     method: "POST",
-    path: "/v1/screenshot",
+    path: "/screenshot",
     summary: "Render a URL to PNG/JPEG/WebP/PDF. The core endpoint.",
     status: "live",
     request: `{

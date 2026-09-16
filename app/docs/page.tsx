@@ -13,21 +13,15 @@ const NAV = [
   ]},
   { section: 'API Reference', items: [
     { id: 'screenshot', label: 'POST /screenshot' },
-    { id: 'batch', label: 'POST /batch' },
-    { id: 'status', label: 'GET /status/:id' },
-    { id: 'webhooks', label: 'Webhooks' },
+    { id: 'health', label: 'GET /health' },
   ]},
-  { section: 'SDKs', items: [
-    { id: 'sdk-js', label: 'JavaScript / TypeScript' },
-    { id: 'sdk-python', label: 'Python' },
-    { id: 'sdk-go', label: 'Go' },
+  { section: 'MCP', items: [
     { id: 'mcp', label: 'MCP Server' },
   ]},
   { section: 'Guides', items: [
-    { id: 'popup-removal', label: 'Popup removal' },
-    { id: 'caching', label: 'Caching & TTL' },
+    { id: 'caching', label: 'Caching' },
     { id: 'rate-limits', label: 'Rate limits' },
-    { id: 'billing', label: 'Billing' },
+    { id: 'billing', label: 'Plans & billing' },
   ]},
 ]
 
@@ -70,19 +64,19 @@ const CONTENT: Record<string, () => React.ReactNode> = {
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Introduction</div>
       <h1>Shotbase API</h1>
-      <p style={{ fontSize: 17, color: '#f0f0f0', marginBottom: 24, lineHeight: 1.6 }}>The fastest way to capture screenshots programmatically. No browser, no DevOps, no cold starts.</p>
-      <p>Shotbase is a REST API that captures pixel-perfect screenshots of any URL. Pass a URL, get back a CDN-hosted image. Our infrastructure handles browser lifecycle, JS rendering, cookie banner removal, and caching — so you don't have to.</p>
-      <p>The API is designed around three principles: <strong>simplicity</strong> (one endpoint for 90% of use cases), <strong>reliability</strong> (you're only charged for successful captures), and <strong>speed</strong> (median response under 200ms with caching).</p>
+      <p style={{ fontSize: 17, color: '#f0f0f0', marginBottom: 24, lineHeight: 1.6 }}>Browser infrastructure for AI and automation developers. Render any webpage and get back a screenshot, its page content, and structured extracted data — over REST or MCP.</p>
+      <p>Shotbase runs real Chromium browsers (via Playwright) so you don't have to. A single call handles the browser lifecycle and JS rendering, then returns a screenshot and — when you ask for it — the page's text and structured data extracted from it.</p>
+      <p>There are two ways to call Shotbase: a <strong>REST</strong> endpoint (<code>POST /screenshot</code>) and a native <strong>MCP</strong> server (<code>POST /api/mcp</code>) exposing the <code>shotbase_capture</code> tool.</p>
       <h2>Base URL</h2>
-      <CodeBlock lang="text" code={`https://api.shotbase.io/v1`}/>
+      <CodeBlock lang="text" code={`https://api.shotbase.dev`}/>
       <h2>Quick example</h2>
-      <CodeBlock lang="bash" code={`curl -X POST \\
-  -H "Authorization: Bearer sk-live-YOUR_KEY" \\
+      <CodeBlock lang="bash" code={`curl -X POST https://api.shotbase.dev/screenshot \\
+  -H "Authorization: Bearer sk_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}' \\
-  https://api.shotbase.io/v1/screenshot`}/>
-      <p>Returns a JSON object with a <code>screenshot_url</code> field pointing to a permanent CDN URL.</p>
-      <Callout type="tip">Start with the <Link href="/">Quickstart guide</Link> for a step-by-step walkthrough, or jump straight to the <Link href="/">API reference</Link>.</Callout>
+  --output shot.png`}/>
+      <p>By default the response body is the rendered image. Add <code>include_text</code> or <code>ai_extract</code> to get a JSON response with the page&apos;s text and extracted data instead.</p>
+      <Callout type="tip">Start with the <strong>Quickstart</strong> guide for a step-by-step walkthrough, or jump straight to the <strong>API reference</strong> — both are in the sidebar.</Callout>
     </div>
   ),
   quickstart: () => (
@@ -91,31 +85,23 @@ const CONTENT: Record<string, () => React.ReactNode> = {
       <h1>Quickstart</h1>
       <p>Get your first screenshot in under 5 minutes.</p>
       <h2>1. Get your API key</h2>
-      <p>Sign up at <Link href="/dashboard">shotbase.io/dashboard</Link>. Your first API key is created automatically. Copy it from the <strong>API Keys</strong> tab.</p>
+      <p>Sign up at the <Link href="/dashboard">dashboard</Link>. Create an API key and copy it from the <strong>API Keys</strong> tab.</p>
       <Callout type="warning">Never expose your API key in client-side code. Use it server-side only, or via environment variables.</Callout>
-      <h2>2. Install the SDK (optional)</h2>
-      <CodeBlock lang="bash" code={`# JavaScript / TypeScript\nnpm install @shotbase/sdk\n\n# Python\npip install shotbase\n\n# Go\ngo get github.com/route1ai/shotbase-go`}/>
-      <h2>3. Make your first request</h2>
-      <CodeBlock lang="javascript" code={`import { Shotbase } from '@shotbase/sdk';\n\nconst sb = new Shotbase({ apiKey: process.env.SHOTBASE_API_KEY });\n\nconst { url, tookMs } = await sb.screenshot({\n  url: 'https://stripe.com',\n  width: 1440,\n  format: 'png',\n  removePopups: true,\n});\n\nconsole.log(\`Done in \${tookMs}ms!\`);\nconsole.log(url); // https://cdn.shotbase.io/sc/k9xp2q8m...`}/>
-      <h2>4. Use the CDN URL</h2>
-      <p>The returned URL is permanent and globally cached. Use it anywhere — <code>&lt;img&gt;</code> tags, PDFs, AI inputs, email previews, etc.</p>
-      <Callout type="tip">URLs are immutable. The same URL will always return the same screenshot. To recapture, set <code>cache: false</code> or use <code>bust_cache: true</code>.</Callout>
+      <h2>2. Make your first request</h2>
+      <p>There is no SDK to install — Shotbase is a plain HTTP endpoint. Call it with your language&apos;s native HTTP client:</p>
+      <CodeBlock lang="javascript" code={`// Native fetch — no SDK required\nconst res = await fetch("https://api.shotbase.dev/screenshot", {\n  method: "POST",\n  headers: {\n    "Authorization": "Bearer sk_YOUR_KEY",\n    "Content-Type": "application/json",\n  },\n  body: JSON.stringify({ url: "https://stripe.com", format: "png" }),\n});\n\n// Default response is the binary image\nconst bytes = await res.arrayBuffer();`}/>
+      <h2>3. Ask for text and data</h2>
+      <p>Add <code>include_text</code> and/or <code>ai_extract</code> and the response comes back as JSON containing the page&apos;s text and extracted fields instead of a raw image.</p>
+      <CodeBlock lang="bash" code={`curl -X POST https://api.shotbase.dev/screenshot \\\n  -H "Authorization: Bearer sk_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "https://stripe.com",\n    "include_text": true,\n    "ai_extract": { "headings": true, "prices": true }\n  }'`}/>
     </div>
   ),
   auth: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Getting Started</div>
       <h1>Authentication</h1>
-      <p>All API requests require a valid API key sent in the <code>Authorization</code> header as a Bearer token.</p>
-      <CodeBlock lang="bash" code={`Authorization: Bearer sk-live-YOUR_API_KEY`}/>
-      <h2>Key types</h2>
-      <table>
-        <thead><tr><th>Prefix</th><th>Type</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td>sk-live-</td><td>Live</td><td>Production key. Charges apply after free tier.</td></tr>
-          <tr><td>sk-test-</td><td>Test</td><td>Test mode. Returns mock screenshots, never charges.</td></tr>
-        </tbody>
-      </table>
+      <p>All API requests require a valid API key sent in the <code>Authorization</code> header as a Bearer token. Keys are prefixed with <code>sk_</code> and created in the dashboard.</p>
+      <CodeBlock lang="bash" code={`Authorization: Bearer sk_YOUR_API_KEY`}/>
+      <p>The same key authenticates both the REST endpoint and the MCP server.</p>
       <h2>Security</h2>
       <ul>
         <li>Keys are shown only once at creation time</li>
@@ -131,123 +117,132 @@ const CONTENT: Record<string, () => React.ReactNode> = {
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>API Reference</div>
       <h1 style={{ display: 'flex', alignItems: 'center' }}><METHOD type="POST"/> /screenshot</h1>
       <p>Captures a screenshot of the specified URL. This is the primary endpoint for the Shotbase API.</p>
-      <CodeBlock lang="bash" code={`POST https://api.shotbase.io/v1/screenshot`}/>
+      <CodeBlock lang="bash" code={`POST https://api.shotbase.dev/screenshot`}/>
       <h2>Request body</h2>
       <table>
         <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
           {[
-            ['url', 'string', 'required', 'The URL to screenshot. Must include protocol.'],
-            ['width', 'integer', '1440', 'Viewport width in pixels. Max: 3840.'],
-            ['height', 'integer', 'auto', 'Viewport height. If omitted, captures full viewport.'],
+            ['url', 'string', 'required', 'The URL to capture. Must include protocol (http/https).'],
             ['format', 'string', '"png"', 'Output format: png, jpeg, webp, or pdf.'],
-            ['quality', 'integer', '90', 'JPEG/WebP compression quality.'],
-            ['full_page', 'boolean', 'false', 'Capture entire scrollable page height.'],
-            ['remove_popups', 'boolean', 'true', 'AI-powered popup and cookie banner removal.'],
-            ['wait_for', 'string', '"networkidle"', 'Wait condition: networkidle, domloaded, or load.'],
-            ['delay_ms', 'integer', '0', 'Additional delay in ms after wait_for condition.'],
-            ['cache', 'boolean', 'true', 'Serve from cache if available.'],
-            ['cache_ttl', 'integer', '3600', 'Cache TTL in seconds.'],
-            ['bust_cache', 'boolean', 'false', 'Force a fresh capture, bypassing cache.'],
-            ['js_injection', 'string', 'null', 'JavaScript to inject before capture (Pro+).'],
-            ['clip', 'object', 'null', 'Clip region: { x, y, width, height }.'],
-            ['dark_mode', 'boolean', 'false', 'Emulate prefers-color-scheme: dark.'],
-            ['device_scale', 'number', '1', 'Device pixel ratio (1, 1.5, or 2).'],
+            ['full_page', 'boolean', 'false', 'Capture the entire scrollable page height.'],
+            ['width', 'integer', '1440', 'Viewport width in pixels.'],
+            ['height', 'integer', '900', 'Viewport height in pixels.'],
+            ['include_text', 'boolean', 'false', 'Return the page’s rendered text. Switches the response to JSON.'],
+            ['ai_extract', 'object', 'null', 'Request structured data, e.g. { "headings": true, "prices": true, "ctas": true, "page_type": true }. Switches the response to JSON.'],
           ].map(([p, t, d, desc]) => (
             <tr key={p}><td>{p}</td><td>{t}</td><td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#444' }}>{d}</td><td style={{ fontSize: 13, color: '#888' }}>{desc}</td></tr>
           ))}
         </tbody>
       </table>
       <h2>Response</h2>
-      <CodeBlock lang="json" code={`{\n  "id": "req_9xkp2q8mnt3rLp",\n  "screenshot_url": "https://cdn.shotbase.io/sc/k9xp2q8m...",\n  "width": 1440,\n  "height": 900,\n  "format": "png",\n  "size_bytes": 291041,\n  "took_ms": 142,\n  "cached": true,\n  "popups_removed": 2,\n  "created_at": "2026-04-23T14:22:01Z"\n}`}/>
+      <p>By default the response body is the <strong>rendered image bytes</strong> with the matching <code>Content-Type</code> (e.g. <code>image/png</code>). An <code>X-Cache</code> header indicates <code>HIT</code> or <code>MISS</code>.</p>
+      <p>When you pass <code>include_text</code> or <code>ai_extract</code>, the response is <strong>JSON</strong> instead:</p>
+      <CodeBlock lang="json" code={`{\n  "screenshot_url": null,\n  "format": "png",\n  "width": 1440,\n  "height": 900,\n  "render_time_ms": 1840,\n  "cached": false,\n  "text": "Pricing — simple, transparent…",\n  "ai_data": {\n    "page_type": "pricing",\n    "headings": ["Pricing", "Enterprise"],\n    "ctas": ["Get Started", "Contact Sales"],\n    "prices": ["$29/mo", "$99/mo"]\n  }\n}`}/>
+      <Callout type="info">In JSON mode the image is not embedded (<code>screenshot_url</code> is <code>null</code>). Request without <code>include_text</code>/<code>ai_extract</code> to receive the binary image.</Callout>
+      <h2>Graceful AI degradation</h2>
+      <p>If you request <code>ai_extract</code> but the extraction provider is temporarily unavailable, the capture still succeeds with <code>200</code>. The response returns <code>ai_data: null</code> and a generic <code>ai_error</code> so your integration can proceed:</p>
+      <CodeBlock lang="json" code={`{\n  "format": "png",\n  "cached": false,\n  "render_time_ms": 1720,\n  "ai_data": null,\n  "ai_error": "AI extraction temporarily unavailable"\n}`}/>
+      <h2>Request size</h2>
+      <p>Request bodies are limited to <strong>1 MiB</strong> by default. Larger payloads are rejected before rendering.</p>
       <h2>Example</h2>
-      <CodeBlock lang="bash" code={`curl -X POST \\\n  -H "Authorization: Bearer sk-live-..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "https://stripe.com",\n    "width": 1440,\n    "format": "png",\n    "remove_popups": true,\n    "full_page": false\n  }' \\\n  https://api.shotbase.io/v1/screenshot`}/>
+      <CodeBlock lang="bash" code={`curl -X POST https://api.shotbase.dev/screenshot \\\n  -H "Authorization: Bearer sk_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "https://stripe.com",\n    "format": "png",\n    "full_page": false\n  }' \\\n  --output shot.png`}/>
     </div>
   ),
-  batch: () => (
+  health: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>API Reference</div>
-      <h1 style={{ display: 'flex', alignItems: 'center' }}><METHOD type="POST"/> /batch</h1>
-      <p>Submit up to 100 screenshot jobs in a single request. Jobs are processed asynchronously and results are delivered via webhook or polled via <code>GET /status/:id</code>.</p>
-      <CodeBlock lang="json" code={`{\n  "requests": [\n    { "url": "https://stripe.com", "format": "png" },\n    { "url": "https://vercel.com", "format": "jpeg" },\n    { "url": "https://linear.app", "width": 1280 }\n  ],\n  "webhook_url": "https://yourapp.com/webhooks/shots",\n  "idempotency_key": "batch-2026-04-23-001"\n}`}/>
+      <h1 style={{ display: 'flex', alignItems: 'center' }}><METHOD type="GET"/> /health</h1>
+      <p>Unauthenticated health check. Returns the service status and which subsystems are connected.</p>
+      <CodeBlock lang="bash" code={`curl https://api.shotbase.dev/health`}/>
       <h2>Response</h2>
-      <CodeBlock lang="json" code={`{\n  "batch_id": "bat_3mnb7qxp2k8r",\n  "status": "queued",\n  "total": 3,\n  "estimated_ms": 3200,\n  "created_at": "2026-04-23T14:22:01Z"\n}`}/>
-      <Callout type="tip">Use <code>idempotency_key</code> to safely retry failed batch submissions without duplicate captures.</Callout>
-    </div>
-  ),
-  'sdk-js': () => (
-    <div>
-      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>SDKs</div>
-      <h1>JavaScript / TypeScript SDK</h1>
-      <p>Full TypeScript support with type-safe responses and request builders.</p>
-      <h2>Installation</h2>
-      <CodeBlock lang="bash" code={`npm install @shotbase/sdk\n# or\npnpm add @shotbase/sdk\nyarn add @shotbase/sdk`}/>
-      <h2>Initialization</h2>
-      <CodeBlock lang="typescript" code={`import { Shotbase } from '@shotbase/sdk';\n\nconst sb = new Shotbase({\n  apiKey: process.env.SHOTBASE_API_KEY!, // sk-live-...\n  timeout: 30_000, // ms, default 30s\n  retries: 2,      // auto-retry on 5xx\n});`}/>
-      <h2>screenshot()</h2>
-      <CodeBlock lang="typescript" code={`const result = await sb.screenshot({\n  url: 'https://stripe.com',\n  width: 1440,\n  format: 'png',       // 'png' | 'jpeg' | 'webp' | 'pdf'\n  removePopups: true,\n  fullPage: false,\n  waitFor: 'networkidle',\n  delayMs: 0,\n  cacheTtl: 3600,\n  darkMode: false,\n  deviceScale: 1,\n});\n\n// result is fully typed:\nresult.url          // string — CDN URL\nresult.tookMs       // number\nresult.cached       // boolean\nresult.width        // number\nresult.height       // number\nresult.popupsRemoved // number`}/>
-      <h2>batch()</h2>
-      <CodeBlock lang="typescript" code={`const { batchId, status } = await sb.batch({\n  requests: [\n    { url: 'https://stripe.com' },\n    { url: 'https://vercel.com', format: 'jpeg' },\n  ],\n  webhookUrl: 'https://yourapp.com/hook',\n});`}/>
+      <CodeBlock lang="json" code={`{\n  "status": "ok",\n  "service": "shotbase"\n}`}/>
     </div>
   ),
   mcp: () => (
     <div>
-      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>SDKs</div>
+      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>MCP</div>
       <h1>MCP Server</h1>
-      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server. Give your AI agents the ability to browse and screenshot any URL with zero setup.</p>
-      <h2>Installation</h2>
-      <CodeBlock lang="bash" code={`npx @shotbase/mcp-server --api-key sk-live-...`}/>
-      <h2>Claude Desktop config</h2>
-      <CodeBlock lang="json" code={`{\n  "mcpServers": {\n    "shotbase": {\n      "command": "npx",\n      "args": ["@shotbase/mcp-server"],\n      "env": {\n        "SHOTBASE_API_KEY": "sk-live-... "\n      }\n    }\n  }\n}`}/>
-      <h2>Available tools</h2>
+      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server over streamable HTTP at <code>POST /api/mcp</code>. It gives MCP-compatible agents one tool, <code>shotbase_capture</code>, that renders a page and returns the screenshot plus structured intelligence.</p>
+      <h2>Install (Claude Code / Claude Desktop / Cursor)</h2>
+      <CodeBlock lang="bash" code={`claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\\n  --header "Authorization: Bearer sk_your_key"`}/>
+      <h2>Available tool</h2>
       <table>
         <thead><tr><th>Tool</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td>screenshot_url</td><td style={{ fontSize: 13, color: '#888' }}>Capture a screenshot of any URL and return a CDN link</td></tr>
-          <tr><td>batch_screenshot</td><td style={{ fontSize: 13, color: '#888' }}>Capture multiple URLs in parallel</td></tr>
-          <tr><td>get_screenshot_status</td><td style={{ fontSize: 13, color: '#888' }}>Check the status of an async batch job</td></tr>
+          <tr><td>shotbase_capture</td><td style={{ fontSize: 13, color: '#888' }}>Render a URL and return the screenshot plus extracted JSON (page type, headings, CTAs, prices). Args: url (required), extract, format, full_page, viewport.</td></tr>
         </tbody>
       </table>
-      <Callout type="tip">Works with any MCP-compatible host: Claude Desktop, Cursor, Continue, and custom agent frameworks.</Callout>
+      <Callout type="tip">Works with any MCP-compatible host: Claude Code, Claude Desktop, Cursor, and custom agent frameworks.</Callout>
     </div>
   ),
   errors: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Getting Started</div>
       <h1>Error handling</h1>
-      <p>Shotbase uses standard HTTP status codes. Errors return a JSON body with <code>code</code> and <code>message</code> fields.</p>
+      <p>Shotbase uses standard HTTP status codes. Error responses return a JSON body with an <code>error</code> field (and sometimes a <code>detail</code> field).</p>
       <table>
-        <thead><tr><th>Status</th><th>Code</th><th>Description</th></tr></thead>
+        <thead><tr><th>Status</th><th>Meaning</th><th>Description</th></tr></thead>
         <tbody>
           {[
-            ['400', 'invalid_request', 'Missing or invalid parameters'],
-            ['401', 'unauthorized', 'Missing or invalid API key'],
-            ['402', 'payment_required', 'Quota exceeded, billing issue'],
-            ['422', 'capture_failed', 'Page load failed or timed out'],
-            ['429', 'rate_limited', 'Too many requests — back off and retry'],
-            ['500', 'internal_error', 'Server error — not charged'],
+            ['400', 'Bad request', 'Missing/invalid parameters, or a blocked (private/internal) URL'],
+            ['401', 'Unauthorized', 'Missing or invalid API key'],
+            ['413', 'Payload too large', 'Request body exceeds the 1 MiB limit'],
+            ['429', 'Rate limited', 'Too many requests for your plan — back off and retry'],
+            ['500', 'Capture failed', 'The page failed to render or an internal error occurred'],
+            ['503', 'Server busy', 'Renderer temporarily overloaded — check the Retry-After header'],
           ].map(([s, c, d]) => (
             <tr key={s}><td>{s}</td><td>{c}</td><td style={{ fontSize: 13, color: '#888' }}>{d}</td></tr>
           ))}
         </tbody>
       </table>
       <h2>Retry logic</h2>
-      <p>Retry <code>429</code> and <code>5xx</code> errors with exponential backoff. The SDK handles this automatically with the <code>retries</code> option. You are never charged for <code>4xx</code> or <code>5xx</code> failures.</p>
-      <CodeBlock lang="javascript" code={`// SDK handles retries automatically\nconst sb = new Shotbase({ apiKey: '...', retries: 3 });\n\n// Or handle manually:\ntry {\n  const result = await sb.screenshot({ url: '...' });\n} catch (err) {\n  if (err.status === 429) {\n    // retry after err.retryAfter seconds\n  }\n  if (err.status >= 500) {\n    // server error, safe to retry\n  }\n}`}/>
+      <p>Retry <code>429</code> and <code>5xx</code> responses with exponential backoff. A <code>503 Server busy</code> includes a <code>Retry-After</code> header (in seconds) — wait that long before retrying. On a <code>429</code>, slow down to stay within your plan&apos;s per-minute rate limit.</p>
+      <CodeBlock lang="json" code={`// Example error body\n{ "error": "Server busy", "detail": "Renderer overloaded" }`}/>
     </div>
   ),
   caching: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
-      <h1>Caching & TTL</h1>
-      <p>Shotbase caches screenshots at the edge. Cached responses return in under 200ms from 30+ global PoPs.</p>
-      <h2>Cache keys</h2>
-      <p>The cache key is a hash of: <code>url</code> + <code>width</code> + <code>height</code> + <code>format</code> + <code>full_page</code> + <code>dark_mode</code> + <code>device_scale</code>. Changing any parameter produces a new cache key.</p>
-      <h2>TTL</h2>
-      <p>Default TTL is 3600 seconds (1 hour). Override per request:</p>
-      <CodeBlock lang="json" code={`{ "url": "...", "cache_ttl": 86400 }`}/>
-      <p>Set <code>cache_ttl: 0</code> to disable caching entirely, or <code>bust_cache: true</code> to force a fresh capture and update the cache.</p>
-      <Callout type="info">Cached screenshots are still billed as 1 request against your quota, but at the <strong>cached rate</strong> — which is 50% cheaper than a fresh capture on Starter and above.</Callout>
+      <h1>Caching</h1>
+      <p>Identical image requests are served from a short-lived cache, so repeated captures of the same page return faster.</p>
+      <h2>Cache key</h2>
+      <p>The cache key is derived from <code>url</code> + <code>format</code> + <code>full_page</code> + <code>width</code> × <code>height</code>. Changing any of these — including the viewport dimensions — produces a fresh capture. Requests that ask for <code>include_text</code> or <code>ai_extract</code> are not served from the image cache.</p>
+      <h2>Checking cache status</h2>
+      <p>Image responses include an <code>X-Cache</code> header set to <code>HIT</code> or <code>MISS</code>. JSON responses include a <code>cached</code> boolean.</p>
+      <CodeBlock lang="text" code={`X-Cache: HIT`}/>
+    </div>
+  ),
+  'rate-limits': () => (
+    <div>
+      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
+      <h1>Rate limits</h1>
+      <p>Requests are rate limited per API key, per minute, based on your plan. Exceeding the limit returns <code>429</code>.</p>
+      <table>
+        <thead><tr><th>Plan</th><th>Requests / minute</th></tr></thead>
+        <tbody>
+          {[['Free', '10'], ['Starter', '60'], ['Pro', '300'], ['Scale', '1,000']].map(([p, r]) => (
+            <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{r}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <Callout type="tip">On a <code>429</code>, back off and retry. Monthly capture quotas are separate from the per-minute rate limit — see Plans &amp; billing.</Callout>
+    </div>
+  ),
+  billing: () => (
+    <div>
+      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
+      <h1>Plans &amp; billing</h1>
+      <p>Each plan includes a monthly screenshot quota. Manage your plan and usage in the <Link href="/dashboard">dashboard</Link>.</p>
+      <table>
+        <thead><tr><th>Plan</th><th>Screenshots / month</th></tr></thead>
+        <tbody>
+          {[['Free', '10,000'], ['Starter', '50,000'], ['Pro', '250,000'], ['Scale', '1,500,000']].map(([p, q]) => (
+            <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{q}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <Callout type="info">See the <Link href="/#pricing">pricing section</Link> for current plan prices.</Callout>
     </div>
   ),
 }

@@ -20,21 +20,17 @@ const SEGMENTS: { id: SegmentId; emoji: string; label: string; sub: string; sugg
   { id: "ai_agent",  emoji: "🤖", label: "AI agent / LLM app",        sub: "Building autonomous agents or copilots", suggest: "mcp" },
   { id: "web_app",   emoji: "🌐", label: "Web app",                   sub: "Next.js, React, Vue — fetch from browser or server", suggest: "js" },
   { id: "backend",   emoji: "⚙️", label: "Backend / cron / scraper", sub: "Python, Node, Go — server-side jobs",     suggest: "python" },
-  { id: "internal",  emoji: "🧩", label: "Internal tool / no-code",  sub: "n8n, Zapier, Make, Retool",               suggest: "n8n" },
+  { id: "internal",  emoji: "🧩", label: "Internal tool / no-code",  sub: "Call the REST API from any HTTP client",  suggest: "curl" },
   { id: "exploring", emoji: "🔭", label: "Just exploring",            sub: "Show me the easy way",                    suggest: "curl" },
 ]
 
 // ----- Step 2: integrations -----
-type IntegrationId = "langchain" | "vercel_ai_sdk" | "stagehand" | "claude_skill" | "mcp" | "n8n" | "curl" | "js" | "python" | "sdk"
+// Shotbase exposes a REST API and an MCP server (tool: shotbase_capture). Use
+// plain HTTP from any language plus MCP for agents — no bespoke SDK required.
+type IntegrationId = "mcp" | "curl" | "js" | "python"
 const INTEGRATIONS: { id: IntegrationId; label: string; tag: string; initial: string }[] = [
-  { id: "langchain",     label: "LangChain",      tag: "TS / Python",  initial: "L"  },
-  { id: "vercel_ai_sdk", label: "Vercel AI SDK",  tag: "TypeScript",   initial: "V"  },
-  { id: "claude_skill",  label: "Claude Skill",   tag: "Anthropic",    initial: "C"  },
-  { id: "mcp",           label: "MCP Server",     tag: "Universal",    initial: "M"  },
-  { id: "stagehand",     label: "Stagehand",      tag: "TypeScript",   initial: "S"  },
-  { id: "n8n",           label: "n8n",            tag: "No-code",      initial: "N"  },
+  { id: "mcp",           label: "MCP Server",     tag: "AI agents",    initial: "M"  },
   { id: "curl",          label: "cURL",           tag: "Any shell",    initial: "$_"  },
-  { id: "sdk",           label: "TypeScript SDK", tag: "Node / Edge",  initial: "Ts" },
   { id: "js",            label: "fetch() / JS",   tag: "Native fetch", initial: "Js" },
   { id: "python",        label: "Python (httpx)", tag: "Python 3.10+", initial: "Py" },
 ]
@@ -47,7 +43,7 @@ function buildSnippet(integration: IntegrationId, apiKey: string): { lang: strin
       return {
         lang: "bash",
         code:
-`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
+`curl -X POST 'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer ${key}' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
@@ -57,7 +53,7 @@ function buildSnippet(integration: IntegrationId, apiKey: string): { lang: strin
       return {
         lang: "javascript",
         code:
-`const res = await fetch('https://api.shotbase.dev/v1/screenshot', {
+`const res = await fetch('https://api.shotbase.dev/screenshot', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ${key}',
@@ -75,7 +71,7 @@ const imageUrl = URL.createObjectURL(blob)`,
 `import httpx
 
 r = httpx.post(
-    'https://api.shotbase.dev/v1/screenshot',
+    'https://api.shotbase.dev/screenshot',
     headers={'Authorization': 'Bearer ${key}'},
     json={'url': 'https://stripe.com'},
     timeout=60.0,
@@ -84,96 +80,16 @@ r.raise_for_status()
 with open('screenshot.png', 'wb') as f:
     f.write(r.content)`,
       }
-    case "sdk":
-      return {
-        lang: "typescript",
-        code:
-`// npm install @shotbase/sdk
-import { Shotbase } from '@shotbase/sdk'
-
-const sb = new Shotbase({ apiKey: '${key}' })
-const result = await sb.screenshot({ url: 'https://stripe.com' })
-console.log(result.url, result.took_ms)`,
-      }
-    case "langchain":
-      return {
-        lang: "typescript",
-        code:
-`// npm install @shotbase/langchain
-import { ShotbaseTool } from '@shotbase/langchain'
-import { createAgent } from 'langchain'
-
-const tools = [ new ShotbaseTool({ apiKey: '${key}' }) ]
-const agent = createAgent({ tools, llm })
-await agent.invoke({ input: 'Capture stripe.com and summarize the hero' })`,
-      }
-    case "vercel_ai_sdk":
-      return {
-        lang: "typescript",
-        code:
-`// npm install @shotbase/ai-sdk
-import { shotbase } from '@shotbase/ai-sdk'
-import { generateText } from 'ai'
-
-const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
-  tools: { screenshot: shotbase({ apiKey: '${key}' }) },
-  prompt: 'Open stripe.com and tell me what they sell',
-})`,
-      }
-    case "stagehand":
-      return {
-        lang: "typescript",
-        code:
-`// npm install @shotbase/stagehand
-import { Stagehand } from '@browserbasehq/stagehand'
-import { shotbaseAction } from '@shotbase/stagehand'
-
-const stagehand = new Stagehand()
-await stagehand.page.act(shotbaseAction({
-  apiKey: '${key}',
-  url: 'https://stripe.com',
-}))`,
-      }
-    case "claude_skill":
+    case "mcp":
       return {
         lang: "bash",
         code:
-`# Pre-installed in Claude Code via the Anthropic Skills registry.
-# Set your API key once:
-claude skills config shotbase --api-key ${key}
+`# Add Shotbase's hosted MCP server to your agent (HTTP transport).
+# Works with Claude Code, Claude Desktop, and Cursor:
+claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\
+  --header "Authorization: Bearer ${key}"
 
-# Then just ask Claude:
-# "Screenshot stripe.com and find the pricing page"`,
-      }
-    case "mcp":
-      return {
-        lang: "json",
-        code:
-`// Add to your MCP client config
-// (Claude Code: ~/.claude/mcp.json · Cursor: settings → MCP)
-{
-  "mcpServers": {
-    "shotbase": {
-      "command": "npx",
-      "args": ["-y", "@shotbase/mcp"],
-      "env": {
-        "SHOTBASE_API_KEY": "${key}"
-      }
-    }
-  }
-}`,
-      }
-    case "n8n":
-      return {
-        lang: "yaml",
-        code:
-`# 1. Install: n8n-nodes-shotbase  (community node)
-# 2. Add credential: "Shotbase API"
-#      API Key: ${key}
-# 3. Drop "Shotbase Screenshot" node into any workflow
-#    Input:  { url: "https://stripe.com" }
-#    Output: binary screenshot + metadata`,
+# Exposes the "shotbase_capture" tool to your agent.`,
       }
   }
 }
