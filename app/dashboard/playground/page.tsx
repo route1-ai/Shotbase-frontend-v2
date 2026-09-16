@@ -8,7 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 // Customer-facing API endpoint shown in code samples. Defaults to api.shotbase.dev
 // so we never leak the Railway internal hostname into customer-visible curl/JS/Python.
 const PUBLIC_API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.shotbase.dev/v1/screenshot'
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.shotbase.dev/screenshot'
 
 const PRESETS = [
   { label: 'Stripe', url: 'https://stripe.com' },

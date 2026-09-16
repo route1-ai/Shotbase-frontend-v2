@@ -1,10 +1,12 @@
 "use client"
 
-import React, { useRef, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useLenis } from "lenis/react"
-import { Copy, Check, Globe, FileText, Shield, Lock, Layers, MonitorCheck, Zap, Timer, ScanSearch, MousePointerClick, Brain, Calendar, TrendingUp, ImageIcon, Bot, BarChart3 } from "lucide-react"
+import gsap from "gsap"
+import { ScrollTrigger } from "gsap/ScrollTrigger"
+import { Copy, Check, Globe, FileText, Lock, Layers, MonitorCheck, Zap, Timer, ScanSearch, MousePointerClick, Brain, TrendingUp, ImageIcon, Bot, BarChart3, Menu, X } from "lucide-react"
 import Hero from "@/components/ui/animated-shader-hero"
 import { SmoothShaderBg } from "@/components/ui/smooth-shader-bg"
 import IntegrationsMarquee from "@/components/ui/integrations-marquee"
@@ -14,40 +16,48 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { ShotbaseMark } from "@/components/shotbase-mark"
 
 const CODE_SNIPPETS: Record<string, string> = {
-  js: `// npm install @shotbase/sdk
-import { Shotbase } from '@shotbase/sdk';
-
-const sb = new Shotbase({ apiKey: 'sk-live-...' });
-
-const { url, tookMs } = await sb.screenshot({
-  url: 'https://stripe.com',
-  width: 1440,
-  format: 'png',
-  removePopups: true,
+  js: `// Native fetch — no SDK required
+const res = await fetch("https://api.shotbase.dev/screenshot", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer sk_your_key",
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    url: "https://stripe.com",
+    format: "png",
+    full_page: false,
+  }),
 });
 
-// → cdn.shotbase.io/sc/k9xp... — 142ms`,
-  py: `# pip install shotbase
-from shotbase import Shotbase
+// Binary image by default. Add include_text or
+// ai_extract and the response comes back as JSON.
+const png = await res.arrayBuffer();`,
+  py: `# Standard requests — no SDK required
+import requests
 
-sb = Shotbase(api_key="sk-live-...")
-result = sb.screenshot(
-  url="https://stripe.com",
-  width=1440,
-  format="png",
-  remove_popups=True,
+res = requests.post(
+    "https://api.shotbase.dev/screenshot",
+    headers={"Authorization": "Bearer sk_your_key"},
+    json={
+        "url": "https://stripe.com",
+        "format": "png",
+        "include_text": True,
+        "ai_extract": {"headings": True, "prices": True},
+    },
 )
-# result.url → cdn.shotbase.io/sc/k9xp...`,
-  cu: `curl -X POST \\
-  -H "Authorization: Bearer sk-live-..." \\
+
+# include_text / ai_extract -> JSON with text + ai_data
+data = res.json()`,
+  cu: `curl -X POST https://api.shotbase.dev/screenshot \\
+  -H "Authorization: Bearer sk_your_key" \\
   -H "Content-Type: application/json" \\
   -d '{
     "url": "https://stripe.com",
-    "width": 1440,
     "format": "png",
-    "remove_popups": true
+    "full_page": false
   }' \\
-  https://api.shotbase.io/v1/screenshot`,
+  --output shot.png`,
 }
 
 export default function Home() {
@@ -67,83 +77,102 @@ export default function Home() {
     }
   }
 
-  // For scrub animations
-  const statsRef = useRef<(HTMLDivElement | null)[]>([])
-  const featureRefs = useRef<(HTMLDivElement | null)[]>([])
-  const codeHeaderRef = useRef<HTMLDivElement>(null)
-  const codePanelRef = useRef<HTMLDivElement>(null)
-  const pricingHeaderRef = useRef<HTMLDivElement>(null)
-  const pgRef = useRef<HTMLDivElement>(null)
+  // Mobile nav menu
+  const [menuOpen, setMenuOpen] = useState(false)
 
-  const smoothed = useRef(new Map<string, number>())
+  // Root of the marketing page — GSAP reveals are scoped here.
+  const rootRef = useRef<HTMLDivElement>(null)
 
-  useLenis((lenis) => {
-    const scrollY = lenis.scroll
-
-    const smooth = (key: string, raw: number, ease = 0.12) => {
-      const prev = smoothed.current.get(key) || 0
-      const next = prev + (raw - prev) * ease
-      smoothed.current.set(key, next)
-      return next
-    }
-
-    const VH = () => window.innerHeight
-
-    const progress = (el: HTMLElement, trigger = 0.88) => {
-      const rect = el.getBoundingClientRect()
-      const top = rect.top + scrollY
-      const height = rect.height || el.offsetHeight
-      const start = top - VH() * trigger
-      const end = top + height * 0.5
-      return Math.max(0, Math.min(1, (scrollY - start) / (end - start)))
-    }
-
-    // Nav effect
-    const nav = document.getElementById("nav")
-    if (nav) nav.classList.toggle("s", scrollY > 40)
-
-    // Stats Scrub
-    statsRef.current.forEach((el, i) => {
-      if (!el) return
-      const raw = progress(el, 0.9)
-      const delayed = Math.max(0, Math.min(1, raw * 1.4 - i * 0.1))
-      const p = smooth(`stat-${i}`, delayed, 0.11)
-      el.style.setProperty("--p", p.toString())
-    })
-
-    // Features Scrub
-    featureRefs.current.forEach((el, i) => {
-      if (!el) return
-      const raw = progress(el, 0.88)
-      const p = smooth(`frow-${i}`, raw, 0.11)
-      el.style.setProperty("--p", p.toString())
-    })
-
-    // Code section scrub
-    if (codeHeaderRef.current && codePanelRef.current) {
-      const ch = codeHeaderRef.current
-      const cp = codePanelRef.current
-      // Start the fade-in earlier so the section is bright when it enters view.
-      const pHeader = smooth("ch", progress(ch, 1.35), 0.11)
-      const pPanel = smooth("cp", progress(cp, 1.35), 0.11)
-      ch.style.opacity = `${0.7 + pHeader * 0.3}`
-      ch.style.transform = `translateY(${(1 - pHeader) * 32}px)`
-      cp.style.opacity = `${0.7 + pPanel * 0.3}`
-      cp.style.transform = `translateY(${(1 - pPanel) * 28}px)`
-    }
-
-    // Pricing scrub
-    if (pricingHeaderRef.current && pgRef.current) {
-      const ph = pricingHeaderRef.current
-      const pg = pgRef.current
-      const p = smooth("ph", progress(ph, 0.88), 0.11)
-      ph.style.opacity = `${0.1 + p * 0.9}`
-      ph.style.transform = `translateY(${(1 - p) * 28}px)`
-
-      const pPg = smooth("pg", progress(pg, 0.9), 0.11)
-      pg.style.setProperty("--p", pPg.toString())
-    }
+  // Keep ScrollTrigger in sync with Lenis' smoothed scroll position (so
+  // triggers fire mid-tween instead of only on native scroll events). Lenis
+  // drives the real window scroll, so ScrollTrigger's default window scroller
+  // reads the correct value — this just refreshes it on every Lenis frame for
+  // jitter-free reveals. (No-op under reduced-motion, where Lenis is disabled.)
+  useLenis(() => {
+    ScrollTrigger.update()
   })
+
+  // Nav background on scroll. Uses a native scroll listener so it works both
+  // with Lenis (which drives real window scroll) and under reduced-motion
+  // (where Lenis is disabled and only native scroll fires).
+  useEffect(() => {
+    const nav = document.getElementById("nav")
+    if (!nav) return
+    const onScroll = () => nav.classList.toggle("s", window.scrollY > 40)
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  // Subtle, restrained scroll reveals (Linear/Vercel style): gentle fade +
+  // upward translate as each block enters the viewport, reversing on the way
+  // back up. Fully disabled under prefers-reduced-motion via gsap.matchMedia.
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+
+    gsap.registerPlugin(ScrollTrigger)
+
+    // Elements to reveal — selected by their existing classes so no markup
+    // changes are needed. Ordered roughly top-to-bottom down the page.
+    const SELECTOR = [
+      ".stat-item",
+      ".cap-section > .s-label",
+      ".cap-section > h2",
+      ".cap-section > p",
+      ".cap-grid",
+      ".frow",
+      ".detail-text",
+      ".detail-visual",
+      ".mockup-card",
+      ".code-header",
+      ".code-panel-wrap",
+      ".compare-section .section-head",
+      ".compare-scroll",
+      ".usecases-section .section-head",
+      ".uc-card",
+      ".cta-banner > *",
+      ".pricing-header",
+      ".plan",
+    ].join(", ")
+
+    const ctx = gsap.context(() => {
+      const mm = gsap.matchMedia()
+
+      // Motion only when the user hasn't asked for reduced motion. When they
+      // have, we create nothing — elements simply render in their final state.
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const els = gsap.utils.toArray<HTMLElement>(SELECTOR)
+        els.forEach((el) => {
+          gsap.from(el, {
+            opacity: 0,
+            y: 24,
+            duration: 0.7,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: el,
+              start: "top 88%",
+              // Play on the way down; reverse on the way back up. No scrub,
+              // no pinning — nothing hijacks the scroll.
+              toggleActions: "play none none reverse",
+            },
+          })
+        })
+      })
+
+      return () => mm.revert()
+    }, root)
+
+    // Positions can shift once fonts load / layout settles.
+    const refresh = () => ScrollTrigger.refresh()
+    const raf = requestAnimationFrame(refresh)
+    if (document.fonts?.ready) document.fonts.ready.then(refresh)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ctx.revert()
+    }
+  }, [])
 
   return (
     <>
@@ -154,22 +183,50 @@ export default function Home() {
         </Link>
         <ul className="nl">
           <li><Link href="/docs">Docs</Link></li>
-          <li><Link href="/playground">Playground</Link></li>
+          <li><Link href="/dashboard/playground">Playground</Link></li>
         </ul>
         <div className="nr">
           <ThemeToggle />
           <Link href="/signin" className="nbg">Sign in</Link>
           <Link href="/signup" className="np">Get API Key <span aria-hidden="true">→</span></Link>
         </div>
+        {/* Mobile controls — theme toggle stays inline, links live behind a menu */}
+        <div className="nr-mobile">
+          <ThemeToggle />
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </nav>
 
-      <div className="sk-container">
+      {/* Mobile menu panel */}
+      <div
+        id="mobile-menu"
+        className={`nav-mobile-panel ${menuOpen ? "open" : ""}`}
+        hidden={!menuOpen}
+      >
+        <Link href="/docs" onClick={() => setMenuOpen(false)}>Docs</Link>
+        <Link href="/dashboard/playground" onClick={() => setMenuOpen(false)}>Playground</Link>
+        <Link href="/signin" onClick={() => setMenuOpen(false)}>Sign in</Link>
+        <Link href="/signup" className="nav-mobile-cta" onClick={() => setMenuOpen(false)}>
+          Get API Key <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+
+      <div className="sk-container" ref={rootRef}>
         <Hero
           headline={{
-            line1: "Screenshot any URL.",
-            line2: "One API call."
+            line1: "Render any webpage.",
+            line2: "Screenshot, content, data."
           }}
-          subtitle="No browser, no headless setup, no DevOps. Pass a URL, get a permanent screenshot back in milliseconds."
+          subtitle="Browser infrastructure for AI and automation developers. One API and MCP call renders a real page and returns a screenshot, its content, and structured data — no browser, no headless setup, no DevOps."
           buttons={{
             primary: {
               text: "Start building free",
@@ -177,7 +234,7 @@ export default function Home() {
             },
             secondary: {
               text: "Try the playground →",
-              onClick: () => router.push("/playground")
+              onClick: () => router.push("/dashboard/playground")
             }
           }}
         />
@@ -199,10 +256,10 @@ export default function Home() {
         <div className="demo-bar-wrap">
           <div className="demo-bar">
             <input type="text" placeholder="Enter URL — e.g. https://stripe.com" readOnly />
-            <button onClick={() => router.push("/playground")}>Screenshot</button>
+            <button onClick={() => router.push("/dashboard/playground")}>Screenshot</button>
           </div>
           <div className="feature-pills">
-            {["Full Page Screenshot", "URL to PNG", "Block Cookies & Ads", "URL to PDF", "AI Data Extraction", "MCP Server", "Scheduled Captures", "Visual Monitoring"].map((pill) => (
+            {["Rendered Page Capture", "PNG · JPEG · WebP", "Page Text & Content", "Structured Data Extraction", "URL to PDF", "Custom Viewport", "REST API", "MCP Server"].map((pill) => (
               <span className="fpill" key={pill}>
                 <span className="fpill-dot" aria-hidden="true" />
                 {pill}
@@ -210,7 +267,7 @@ export default function Home() {
             ))}
           </div>
           <div className="dual-cta">
-            <Link href="/playground" className="dual-cta a cta-outline">Get a Demo →</Link>
+            <Link href="/dashboard/playground" className="dual-cta a cta-outline">Get a Demo →</Link>
             <Link href="/signup" className="dual-cta a cta-fill">Get Started For Free →</Link>
           </div>
         </div>
@@ -233,15 +290,14 @@ export default function Home() {
 
         <div className="stats" id="stats">
           {[
-            { num: "187", u: "ms", label: "Avg response", sub: "median with cache" },
-            { num: "64", u: "%", label: "Cache hit rate", sub: "sub-200ms served" },
-            { num: "99.9", u: "%", label: "Uptime SLA", sub: "30+ global PoPs" },
-            { num: "500", u: "/mo", label: "Free forever", sub: "no credit card" },
+            { num: "4", u: "", label: "Output formats", sub: "PNG · JPEG · WebP · PDF" },
+            { num: "1", u: " call", label: "Screenshot + text + data", sub: "render once, get all three" },
+            { num: "MCP", u: "", label: "Native shotbase_capture", sub: "one tool for AI agents" },
+            { num: "10K", u: "/mo", label: "Free tier", sub: "screenshots included" },
           ].map((stat, i) => (
             <div
               className="stat-item"
               key={i}
-              ref={(el) => { statsRef.current[i] = el }}
             >
               <div className="stat-num">{stat.num}<span className="u">{stat.u}</span></div>
               <div className="stat-label">{stat.label}</div>
@@ -253,23 +309,23 @@ export default function Home() {
         {/* ── Capability Orbital ── */}
         <section className="cap-section" id="capabilities">
           <div className="s-label">Capabilities</div>
-          <h2>Screenshot API with 25+ Features</h2>
-          <p>Everything you need to capture, convert, and extract intelligence from any URL — one endpoint, zero infrastructure.</p>
+          <h2>One browser API. Render, capture, extract.</h2>
+          <p>Everything you need to render a real page and turn it into pixels, page content, or structured data — one endpoint plus a native MCP server, zero infrastructure.</p>
           <div className="cap-grid">
             <RadialOrbitalTimeline
               timelineData={[
-                { id: 1, title: "URL to Screenshot", content: "Any URL to high-fidelity PNG or JPEG. One API call, instant result.", category: "Capture", icon: Globe, relatedIds: [5, 6], status: "completed", energy: 95 },
-                { id: 2, title: "PDF Rendering", content: "Convert pages to styled, stable PDFs with full CSS support.", category: "Conversion", icon: FileText, relatedIds: [1, 5], status: "completed", energy: 90 },
-                { id: 3, title: "AI Data Extraction", content: "Get structured data with every capture — prices, headings, CTAs.", category: "Intelligence", icon: Brain, relatedIds: [12, 11], status: "in-progress", energy: 85 },
-                { id: 4, title: "Popup Removal", content: "ML-powered cookie & modal cleanup. Zero configuration required.", category: "Preprocessing", icon: Shield, relatedIds: [8, 7], status: "completed", energy: 88 },
-                { id: 5, title: "Full Page Capture", content: "Scroll and stitch entire page heights automatically.", category: "Capture", icon: Layers, relatedIds: [1, 6], status: "completed", energy: 92 },
-                { id: 6, title: "Element Clipping", content: "Capture specific DOM selectors only with precise targeting.", category: "Capture", icon: MousePointerClick, relatedIds: [5, 1], status: "completed", energy: 80 },
-                { id: 7, title: "Delay & Timing", content: "Wait for JS, animations, or custom events before capture.", category: "Control", icon: Timer, relatedIds: [12, 4], status: "completed", energy: 82 },
-                { id: 8, title: "Login Sessions", content: "Auth-gated pages via browser context and session tokens.", category: "Auth", icon: Lock, relatedIds: [4, 7], status: "completed", energy: 78 },
-                { id: 9, title: "Scheduled Captures", content: "Recurring jobs without cron setup. Hourly, daily, weekly.", category: "Automation", icon: Calendar, relatedIds: [11, 10], status: "completed", energy: 75 },
-                { id: 10, title: "Edge Caching", content: "Sub-200ms from 30+ global PoPs. Smart CDN edge network.", category: "Performance", icon: Zap, relatedIds: [9, 1], status: "completed", energy: 94 },
-                { id: 11, title: "Visual History", content: "Timestamped capture trail per URL for visual regression.", category: "Tracking", icon: MonitorCheck, relatedIds: [9, 3], status: "completed", energy: 72 },
-                { id: 12, title: "DOM Ready Detection", content: "Smart readiness detection before capture begins.", category: "Control", icon: ScanSearch, relatedIds: [7, 3], status: "completed", energy: 86 },
+                { id: 1, title: "URL to Screenshot", content: "Render any URL to a high-fidelity image with a single API call.", category: "Capture", icon: Globe, relatedIds: [2, 4], status: "completed", energy: 95 },
+                { id: 2, title: "Image Formats", content: "PNG, JPEG, and WebP output from the same endpoint.", category: "Output", icon: ImageIcon, relatedIds: [1, 3], status: "completed", energy: 90 },
+                { id: 3, title: "PDF Rendering", content: "Render the full page to a PDF instead of an image.", category: "Output", icon: FileText, relatedIds: [2, 4], status: "completed", energy: 88 },
+                { id: 4, title: "Full-Page Capture", content: "Capture the entire scrollable page height, not just the viewport.", category: "Capture", icon: Layers, relatedIds: [1, 7], status: "completed", energy: 92 },
+                { id: 5, title: "Page Text & Content", content: "Return the page's rendered text alongside the screenshot.", category: "Content", icon: ScanSearch, relatedIds: [6, 1], status: "completed", energy: 86 },
+                { id: 6, title: "Structured Extraction", content: "Headings, prices, CTAs, and page type extracted as JSON.", category: "Content", icon: Brain, relatedIds: [5, 10], status: "completed", energy: 89 },
+                { id: 7, title: "Custom Viewport", content: "Set the capture width and height to any size.", category: "Control", icon: MousePointerClick, relatedIds: [4, 8], status: "completed", energy: 80 },
+                { id: 8, title: "Smart Wait", content: "Waits for the network to go idle before capturing.", category: "Control", icon: Timer, relatedIds: [7, 1], status: "completed", energy: 82 },
+                { id: 9, title: "Response Caching", content: "Recent captures are served straight from cache.", category: "Performance", icon: Zap, relatedIds: [1, 11], status: "completed", energy: 84 },
+                { id: 10, title: "MCP Server", content: "Native shotbase_capture tool for Claude, Cursor, and agents.", category: "Interface", icon: Bot, relatedIds: [6, 11], status: "completed", energy: 93 },
+                { id: 11, title: "REST API", content: "One POST endpoint — JSON in, image or data out.", category: "Interface", icon: MonitorCheck, relatedIds: [10, 12], status: "completed", energy: 91 },
+                { id: 12, title: "API-Key Auth", content: "Bearer API keys with per-plan rate limits.", category: "Access", icon: Lock, relatedIds: [11, 9], status: "completed", energy: 78 },
               ]}
             />
           </div>
@@ -277,14 +333,14 @@ export default function Home() {
 
         <section className="features" id="features">
           {[
-            { title: "AI Popup Removal", small: "Included on all plans", desc: "ML model detects and removes cookie banners, modals, and overlays before capture. Zero configuration — it just works." },
-            { title: "Sub-200ms Cache", small: "Smart CDN edge network", desc: "Cached screenshots served from the nearest PoP in under 200ms. Set TTL globally or per-request." },
-            { title: "MCP Server", small: "For AI agents & Claude", desc: "Native Model Context Protocol server. Give any AI agent the ability to screenshot and browse any URL." },
-            { title: "Zero Failed Charges", small: "Pay for success only", desc: "If the capture fails, you're not charged. Built-in idempotency keys make safe retries trivial." },
-            { title: "JS · Python · Go", small: "First-class typed SDKs", desc: "One install. Typed responses. Automatic retries, streaming batch support, and a full mock server for tests." },
-            { title: "500/mo Free Forever", small: "No credit card to start", desc: "Every account starts with 500 screenshots per month, permanently. Upgrade when you're ready to scale." },
+            { title: "Screenshot + Content + Data", small: "One call, three outputs", desc: "A single request returns the rendered screenshot, the page's text, and structured data — no extra round-trips." },
+            { title: "Four Output Formats", small: "PNG · JPEG · WebP · PDF", desc: "Render any URL to the format you need, from a lightweight JPEG to a full-page PDF." },
+            { title: "MCP Server", small: "For AI agents & Claude", desc: "Native Model Context Protocol server. The shotbase_capture tool lets any agent render and read a page in one call." },
+            { title: "Structured Extraction", small: "JSON with your screenshot", desc: "Ask for ai_extract and get the page type, headings, CTAs, and prices back as JSON alongside the image." },
+            { title: "REST API + MCP", small: "Call it your way", desc: "A simple REST endpoint for any stack, plus a native MCP server so AI agents can render and read any page with a single tool call." },
+            { title: "10,000/mo Free Tier", small: "Generous free quota", desc: "Every account includes 10,000 screenshots per month on the free plan. Upgrade when you need more volume." },
           ].map((feat, i) => (
-            <div className="frow" key={i} ref={(el) => { featureRefs.current[i] = el }}>
+            <div className="frow" key={i}>
               <div className="fnum">0{i + 1}</div>
               <div className="ftitle">
                 {feat.title}
@@ -301,13 +357,13 @@ export default function Home() {
         {/* ── Detail Section 1: AI-Powered Content Extraction ── */}
         <section className="detail-section" id="ai-extraction">
           <div className="detail-text">
-            <div className="s-label">Shotbase Exclusive</div>
-            <h2>AI-Powered Content Extraction</h2>
-            <p>You don&apos;t just get an image. You get structured data alongside it — prices, headings, CTAs, metadata — extracted automatically. No competitor does this.</p>
+            <div className="s-label">Content extraction</div>
+            <h2>Screenshots that come with data</h2>
+            <p>You don&apos;t just get an image. Ask for extraction and you get structured data alongside it — page type, headings, CTAs, and prices — pulled from the rendered page.</p>
             <ul>
-              <li>Structured JSON with every screenshot</li>
-              <li>Extracts prices, headings, buttons, metadata</li>
-              <li>Zero config — works on any page</li>
+              <li>Structured JSON on the same request</li>
+              <li>Extracts page type, headings, CTAs, prices</li>
+              <li>Also returns the page&apos;s rendered text</li>
               <li>Feed directly into your data pipeline</li>
             </ul>
             <Link href="/docs" className="detail-cta">Read the docs <span aria-hidden="true">→</span></Link>
@@ -320,15 +376,17 @@ export default function Home() {
               <span>api-response.json</span>
             </div>
             <div className="detail-visual-body">
-              <span className="co">{"// POST /v1/screenshot"}</span><br />
+              <span className="co">{"// POST /screenshot  (with ai_extract)"}</span><br />
               {"{ "}<br />
-              &nbsp;&nbsp;<span className="ck">"screenshot_url"</span>: <span style={{ color: "#c8a869" }}>"cdn.shotbase.io/sc/k9xp..."</span>,<br />
-              &nbsp;&nbsp;<span className="ck">"took_ms"</span>: <span style={{ color: "#00e87b" }}>142</span>,<br />
+              &nbsp;&nbsp;<span className="ck">"format"</span>: <span style={{ color: "#c8a869" }}>"png"</span>,<br />
+              &nbsp;&nbsp;<span className="ck">"cached"</span>: <span style={{ color: "#00e87b" }}>false</span>,<br />
+              &nbsp;&nbsp;<span className="ck">"render_time_ms"</span>: <span style={{ color: "#00e87b" }}>1840</span>,<br />
+              &nbsp;&nbsp;<span className="ck">"text"</span>: <span style={{ color: "#c8a869" }}>"Pricing — simple, transparent…"</span>,<br />
               &nbsp;&nbsp;<span className="ck">"ai_data"</span>: {"{ "}<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"prices"</span>: [<span style={{ color: "#c8a869" }}>"$29/mo"</span>, <span style={{ color: "#c8a869" }}>"$99/mo"</span>],<br />
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"page_type"</span>: <span style={{ color: "#c8a869" }}>"pricing"</span>,<br />
               &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"headings"</span>: [<span style={{ color: "#c8a869" }}>"Pricing"</span>, <span style={{ color: "#c8a869" }}>"Enterprise"</span>],<br />
               &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"ctas"</span>: [<span style={{ color: "#c8a869" }}>"Get Started"</span>, <span style={{ color: "#c8a869" }}>"Contact Sales"</span>],<br />
-              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"meta_description"</span>: <span style={{ color: "#c8a869" }}>"..."</span><br />
+              &nbsp;&nbsp;&nbsp;&nbsp;<span className="ck">"prices"</span>: [<span style={{ color: "#c8a869" }}>"$29/mo"</span>, <span style={{ color: "#c8a869" }}>"$99/mo"</span>]<br />
               &nbsp;&nbsp;{"} "}<br />
               {"} "}
             </div>
@@ -340,14 +398,14 @@ export default function Home() {
           <div className="detail-text">
             <div className="s-label">Capture anything</div>
             <h2>Take Viewport or Full Page Screenshots</h2>
-            <p>Capture exactly what you need — a viewport-sized snapshot, a full scrolling page, or a specific element clipped by CSS selector. Shotbase handles rendering, scrolling, and stitching.</p>
+            <p>Capture exactly what you need — a viewport-sized snapshot or a full scrolling page. Shotbase handles the browser, rendering, scrolling, and stitching.</p>
             <ul>
-              <li>Viewport, full-page, or element-level captures</li>
-              <li>Custom width, height, and device emulation</li>
-              <li>Retina / HiDPI support up to 3× scale</li>
+              <li>Viewport or full-page captures</li>
+              <li>Custom capture width and height</li>
+              <li>Waits for network idle before capturing</li>
               <li>PNG, JPEG, WebP, and PDF output</li>
             </ul>
-            <Link href="/playground" className="detail-cta">Try the playground <span aria-hidden="true">→</span></Link>
+            <Link href="/dashboard/playground" className="detail-cta">Try the playground <span aria-hidden="true">→</span></Link>
           </div>
           <div className="mockup-card">
             <div className="mockup-browser-bar">
@@ -371,71 +429,19 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── Detail Section 3: Automated & Scheduled Captures ── */}
-        <section className="detail-section">
-          <div className="detail-text">
-            <div className="s-label">Automate everything</div>
-            <h2>Automated &amp; Scheduled Captures Without Manual Effort</h2>
-            <p>Set up recurring screenshot jobs for any URL — monitor competitor pricing, track visual changes, archive pages — without managing cron jobs, queues, or browsers.</p>
-            <ul>
-              <li>Hourly, daily, or weekly schedules</li>
-              <li>Webhook delivery on completion</li>
-              <li>Batch URL lists with parallel processing</li>
-              <li>30-day visual history per URL</li>
-            </ul>
-            <Link href="/signup" className="detail-cta">Start automating <span aria-hidden="true">→</span></Link>
-          </div>
-          <div className="detail-visual">
-            <div className="detail-visual-bar">
-              <div className="detail-visual-dot" style={{ background: "#ff5f57" }} />
-              <div className="detail-visual-dot" style={{ background: "#febc2e" }} />
-              <div className="detail-visual-dot" style={{ background: "#28c840" }} />
-              <span>scheduled-jobs.json</span>
-            </div>
-            <div className="detail-visual-body">
-              <div className="schedule-mockup">
-                <div className="schedule-row">
-                  <div className="sr-status" />
-                  <span>stripe.com/pricing</span>
-                  <span className="sr-freq">Every 6h</span>
-                  <span className="sr-next">Next: 2h 14m</span>
-                </div>
-                <div className="schedule-row">
-                  <div className="sr-status" />
-                  <span>competitor.io/plans</span>
-                  <span className="sr-freq">Daily</span>
-                  <span className="sr-next">Next: 8h 02m</span>
-                </div>
-                <div className="schedule-row">
-                  <div className="sr-status pending" />
-                  <span>app.client.com/dash</span>
-                  <span className="sr-freq">Weekly</span>
-                  <span className="sr-next">Next: 3d 5h</span>
-                </div>
-                <div className="schedule-row">
-                  <div className="sr-status" />
-                  <span>docs.internal.dev</span>
-                  <span className="sr-freq">Every 12h</span>
-                  <span className="sr-next">Next: 4h 33m</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <div className="code-s" id="code-s">
-          <div className="code-header" ref={codeHeaderRef}>
+          <div className="code-header">
             <div className="s-label">Integration</div>
-            <h2>One method.<br />Every platform.</h2>
-            <p>Our SDKs wrap the REST API with typed interfaces and automatic retries. Or call the endpoint directly — no magic required.</p>
+            <h2>One call.<br />REST or MCP.</h2>
+            <p>Call a simple REST endpoint from any stack, or connect the native MCP server so AI agents can render and read pages directly. Same capability, your choice of interface.</p>
             <ul className="code-feats">
-              <li>TypeScript types for every response field</li>
-              <li>Automatic retry with exponential backoff</li>
-              <li>Batch support & webhook delivery</li>
-              <li>Full mock server for offline testing</li>
+              <li>One endpoint: render, screenshot, content &amp; data</li>
+              <li>API-key authentication</li>
+              <li>Native MCP server — shotbase_capture</li>
+              <li>JSON responses ready for your pipeline</li>
             </ul>
           </div>
-          <div className="code-panel-wrap" ref={codePanelRef}>
+          <div className="code-panel-wrap">
             <div className="ctabs">
               <div className="ctab-list">
                 <button className={`ctab ${activeTab === "js" ? "a" : ""}`} onClick={() => setActiveTab("js")}>JavaScript</button>
@@ -453,43 +459,7 @@ export default function Home() {
               </button>
             </div>
             <div className="cblock">
-              {activeTab === "js" && (
-                <div className="cpanel a">
-                  <span className="co">{"// npm install @shotbase/sdk"}</span><br />
-                  <span className="cc">import</span> <span className="cs">{"{ Shotbase }"}</span> <span className="cc">from</span> <span className="cs">&apos;@shotbase/sdk&apos;</span>;<br /><br />
-                  <span className="cc">const</span> sb = <span className="cc">new</span> <span className="cv">Shotbase</span>{"({ "} <span className="ck">apiKey</span>: <span className="cs">&apos;sk-live-...&apos;</span> {" });"}<br /><br />
-                  <span className="cc">const</span> {"{ url, tookMs } = "} <span className="cc">await</span> sb.<span className="cv">screenshot</span>{"({"}<br />
-                  &nbsp;&nbsp;<span className="ck">url</span>: <span className="cs">&apos;https://stripe.com&apos;</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">width</span>: <span className="cv">1440</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">format</span>: <span className="cs">&apos;png&apos;</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">removePopups</span>: <span className="cv">true</span>,<br />
-                  {"});"}<br /><br />
-                  <span className="co">{"// → cdn.shotbase.io/sc/k9xp... — 142ms"}</span>
-                </div>
-              )}
-              {activeTab === "py" && (
-                <div className="cpanel a">
-                  <span className="co">{"# pip install shotbase"}</span><br />
-                  <span className="cc">from</span> <span className="ck">shotbase</span> <span className="cc">import</span> <span className="cv">Shotbase</span><br /><br />
-                  sb = <span className="cv">Shotbase</span>(<span className="ck">api_key</span>=&quot;sk-live-...&quot;)<br />
-                  result = sb.<span className="cv">screenshot</span>(<br />
-                  &nbsp;&nbsp;<span className="ck">url</span>=&quot;https://stripe.com&quot;,<br />
-                  &nbsp;&nbsp;<span className="ck">width</span>=<span className="cv">1440</span>,<br />
-                  &nbsp;&nbsp;<span className="ck">format</span>=&quot;png&quot;,<br />
-                  &nbsp;&nbsp;<span className="ck">remove_popups</span>=<span className="cv">True</span>,<br />
-                  )<br />
-                  <span className="co">{"# result.url → cdn.shotbase.io/sc/k9xp..."}</span>
-                </div>
-              )}
-              {activeTab === "cu" && (
-                <div className="cpanel a">
-                  <span className="cc">curl</span> <span className="cf">-X POST</span> \<br />
-                  &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">&quot;Authorization: Bearer sk-live-...&quot;</span> \<br />
-                  &nbsp;&nbsp;<span className="cf">-H</span> <span className="cs">&quot;Content-Type: application/json&quot;</span> \<br />
-                  &nbsp;&nbsp;<span className="cf">-d</span> <span className="cs">&apos;{`\n    "url": "https://stripe.com",\n    "width": 1440,\n    "format": "png",\n    "remove_popups": true\n  `}&apos;</span> \<br />
-                  &nbsp;&nbsp;https://api.shotbase.io/v1/screenshot
-                </div>
-              )}
+              <pre className="cpanel a" style={{ margin: 0, whiteSpace: "pre", fontFamily: "inherit" }}>{CODE_SNIPPETS[activeTab]}</pre>
             </div>
           </div>
         </div>
@@ -497,64 +467,50 @@ export default function Home() {
         {/* ── Comparison Section ── */}
         <section className="compare-section" id="compare">
           <div className="section-head">
-            <div className="s-label">Why Shotbase</div>
-            <h2>How We Compare</h2>
-            <p>The features that matter, side by side. No spin — just facts.</p>
+            <div className="s-label">Capabilities</div>
+            <h2>What you get</h2>
+            <p>Everything Shotbase does today — plainly, no asterisks.</p>
           </div>
+          <div className="compare-scroll">
           <table className="compare-table">
             <thead>
               <tr>
-                <th>Feature</th>
-                <th className="highlight">Shotbase</th>
-                <th>ScreenshotOne</th>
-                <th>Urlbox</th>
+                <th>Capability</th>
+                <th className="highlight">What you get</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Free tier</td>
-                <td className="highlight">500/mo <span className="ct-check">✓</span></td>
-                <td>100/mo</td>
-                <td><span className="ct-x">✗</span> None</td>
+                <td>Rendered capture</td>
+                <td className="highlight"><span className="ct-check">✓</span> Real Chromium via Playwright</td>
               </tr>
               <tr>
-                <td>Starter price</td>
-                <td className="highlight">$9/mo</td>
-                <td>$17/mo</td>
-                <td>$49/mo</td>
+                <td>Output formats</td>
+                <td className="highlight"><span className="ct-check">✓</span> PNG · JPEG · WebP · PDF</td>
               </tr>
               <tr>
-                <td>AI data extraction</td>
-                <td className="highlight"><span className="ct-check">✓</span> Built-in</td>
-                <td><span className="ct-x">✗</span></td>
-                <td><span className="ct-x">✗</span></td>
+                <td>Full-page capture</td>
+                <td className="highlight"><span className="ct-check">✓</span> Entire scrollable height</td>
               </tr>
               <tr>
-                <td>MCP server</td>
-                <td className="highlight"><span className="ct-check">✓</span> Native</td>
-                <td><span className="ct-x">✗</span></td>
-                <td><span className="ct-x">✗</span></td>
+                <td>Page text &amp; content</td>
+                <td className="highlight"><span className="ct-check">✓</span> Returned with the capture</td>
               </tr>
               <tr>
-                <td>Zero failed charges</td>
-                <td className="highlight"><span className="ct-check">✓</span> Always</td>
-                <td>Varies</td>
-                <td>Charges anyway</td>
+                <td>Structured data</td>
+                <td className="highlight"><span className="ct-check">✓</span> Page type, headings, CTAs, prices</td>
               </tr>
               <tr>
-                <td>Popup removal</td>
-                <td className="highlight"><span className="ct-check">✓</span> ML-powered</td>
-                <td>Basic</td>
-                <td>Basic</td>
+                <td>Interfaces</td>
+                <td className="highlight"><span className="ct-check">✓</span> REST API + MCP (shotbase_capture)</td>
               </tr>
               <tr>
-                <td>PDF export</td>
-                <td className="highlight"><span className="ct-check">✓</span></td>
-                <td><span className="ct-check">✓</span></td>
-                <td><span className="ct-check">✓</span></td>
+                <td>Authentication</td>
+                <td className="highlight"><span className="ct-check">✓</span> API keys with per-plan rate limits</td>
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
 
         {/* ── Use Cases Section ── */}
@@ -582,7 +538,7 @@ export default function Home() {
             <div className="uc-card">
               <div className="uc-icon"><BarChart3 size={20} /></div>
               <h3>SaaS Monitoring</h3>
-              <p>Track visual changes across pricing pages, dashboards, and partner portals with scheduled captures and history.</p>
+              <p>Capture pricing pages, dashboards, and partner portals on demand and diff the rendered output in your own monitoring pipeline.</p>
             </div>
           </div>
         </section>
@@ -590,29 +546,29 @@ export default function Home() {
         {/* ── CTA Banner ── */}
         <section className="cta-banner">
           <h2>Ready to capture<br />your first screenshot?</h2>
-          <p>500 screenshots per month, free forever. No credit card. Start building in under a minute.</p>
+          <p>10,000 screenshots a month on the free plan. Start building in minutes.</p>
           <div className="dual-cta">
-            <Link href="/playground" className="cta-outline">Get a Demo →</Link>
+            <Link href="/dashboard/playground" className="cta-outline">Get a Demo →</Link>
             <Link href="/signup" className="cta-fill">Get Started For Free →</Link>
           </div>
         </section>
 
         <section className="pricing-s" id="pricing">
-          <div className="pricing-header" ref={pricingHeaderRef}>
+          <div className="pricing-header">
             <div className="s-label">Pricing</div>
             <h2>Start free.<br />Scale without friction.</h2>
           </div>
-          <div className="pg" ref={pgRef}>
+          <div className="pg">
             <div className="plan">
               <div className="pn">Free</div>
               <div className="pp">$0</div>
               <div className="pper">forever</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>500 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>PNG &amp; JPEG</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>CDN hosting</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Community support</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>10,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>10 requests/min</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>PNG · JPEG · WebP · PDF</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>REST API + MCP</li>
               </ul>
               <Link href="/dashboard" className="pcta" aria-label="Get started with Free plan">Get started</Link>
             </div>
@@ -622,10 +578,10 @@ export default function Home() {
               <div className="pper">+ $0.012 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>2,000 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>All formats incl. PDF</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>AI popup removal</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>7-day log retention</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>50,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>60 requests/min</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Page text &amp; content</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Structured data extraction</li>
               </ul>
               <Link href="/dashboard" className="pcta" aria-label="Get started with Starter plan">Get started</Link>
             </div>
@@ -636,11 +592,11 @@ export default function Home() {
               <div className="pper">+ $0.008 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>10,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>250,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>300 requests/min</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Everything in Starter</li>
                 <li><span className="pfc" aria-hidden="true">✓</span>MCP server access</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Sub-200ms cache</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Custom JS injection</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Webhooks &amp; 30-day logs</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Response caching</li>
               </ul>
               <Link href="/dashboard" className="pcta" aria-label="Start Pro plan trial">Start Pro trial</Link>
             </div>
@@ -650,20 +606,23 @@ export default function Home() {
               <div className="pper">+ $0.004 per extra</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>50,000 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Dedicated instances</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>SLA guarantee</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>SSO &amp; teams</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>1,500,000 screenshots/mo</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>1,000 requests/min</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Everything in Pro</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Highest volume &amp; rate limits</li>
               </ul>
               <Link href="/dashboard" className="pcta" aria-label="Get started with Scale plan">Get started</Link>
             </div>
           </div>
         </section>
 
-        <footer className="relative overflow-hidden border-t border-[hsl(var(--border))]">
+        {/* Always-dark showcase band (dark base + shader + dark scrim), matching
+            the hero — never renders as a white block in light theme. Footer text
+            is forced light via the `.footer-dark` rules in globals.css. */}
+        <footer className="footer-dark relative overflow-hidden border-t border-[hsl(var(--border))] bg-[#05060a]">
           <div className="absolute inset-0 z-0">
             <SmoothShaderBg />
-            <div className="absolute inset-0 dark:bg-black/35 bg-white/90 z-[1]" />
+            <div className="absolute inset-0 bg-black/40 z-[1]" />
           </div>
           <div className="relative z-10 footer-main">
             <div className="fb" style={{ flex: 1 }}>
@@ -671,12 +630,11 @@ export default function Home() {
                 <ShotbaseMark size={20} fill="#00e87b" />
                 shotbase
               </div>
-              <p>Screenshot any URL.<br />One API call.<br /><br />A Route1AI product</p>
+              <p>Browser infrastructure for AI &amp; automation.<br />Screenshot, content &amp; structured data.<br /><br />A Route1AI product</p>
             </div>
             <div className="fcols">
-              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/playground">Playground</Link></li><li><Link href="/">Changelog</Link></li></ul></div>
-              <div className="fcol"><h4>Developers</h4><ul><li><Link href="/docs">API Reference</Link></li><li><Link href="/">JS SDK</Link></li><li><Link href="/">Python SDK</Link></li><li><Link href="/">MCP Server</Link></li></ul></div>
-              <div className="fcol"><h4>Company</h4><ul><li><Link href="/">Route1AI</Link></li><li><Link href="/">Blog</Link></li><li><Link href="/">GitHub</Link></li></ul></div>
+              <div className="fcol"><h4>Product</h4><ul><li><Link href="/docs">Docs</Link></li><li><Link href="/dashboard/playground">Playground</Link></li></ul></div>
+              <div className="fcol"><h4>Developers</h4><ul><li><Link href="/docs">API Reference</Link></li><li><Link href="/docs">MCP Server</Link></li></ul></div>
             </div>
           </div>
           <div className="fbot relative z-10 !bg-transparent"><span>© 2026 Route1AI, Inc.</span><span>Privacy · Terms · Security</span></div>

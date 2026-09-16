@@ -104,7 +104,10 @@
   cursor: default;
 }
 @media (max-width: 768px) {
-  .orbital-container { max-width: 360px; }
+  /* Keep the orbital within the viewport (20px side padding) at all sizes. */
+  .orbital-container { max-width: min(360px, 86vw); }
+  /* Shorter labels so edge nodes don't clip at the tighter mobile radius. */
+  .orbital-node-label { max-width: 76px; font-size: 9px; }
 }
 .orbital-viewport {
   position: relative;
@@ -498,10 +501,22 @@
   font-size: 15px; color: hsl(var(--text-muted)); max-width: 480px; margin: 0 auto;
 }
 
+/* Horizontal-scroll wrapper so the wide table never forces page overflow
+   on mobile — it scrolls within its own bounds instead. */
+.compare-scroll {
+  max-width: 900px; margin: 0 auto;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
 .compare-table {
   width: 100%; max-width: 900px; margin: 0 auto;
   border: 1px solid hsl(var(--border)); border-radius: 14px; overflow: hidden;
   border-collapse: separate; border-spacing: 0;
+}
+@media (max-width: 768px) {
+  .compare-table { min-width: 560px; }
+  .compare-table thead th,
+  .compare-table tbody td { padding: 14px 16px; }
+  .compare-table thead th:first-child { width: auto; }
 }
 .compare-table thead th {
   font-family: var(--font-ibm-plex), monospace; font-size: 11px;
