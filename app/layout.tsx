@@ -14,8 +14,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Shotbase — Screenshot any URL. One API call.",
-  description: "Pass a URL, get a permanent screenshot back in milliseconds.",
+  title: "Shotbase — Browser infrastructure for AI & automation developers",
+  description:
+    "One API and MCP capability that renders any webpage and returns a screenshot, page content, and structured extracted data. REST + MCP, built for AI and automation developers.",
 };
 
 export default function RootLayout({

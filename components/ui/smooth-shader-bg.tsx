@@ -144,22 +144,59 @@ export function SmoothShaderBg({ className = "" }: { className?: string }) {
     resize()
     window.addEventListener("resize", resize)
 
-    /* — Render loop — */
+    /* — Render loop —
+       Perf: the loop only runs while the canvas is on-screen and the tab is
+       visible, so an off-screen shader (e.g. the footer one) costs nothing.
+       Under prefers-reduced-motion we paint a single static frame.          */
     let raf = 0
+    let onScreen = true
     const t0 = performance.now()
-    function frame() {
+
+    function renderFrame() {
       const t = (performance.now() - t0) / 1000
       gl!.clearColor(0, 0, 0, 0)
       gl!.clear(gl!.COLOR_BUFFER_BIT)
       gl!.uniform1f(uTime, t)
       gl!.uniform2f(uRes, canvas!.width, canvas!.height)
       gl!.drawArrays(gl!.TRIANGLES, 0, 6)
-      raf = requestAnimationFrame(frame)
     }
-    frame()
+    function loop() {
+      renderFrame()
+      raf = requestAnimationFrame(loop)
+    }
+    function start() {
+      if (!raf && onScreen && !document.hidden) raf = requestAnimationFrame(loop)
+    }
+    function stop() {
+      if (raf) { cancelAnimationFrame(raf); raf = 0 }
+    }
+
+    const prefersReduced =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+
+    let io: IntersectionObserver | null = null
+    const onVisibility = () => (document.hidden ? stop() : start())
+
+    if (prefersReduced) {
+      renderFrame() // one static frame, no animation
+    } else {
+      io = new IntersectionObserver(
+        (entries) => {
+          onScreen = entries[0]?.isIntersecting ?? true
+          if (onScreen) start()
+          else stop()
+        },
+        { threshold: 0 }
+      )
+      io.observe(canvas)
+      document.addEventListener("visibilitychange", onVisibility)
+      start()
+    }
 
     return () => {
-      cancelAnimationFrame(raf)
+      stop()
+      io?.disconnect()
+      document.removeEventListener("visibilitychange", onVisibility)
       window.removeEventListener("resize", resize)
       gl.deleteProgram(prog)
       gl.deleteBuffer(buf)

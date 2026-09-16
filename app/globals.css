@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Bind Tailwind's `dark:` variant to the next-themes `.dark` CLASS.
+   Tailwind v4 defaults `dark:` to `@media (prefers-color-scheme: dark)`, but
+   this app switches themes with a `.dark` class (next-themes, attribute="class").
+   Without this, every `dark:` utility keys off the OS setting instead of the
+   chosen theme — e.g. the footer's `dark:bg-black/35` never applied on a
+   light-OS machine, so its `bg-white/90` fallback rendered the footer WHITE
+   even in the dark-themed site. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Color token system ──────────────────────────────────────────────
    Phase 1 of the visual refresh. We define light + dark themes via
    CSS custom properties; components migrate to these in later phases.
@@ -218,6 +227,10 @@ aside,
   contain: layout style;
   position: relative;
   z-index: 1;
+  /* Safety net: keep any stray wide child (tables, shader canvases, scaled
+     transforms) from forcing horizontal page scroll on small screens. */
+  overflow-x: clip;
+  max-width: 100vw;
 }
 
 /* ─── Nav ────────────────────────────────────────────── */
@@ -228,9 +241,51 @@ aside,
   transition: background 0.6s, border-color 0.6s;
   border-bottom: 1px solid transparent;
 }
+/* Mobile controls (hamburger + theme toggle) — hidden on desktop */
+.nr-mobile { display: none; }
 @media (max-width: 768px) {
   .navbar { padding: 0 20px; }
-  .nl, .nr { display: none; }
+  /* `.navbar` prefix raises specificity above the base `.nl{display:flex}` /
+     `.nr{display:flex}` rules, which are declared later in this file — without
+     it, equal specificity + later source order would keep them visible. */
+  .navbar .nl, .navbar .nr { display: none; }
+  .navbar .nr-mobile { display: flex; align-items: center; gap: 6px; }
+}
+.nav-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 8px;
+  background: none; border: 1px solid hsl(var(--border-strong));
+  color: hsl(var(--text-primary)); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.nav-toggle:hover { border-color: hsl(var(--text-muted)); background: hsl(var(--hover-bg)); }
+.nav-toggle:focus-visible { outline: 1px solid hsl(var(--brand)); outline-offset: 2px; }
+
+/* Mobile dropdown panel */
+.nav-mobile-panel {
+  position: fixed; top: 64px; left: 0; right: 0; z-index: 99;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px 20px 20px;
+  background: hsl(var(--nav-bg)); backdrop-filter: blur(24px) saturate(1.5);
+  border-bottom: 1px solid hsl(var(--border));
+  opacity: 0; transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.nav-mobile-panel.open { opacity: 1; transform: translateY(0); }
+.nav-mobile-panel a {
+  font-family: var(--font-ibm-plex), monospace; font-size: 14px;
+  color: hsl(var(--text-secondary)); text-decoration: none;
+  padding: 12px 4px; border-bottom: 1px solid hsl(var(--border));
+  transition: color 0.15s;
+}
+.nav-mobile-panel a:hover { color: hsl(var(--text-primary)); }
+.nav-mobile-panel .nav-mobile-cta {
+  margin-top: 12px; border-bottom: none; text-align: center;
+  color: #000; background: hsl(var(--brand)); font-weight: 700;
+  border-radius: 8px; padding: 14px;
+}
+@media (min-width: 769px) {
+  .nav-mobile-panel { display: none; }
 }
 .navbar.s {
   background: hsl(var(--nav-bg)); backdrop-filter: blur(24px) saturate(1.5);
@@ -835,6 +890,29 @@ aside,
 @keyframes planGlow {
   0%, 100% { box-shadow: 0 0 32px hsl(var(--brand) / 0.08), inset 0 0 0 1px hsl(var(--brand) / 0.08); }
   50%       { box-shadow: 0 0 52px hsl(var(--brand) / 0.18), inset 0 0 0 1px hsl(var(--brand) / 0.12); }
+}
+
+/* ─── Reduced motion ─────────────────────────────────────
+   We can't blanket-disable animations: several load-in effects START at
+   opacity:0 / translated and animate TO visible, so `animation: none` alone
+   would leave them hidden. Instead we force those to their final visible
+   state, and separately stop the purely-decorative looping effects.        */
+@media (prefers-reduced-motion: reduce) {
+  /* Entrance animations → jump straight to the visible end-state */
+  .nlogo, .nl, .nr, .ey, .hero-sub, .hero-cta, .scroll-ind, .hero-mark svg,
+  .hi, .animate-element, .animate-slide-right, .animate-testimonial {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  /* Decorative, infinitely-looping effects → off */
+  .np, .plan.ft, .integrations-track,
+  .orbital-center-ping, .orbital-node-glow, .orbital-node-circle.related {
+    animation: none !important;
+  }
+  .plan.ft::before, .scroll-line::after { animation: none !important; }
+  .navbar, .nav-mobile-panel { transition: none !important; }
+  html { scroll-behavior: auto !important; }
 }
 
 /* ─── Infinite Grid Background ───────────────────────── */
