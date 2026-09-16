@@ -208,7 +208,7 @@ export default function OverviewPage() {
               </div>
             </div>
             <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
-{`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
+{`curl -X POST 'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
@@ -311,7 +311,7 @@ export default function OverviewPage() {
           </div>
           <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
 {`curl -X POST \\
-  'https://api.shotbase.dev/v1/screenshot' \\
+  'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`}
           </pre>

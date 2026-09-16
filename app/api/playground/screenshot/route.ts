@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     }
 
     // 4. Forward the validated body to the renderer with a bounded timeout.
-    const res = await fetch('https://shotbase-production.up.railway.app/screenshot', {
+    const res = await fetch('https://api.shotbase.dev/screenshot', {
       method: 'POST',
       headers: {
         // Authenticate to the render backend with the server-only shared secret

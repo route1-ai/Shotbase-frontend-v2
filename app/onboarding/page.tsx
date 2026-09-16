@@ -43,7 +43,7 @@ function buildSnippet(integration: IntegrationId, apiKey: string): { lang: strin
       return {
         lang: "bash",
         code:
-`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
+`curl -X POST 'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer ${key}' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
@@ -53,7 +53,7 @@ function buildSnippet(integration: IntegrationId, apiKey: string): { lang: strin
       return {
         lang: "javascript",
         code:
-`const res = await fetch('https://api.shotbase.dev/v1/screenshot', {
+`const res = await fetch('https://api.shotbase.dev/screenshot', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ${key}',
@@ -71,7 +71,7 @@ const imageUrl = URL.createObjectURL(blob)`,
 `import httpx
 
 r = httpx.post(
-    'https://api.shotbase.dev/v1/screenshot',
+    'https://api.shotbase.dev/screenshot',
     headers={'Authorization': 'Bearer ${key}'},
     json={'url': 'https://stripe.com'},
     timeout=60.0,

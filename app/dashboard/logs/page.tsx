@@ -54,7 +54,7 @@ function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
 
   if (!row) return null
 
-  const curlCmd = `curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
+  const curlCmd = `curl -X POST 'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url":"${row.url || "https://example.com"}"}' \\
