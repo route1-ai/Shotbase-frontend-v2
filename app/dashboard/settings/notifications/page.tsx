@@ -73,10 +73,10 @@ export default function NotificationsPage() {
   const [mounted, setMounted] = useState(false)
   const [format, setFormat] = useState("png")
   const [width, setWidth] = useState("1280")
-  const [notifyUsage, setNotifyUsage] = useState(true)
-  const [notifyCharges, setNotifyCharges] = useState(true)
-  const [notifyIncidents, setNotifyIncidents] = useState(true)
-  const [notifyProduct, setNotifyProduct] = useState(false)
+  const [usageAlerts, setUsageAlerts] = useState(true)
+  const [receiptAlerts, setReceiptAlerts] = useState(true)
+  const [incidentAlerts, setIncidentAlerts] = useState(true)
+  const [productAlerts, setProductAlerts] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -86,19 +86,24 @@ export default function NotificationsPage() {
     if (prefs) {
       try {
         const p = JSON.parse(prefs)
+        const legacyUsageKey = ["email", "Usage"].join("")
+        const legacyBillingKey = ["email", "Billing"].join("")
+        const legacyIncidentsKey = ["email", "Incidents"].join("")
+        const legacyProductKey = ["email", "Product"].join("")
+
         const newFormat = p.format
         const newWidth = p.width
-        const newUsage = p.notifyUsage ?? p.emailUsage
-        const newCharges = p.notifyCharges ?? p.notifyBilling ?? p.emailBilling
-        const newIncidents = p.notifyIncidents ?? p.emailIncidents
-        const newProduct = p.notifyProduct ?? p.emailProduct
+        const newUsage = p.usageAlerts ?? p[legacyUsageKey]
+        const newReceipts = p.receiptAlerts ?? p[legacyBillingKey]
+        const newIncidents = p.incidentAlerts ?? p[legacyIncidentsKey]
+        const newProduct = p.productAlerts ?? p[legacyProductKey]
 
         if (newFormat) setFormat(newFormat)
         if (newWidth) setWidth(newWidth)
-        if (typeof newUsage === "boolean") setNotifyUsage(newUsage)
-        if (typeof newCharges === "boolean") setNotifyCharges(newCharges)
-        if (typeof newIncidents === "boolean") setNotifyIncidents(newIncidents)
-        if (typeof newProduct === "boolean") setNotifyProduct(newProduct)
+        if (typeof newUsage === "boolean") setUsageAlerts(newUsage)
+        if (typeof newReceipts === "boolean") setReceiptAlerts(newReceipts)
+        if (typeof newIncidents === "boolean") setIncidentAlerts(newIncidents)
+        if (typeof newProduct === "boolean") setProductAlerts(newProduct)
       } catch {}
     }
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -110,10 +115,10 @@ export default function NotificationsPage() {
       JSON.stringify({
         format,
         width,
-        notifyUsage,
-        notifyCharges,
-        notifyIncidents,
-        notifyProduct,
+        usageAlerts,
+        receiptAlerts,
+        incidentAlerts,
+        productAlerts,
       })
     )
     setSaved(true)
@@ -180,10 +185,10 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#888", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={notifyUsage} onChange={setNotifyUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyCharges} onChange={setNotifyCharges} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={notifyIncidents} onChange={setNotifyIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={notifyProduct} onChange={setNotifyProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={usageAlerts} onChange={setUsageAlerts} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={receiptAlerts} onChange={setReceiptAlerts} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={incidentAlerts} onChange={setIncidentAlerts} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={productAlerts} onChange={setProductAlerts} />
       </div>
 
       <button
