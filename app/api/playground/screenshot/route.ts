@@ -1,7 +1,8 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
 import { ScreenshotRequestSchema, zodErrorResponse } from '@/lib/validation'
 import { validateSafeUrl, safeUrlReasonToMessage } from '@/lib/safe-url'
+import { ensureUserRow } from '@/lib/ensure-user'
 
 // Monthly screenshot limits per plan. Must match limits surfaced in /api/usage.
 const PLAN_LIMITS: Record<string, number> = {
@@ -28,6 +29,12 @@ export async function POST(req: Request) {
     console.error('SHOTBASE_BACKEND_BYPASS_KEY is not configured — refusing to proxy render request')
     return Response.json({ error: 'Server misconfiguration' }, { status: 500 })
   }
+
+  // Self-heal: the render backend resolves plan/quota by clerk_id. A user who
+  // predates the Clerk webhook has no Supabase row, which makes the backend fail
+  // closed with 503. Ensure the row exists (insert-if-missing) before forwarding.
+  const user = await currentUser()
+  await ensureUserRow(userId, user?.emailAddresses?.[0]?.emailAddress)
 
   // 1. Parse + validate the request body shape with Zod.
   let rawBody: unknown
