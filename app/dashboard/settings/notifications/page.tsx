@@ -74,7 +74,7 @@ export default function NotificationsPage() {
   const [format, setFormat] = useState("png")
   const [width, setWidth] = useState("1280")
   const [notifyUsage, setNotifyUsage] = useState(true)
-  const [notifyBilling, setNotifyBilling] = useState(true)
+  const [notifyCharges, setNotifyCharges] = useState(true)
   const [notifyIncidents, setNotifyIncidents] = useState(true)
   const [notifyProduct, setNotifyProduct] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -89,14 +89,14 @@ export default function NotificationsPage() {
         const newFormat = p.format
         const newWidth = p.width
         const newUsage = p.notifyUsage ?? p.emailUsage
-        const newBilling = p.notifyBilling ?? p.emailBilling
+        const newCharges = p.notifyCharges ?? p.notifyBilling ?? p.emailBilling
         const newIncidents = p.notifyIncidents ?? p.emailIncidents
         const newProduct = p.notifyProduct ?? p.emailProduct
 
         if (newFormat) setFormat(newFormat)
         if (newWidth) setWidth(newWidth)
         if (typeof newUsage === "boolean") setNotifyUsage(newUsage)
-        if (typeof newBilling === "boolean") setNotifyBilling(newBilling)
+        if (typeof newCharges === "boolean") setNotifyCharges(newCharges)
         if (typeof newIncidents === "boolean") setNotifyIncidents(newIncidents)
         if (typeof newProduct === "boolean") setNotifyProduct(newProduct)
       } catch {}
@@ -111,7 +111,7 @@ export default function NotificationsPage() {
         format,
         width,
         notifyUsage,
-        notifyBilling,
+        notifyCharges,
         notifyIncidents,
         notifyProduct,
       })
@@ -181,7 +181,7 @@ export default function NotificationsPage() {
         <p style={{ color: "#888", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
         <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={notifyUsage} onChange={setNotifyUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyBilling} onChange={setNotifyBilling} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyCharges} onChange={setNotifyCharges} />
         <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={notifyIncidents} onChange={setNotifyIncidents} />
         <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={notifyProduct} onChange={setNotifyProduct} />
       </div>
