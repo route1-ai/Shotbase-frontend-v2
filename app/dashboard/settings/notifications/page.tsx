@@ -1,16 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
-
-function getInitialPrefs() {
-  if (typeof window === "undefined") return null
-  try {
-    const prefs = localStorage.getItem("shotbase_prefs")
-    return prefs ? JSON.parse(prefs) : null
-  } catch {
-    return null
-  }
-}
+import React, { useState, useEffect } from "react"
 
 function Toggle({
   value,
@@ -80,21 +70,58 @@ function Toggle({
 }
 
 export default function NotificationsPage() {
-  const [format, setFormat] = useState(() => getInitialPrefs()?.format || "png")
-  const [width, setWidth] = useState(() => getInitialPrefs()?.width || "1280")
-  const [emailUsage, setEmailUsage] = useState(() => getInitialPrefs()?.emailUsage ?? true)
-  const [emailBilling, setEmailBilling] = useState(() => getInitialPrefs()?.emailBilling ?? true)
-  const [emailIncidents, setEmailIncidents] = useState(() => getInitialPrefs()?.emailIncidents ?? true)
-  const [emailProduct, setEmailProduct] = useState(() => getInitialPrefs()?.emailProduct ?? false)
+  const [mounted, setMounted] = useState(false)
+  const [format, setFormat] = useState("png")
+  const [width, setWidth] = useState("1280")
+  const [notifyUsage, setNotifyUsage] = useState(true)
+  const [notifyBilling, setNotifyBilling] = useState(true)
+  const [notifyIncidents, setNotifyIncidents] = useState(true)
+  const [notifyProduct, setNotifyProduct] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setMounted(true)
+    const prefs = localStorage.getItem("shotbase_prefs")
+    if (prefs) {
+      try {
+        const p = JSON.parse(prefs)
+        const newFormat = p.format
+        const newWidth = p.width
+        const newUsage = p.notifyUsage ?? p.emailUsage
+        const newBilling = p.notifyBilling ?? p.emailBilling
+        const newIncidents = p.notifyIncidents ?? p.emailIncidents
+        const newProduct = p.notifyProduct ?? p.emailProduct
+
+        if (newFormat) setFormat(newFormat)
+        if (newWidth) setWidth(newWidth)
+        if (typeof newUsage === "boolean") setNotifyUsage(newUsage)
+        if (typeof newBilling === "boolean") setNotifyBilling(newBilling)
+        if (typeof newIncidents === "boolean") setNotifyIncidents(newIncidents)
+        if (typeof newProduct === "boolean") setNotifyProduct(newProduct)
+      } catch {}
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [])
 
   const save = () => {
     localStorage.setItem(
       "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
+      JSON.stringify({
+        format,
+        width,
+        notifyUsage,
+        notifyBilling,
+        notifyIncidents,
+        notifyProduct,
+      })
     )
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  if (!mounted) {
+    return null
   }
 
   return (
@@ -153,10 +180,10 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#888", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={emailUsage} onChange={setEmailUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={emailBilling} onChange={setEmailBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={emailIncidents} onChange={setEmailIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={emailProduct} onChange={setEmailProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={notifyUsage} onChange={setNotifyUsage} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyBilling} onChange={setNotifyBilling} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={notifyIncidents} onChange={setNotifyIncidents} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={notifyProduct} onChange={setNotifyProduct} />
       </div>
 
       <button
