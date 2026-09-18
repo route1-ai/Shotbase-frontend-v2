@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import styles from "./docs.module.css"
 
@@ -258,6 +258,13 @@ const DEFAULT_CONTENT = (id: string) => (
 export default function Docs() {
   const [active, setActive] = useState('intro')
   const [search, setSearch] = useState('')
+
+  // Deep-link support: /docs?s=<section> lands directly on that section (used by
+  // the API Explorer and Integrations "Docs" buttons). Read once on mount.
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get('s')
+    if (s && CONTENT[s]) setActive(s)
+  }, [])
 
   const Content = CONTENT[active] || (() => DEFAULT_CONTENT(active))
 
