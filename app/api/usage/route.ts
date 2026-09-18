@@ -15,8 +15,9 @@ export async function GET() {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !supabaseKey) {
-      console.warn('Database not configured. Returning mock usage data.')
-      return Response.json({ count: 0, plan: 'Free', limit: 10000 })
+      // Accounting backend is intentionally unavailable — do NOT fabricate a
+      // count/limit. Signal unavailability so the UI shows an honest state.
+      return Response.json({ available: false })
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey)
@@ -48,11 +49,12 @@ export async function GET() {
       .gte('created_at', startOfMonth.toISOString())
 
     if (error) {
+      // Query failed → accounting unavailable; don't report a fake 0.
       console.error('Supabase screenshots count error:', error)
-      return Response.json({ count: 0, plan: userPlan, limit })
+      return Response.json({ available: false })
     }
 
-    return Response.json({ count: count || 0, plan: userPlan, limit })
+    return Response.json({ available: true, count: count || 0, plan: userPlan, limit })
   } catch (err: any) {
     console.error('Usage API error:', err)
     return Response.json({ error: err.message || 'Internal Server Error' }, { status: 500 })

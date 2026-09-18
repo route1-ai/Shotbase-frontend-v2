@@ -15,6 +15,12 @@ export async function GET() {
       name: k.name ?? 'Key',
       createdAt: k.createdAt ?? null,
       active: k.enabled !== false,
+      // Non-secret first-few-chars prefix for identification only. The full key
+      // is never returned by Unkey after creation.
+      start: k.start ?? null,
+      // Last-used timestamp (ms) from Unkey — approximate, ~5min granularity.
+      // Per-key request COUNT is not available from apis.listKeys.
+      lastUsedAt: k.lastUsedAt ?? null,
     }))
 
     return Response.json({ keys: shaped })

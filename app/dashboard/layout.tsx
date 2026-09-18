@@ -303,15 +303,35 @@ function UserMenu() {
 }
 
 function QuotaWidget() {
-  const [usage, setUsage] = useState({ count: 0, plan: "Free", limit: 10000 })
+  // null = still loading; false = accounting unavailable (show honest state).
+  const [usage, setUsage] = useState<{ count: number; plan: string; limit: number } | false | null>(null)
   useEffect(() => {
     fetch("/api/usage")
       .then((r) => r.json())
       .then((u) => {
-        if (u) setUsage({ count: u.count || 0, plan: u.plan || "Free", limit: u.limit || 10000 })
+        if (u && u.available === true && typeof u.count === "number") {
+          setUsage({ count: u.count, plan: u.plan || "Free", limit: u.limit })
+        } else {
+          setUsage(false)
+        }
       })
-      .catch(() => {})
+      .catch(() => setUsage(false))
   }, [])
+
+  // Unavailable / loading → no fabricated bar or numbers.
+  if (usage === null || usage === false) {
+    return (
+      <Link
+        href="/dashboard/usage"
+        style={{ margin: "10px 14px 6px", padding: 12, background: "#111", border: `1px solid ${BORDER}`, borderRadius: 8, display: "block", textDecoration: "none" }}
+      >
+        <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", lineHeight: 1.5 }}>
+          {usage === null ? "Loading usage…" : "Usage tracking temporarily unavailable"}
+        </div>
+      </Link>
+    )
+  }
+
   const pct = Math.min(100, (usage.count / Math.max(1, usage.limit)) * 100)
   const overHalf = pct > 50
   return (
@@ -335,7 +355,7 @@ function QuotaWidget() {
         <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 2 }} />
       </div>
       <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: overHalf ? "#888" : "#444" }}>
-        {usage.count.toLocaleString()} / {usage.limit.toLocaleString()} requests
+        {usage.count.toLocaleString()} / {usage.limit.toLocaleString()} captures
       </div>
     </Link>
   )
