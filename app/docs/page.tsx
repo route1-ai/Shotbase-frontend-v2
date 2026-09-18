@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import styles from "./docs.module.css"
 
@@ -259,6 +260,41 @@ export default function Docs() {
   const [active, setActive] = useState('intro')
   const [search, setSearch] = useState('')
 
+  // ----- Mobile docs drawer (≤767px) -----
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    const onC = () => { if (mq.matches) setMenuOpen(false) }
+    mq.addEventListener("change", onC)
+    return () => mq.removeEventListener("change", onC)
+  }, [])
+  useEffect(() => {
+    if (!menuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMenuOpen(false); return }
+      if (e.key === "Tab" && drawerRef.current) {
+        const f = Array.from(drawerRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])')).filter((el) => el.offsetParent !== null)
+        if (!f.length) return
+        const first = f[0], last = f[f.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    const t = window.setTimeout(() => drawerRef.current?.querySelector<HTMLElement>("button, a[href], input")?.focus(), 40)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener("keydown", onKey)
+      window.clearTimeout(t)
+      menuBtnRef.current?.focus?.()
+    }
+  }, [menuOpen])
+  const openSection = (id: string) => { setActive(id); setSearch(""); setMenuOpen(false) }
+
   // Deep-link support: /docs?s=<section> lands directly on that section (used by
   // the API Explorer and Integrations "Docs" buttons). Read once on mount.
   useEffect(() => {
@@ -270,8 +306,36 @@ export default function Docs() {
 
   return (
     <div className={styles.container}>
-      <nav style={{ height: 56, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', flexShrink: 0, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      {/* Docs mobile shell (≤767px): hide the sidebar, expose it via a "Docs
+          menu" hamburger + off-canvas drawer; article uses full width. */}
+      <style>{`
+        .docs-hamburger { display: none; }
+        /* Long headings, inline code and tables must never force page-level
+           horizontal scroll; code/tables scroll inside their own box. */
+        .docs-article pre { max-width: 100%; overflow-x: auto; }
+        .docs-article table { display: block; width: 100%; overflow-x: auto; }
+        .docs-article h1, .docs-article h2, .docs-article h3, .docs-article p, .docs-article li, .docs-article code { overflow-wrap: anywhere; }
+        @media (max-width: 767px) {
+          .docs-sidebar { display: none !important; }
+          .docs-hamburger { display: inline-flex !important; }
+          .docs-topnav { padding: 0 14px !important; }
+          .docs-article { padding: 28px 18px !important; }
+        }
+        @media (max-width: 430px) { .docs-topnav-pg { display: none !important; } }
+      `}</style>
+      <nav className="docs-topnav" style={{ height: 56, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', flexShrink: 0, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <button
+            ref={menuBtnRef}
+            className="docs-hamburger"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open docs menu"
+            aria-expanded={menuOpen}
+            aria-controls="docs-mobile-nav"
+            style={{ alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 8, background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#f0f0f0', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </button>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <div style={{ width: 26, height: 26, background: '#00e87b', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="10" rx="2" stroke="#000" strokeWidth="1.5"/><path d="M4 14h8M8 11v3" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -282,13 +346,13 @@ export default function Docs() {
           <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#888' }}>Docs</span>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/dashboard/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground</Link>
-          <Link href="/dashboard" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, fontWeight: 600, color: '#000', background: '#00e87b', padding: '6px 14px', borderRadius: 6, textDecoration: 'none' }}>Dashboard →</Link>
+          <Link className="docs-topnav-pg" href="/dashboard/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground</Link>
+          <Link href="/dashboard" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, fontWeight: 600, color: '#000', background: '#00e87b', padding: '6px 14px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}>Dashboard →</Link>
         </div>
       </nav>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <div style={{ width: 260, borderRight: '1px solid rgba(255,255,255,0.07)', background: '#0a0a0a', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'auto', position: 'sticky', top: 56, height: 'calc(100vh - 56px)' }}>
+        <div className="docs-sidebar" style={{ width: 260, borderRight: '1px solid rgba(255,255,255,0.07)', background: '#0a0a0a', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'auto', position: 'sticky', top: 56, height: 'calc(100vh - 56px)' }}>
           <div style={{ padding: '16px 16px 8px' }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search docs…" style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 12, background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '8px 12px', color: '#f0f0f0', outline: 'none' }}/>
           </div>
@@ -313,7 +377,7 @@ export default function Docs() {
         </div>
 
         <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
-          <div style={{ maxWidth: 780, padding: '48px 60px', margin: '0 auto' }}>
+          <div className="docs-article" style={{ maxWidth: 780, padding: '48px 60px', margin: '0 auto' }}>
             <Content/>
             <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444' }}>Last updated Apr 23, 2026</span>
@@ -324,6 +388,44 @@ export default function Docs() {
           </div>
         </div>
       </div>
+
+      {/* Mobile docs drawer — conditionally mounted so its links are NOT
+          keyboard-focusable when closed. Slides in via keyframes. */}
+      {menuOpen && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
+          <style>{`@keyframes docsFade{from{opacity:0}to{opacity:1}}@keyframes docsSlide{from{transform:translateX(-100%)}to{transform:translateX(0)}}`}</style>
+          <div onClick={() => setMenuOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)', animation: 'docsFade 0.2s ease' }} />
+          <div ref={drawerRef} id="docs-mobile-nav" role="dialog" aria-modal="true" aria-label="Docs navigation"
+            style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: 292, maxWidth: '86vw', background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', animation: 'docsSlide 0.24s cubic-bezier(0.16,1,0.3,1)', boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 12px 12px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <span style={{ fontFamily: 'var(--font-ibm-plex)', fontWeight: 600, fontSize: 15, color: '#f0f0f0' }}>Docs</span>
+              <button onClick={() => setMenuOpen(false)} aria-label="Close docs menu" style={{ width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#888', cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+            <div style={{ padding: '12px 12px 6px' }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search docs…" style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'var(--font-ibm-plex)', fontSize: 13, background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '10px 12px', color: '#f0f0f0', outline: 'none' }} />
+            </div>
+            <nav style={{ padding: '4px 10px 20px', overflowY: 'auto', flex: 1, overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
+              {NAV.map(group => {
+                const filtered = group.items.filter(item => !search || item.label.toLowerCase().includes(search.toLowerCase()))
+                if (!filtered.length) return null
+                return (
+                  <div key={group.section} style={{ marginBottom: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#444', padding: '0 10px', marginBottom: 6 }}>{group.section}</div>
+                    {filtered.map(item => (
+                      <button key={item.id} onClick={() => openSection(item.id)} style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '11px 12px', background: active === item.id ? 'rgba(0,232,123,0.08)' : 'none', border: 'none', borderRadius: 7, cursor: 'pointer', color: active === item.id ? '#00e87b' : '#c8c8c8', fontFamily: 'var(--font-inter)', fontSize: 15, textAlign: 'left', marginBottom: 1 }}>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })}
+            </nav>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
