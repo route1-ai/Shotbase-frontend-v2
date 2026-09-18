@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useUser } from "@clerk/nextjs"
 import { useLenis } from "lenis/react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -79,6 +80,9 @@ export default function Home() {
 
   // Mobile nav menu
   const [menuOpen, setMenuOpen] = useState(false)
+  // Auth-aware nav. Until Clerk is loaded we render neither state, to avoid
+  // flashing "Sign in" and then swapping it to "Dashboard".
+  const { isLoaded, isSignedIn } = useUser()
 
   // Root of the marketing page — GSAP reveals are scoped here.
   const rootRef = useRef<HTMLDivElement>(null)
@@ -187,8 +191,12 @@ export default function Home() {
         </ul>
         <div className="nr">
           <ThemeToggle />
-          <Link href="/signin" className="nbg">Sign in</Link>
-          <Link href="/signup" className="np">Get API Key <span aria-hidden="true">→</span></Link>
+          {isLoaded && (
+            isSignedIn
+              ? <Link href="/dashboard" className="nbg">Dashboard</Link>
+              : <Link href="/signin" className="nbg">Sign in</Link>
+          )}
+          <Link href={isLoaded && isSignedIn ? "/dashboard/keys" : "/signup"} className="np">Get API Key <span aria-hidden="true">→</span></Link>
         </div>
         {/* Mobile controls — theme toggle stays inline, links live behind a menu */}
         <div className="nr-mobile">
@@ -214,8 +222,12 @@ export default function Home() {
       >
         <Link href="/docs" onClick={() => setMenuOpen(false)}>Docs</Link>
         <Link href="/dashboard/playground" onClick={() => setMenuOpen(false)}>Playground</Link>
-        <Link href="/signin" onClick={() => setMenuOpen(false)}>Sign in</Link>
-        <Link href="/signup" className="nav-mobile-cta" onClick={() => setMenuOpen(false)}>
+        {isLoaded && (
+          isSignedIn
+            ? <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+            : <Link href="/signin" onClick={() => setMenuOpen(false)}>Sign in</Link>
+        )}
+        <Link href={isLoaded && isSignedIn ? "/dashboard/keys" : "/signup"} className="nav-mobile-cta" onClick={() => setMenuOpen(false)}>
           Get API Key <span aria-hidden="true">→</span>
         </Link>
       </div>
