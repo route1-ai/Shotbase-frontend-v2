@@ -97,14 +97,22 @@ export default function KeysPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
-        <div>
+      <style>{`
+        .keys-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        @media (max-width: 767px) {
+          .keys-header { flex-direction: column !important; align-items: stretch !important; gap: 14px; }
+          .keys-create-btn { width: 100% !important; }
+        }
+      `}</style>
+      <div className="keys-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
+        <div style={{ minWidth: 0 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>API Keys</h1>
           <p style={{ color: "#888", fontSize: 13 }}>Manage your API keys. Treat them like passwords — anyone with one can hit the API as you.</p>
         </div>
         <button
+          className="keys-create-btn"
           onClick={() => setShowNew(true)}
-          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: "pointer" }}
+          style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "10px 18px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, minHeight: 40 }}
         >
           + Create key
         </button>
@@ -113,14 +121,14 @@ export default function KeysPage() {
       {showNew && (
         <div style={{ ...cardStyle, marginBottom: 16, border: "1px solid rgba(0,232,123,0.25)" }}>
           <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 14 }}>New API key</div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <input
               autoFocus
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Key name (e.g. Production)"
               onKeyDown={(e) => e.key === "Enter" && createKey()}
-              style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none" }}
+              style={{ flex: "1 1 200px", minWidth: 0, fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none" }}
             />
             <button
               onClick={createKey}
@@ -148,7 +156,7 @@ export default function KeysPage() {
             <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444" }}>Create one to start making requests.</div>
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="keys-table" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {["Name", "Key", "Created", "Last used", "Requests", ""].map((h) => (

@@ -118,15 +118,23 @@ export default function OverviewPage() {
   ]
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 20 }}>
+    <div className="ov-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 20 }}>
+      {/* Mobile/tablet: stack the 320px rail under the main column and drop the
+          stats to 2-up; the recent-renders table scrolls inside its own box. */}
+      <style>{`
+        .ov-grid > * { min-width: 0; }
+        .ov-recent-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        @media (max-width: 900px) { .ov-grid { grid-template-columns: minmax(0, 1fr) !important; } }
+        @media (max-width: 767px) { .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+      `}</style>
       {/* ----- Main column ----- */}
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginBottom: 22 }}>
+          <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 4 }}>
               Welcome{user?.firstName ? `, ${user.firstName}` : ""}
             </h1>
-            <p style={{ color: "#888", fontSize: 13 }}>
+            <p style={{ color: "#888", fontSize: 13, overflowWrap: "anywhere" }}>
               <span style={{ color: "#f0f0f0" }}>{usage.plan} plan</span> · {user?.emailAddresses?.[0]?.emailAddress}
             </p>
           </div>
@@ -138,9 +146,11 @@ export default function OverviewPage() {
               fontWeight: 600,
               color: "#000",
               background: "#00e87b",
-              padding: "8px 16px",
+              padding: "9px 16px",
               borderRadius: 7,
               textDecoration: "none",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             ▶ Open playground
@@ -148,7 +158,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Metric cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div className="ov-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
           {metrics.map((m) => (
             <div key={m.label} style={metricCard}>
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
@@ -187,14 +197,14 @@ export default function OverviewPage() {
         {/* First-call card — collapsible after the first request */}
         {showFirstCall && (
           <div style={{ ...cardStyle, marginBottom: 16, border: `1px solid ${ACTIVE_BORDER}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
                 <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#00e87b", background: ACTIVE_BG, padding: "3px 8px", borderRadius: 4, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                   Getting started
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 500 }}>Make your first call</span>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
                 <Link href="/dashboard/playground" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
                   Try in Playground →
                 </Link>
@@ -276,7 +286,7 @@ export default function OverviewPage() {
               {loading ? "Loading…" : "No requests yet. Your renders will appear here in real time."}
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="ov-recent-table" style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                   {["Request ID", "URL", "Status", "Time", "Format", "When"].map((h) => (
