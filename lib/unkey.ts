@@ -16,6 +16,8 @@ export interface UnkeyKey {
   enabled?: boolean
   meta?: Record<string, unknown>
   createdAt?: number
+  updatedAt?: number
+  lastUsedAt?: number
   start?: string
   externalId?: string
 }
