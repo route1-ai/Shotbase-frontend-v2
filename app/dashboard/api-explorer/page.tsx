@@ -144,7 +144,17 @@ export default function ApiExplorerPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
+      {/* ≤820px (covers tablet 768, where the sidebar still occupies 240px):
+          stack the endpoint list above the detail panel and let code blocks
+          scroll internally instead of forcing horizontal overflow. */}
+      <style>{`
+        .apix-grid > * { min-width: 0; }
+        .apix-grid pre { max-width: 100%; }
+        @media (max-width: 820px) {
+          .apix-grid { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+      `}</style>
+      <div className="apix-grid" style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
         {/* Endpoint list */}
         <div style={cardStyle}>
           <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>

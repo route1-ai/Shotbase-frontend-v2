@@ -29,7 +29,13 @@ const TOP_ERRORS = [
   { code: 429, label: "Rate limited",   count: 5,  pct: 8 },
 ]
 
-const HOURLY = Array.from({ length: 24 }, (_, i) => 30 + Math.sin(i / 3) * 25 + Math.random() * 20)
+// Static integer curve (one value per hour). Must be fully deterministic:
+// Math.random() differs each call, and even Math.sin/Math.cos can differ by a
+// ULP between the server's and the browser's V8 — enough to change a computed
+// bar-height style string and trigger a hydration mismatch. Plain integers +
+// integer division stay identical on both sides.
+// (Insights is placeholder data slated for removal in a separate task.)
+const HOURLY = [18, 14, 12, 11, 13, 18, 26, 36, 45, 52, 56, 58, 57, 54, 50, 47, 44, 40, 34, 28, 23, 20, 19, 18]
 
 function tag(color: "green" | "yellow" | "red") {
   const m = {
@@ -70,8 +76,17 @@ export default function InsightsPage() {
         </div>
       </div>
 
+      {/* ≤767px: stats collapse to 2-up and the two-panel row stacks. */}
+      <style>{`
+        .ins-stats > *, .ins-cols > * { min-width: 0; }
+        .ins-cols table { max-width: 100%; }
+        @media (max-width: 820px) {
+          .ins-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .ins-cols { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+      `}</style>
       {/* Top stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
+      <div className="ins-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
         {[
           { label: "Renders / 7d", value: "4,106", trend: "+18%", trendColor: "#00e87b" },
           { label: "p50 latency",  value: "241ms", trend: "-12ms", trendColor: "#00e87b" },
@@ -115,7 +130,7 @@ export default function InsightsPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+      <div className="ins-cols" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
         {/* Top domains */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -134,7 +149,7 @@ export default function InsightsPage() {
               {TOP_DOMAINS.map((d, i) => (
                 <tr key={d.host} style={{ borderBottom: i < TOP_DOMAINS.length - 1 ? `1px solid ${BORDER}` : "none" }}>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#f0f0f0", padding: "9px 12px 9px 0" }}>{d.host}</td>
-                  <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "9px 12px 9px 0" }}>{d.requests.toLocaleString()}</td>
+                  <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "9px 12px 9px 0" }}>{d.requests.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "9px 12px 9px 0" }}>{d.p50}ms</td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "9px 12px 9px 0" }}>{d.p95}ms</td>
                   <td style={{ padding: "9px 0" }}>

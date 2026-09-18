@@ -285,7 +285,7 @@ export default function SignInPage() {
   const orangePos = calculatePosition(orangeRef);
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="min-h-screen grid lg:grid-cols-2 overflow-x-hidden">
       {/* Left Content Section */}
       <div className="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-[#0c0c12] to-[#111118] p-12 text-[#f0f0f8] overflow-hidden">
         <div className="relative z-20">
@@ -478,7 +478,7 @@ export default function SignInPage() {
       </div>
 
       {/* Right Login Section */}
-      <div className="flex items-center justify-center p-8 bg-[#050505]">
+      <div className="flex items-center justify-center p-4 sm:p-8 bg-[#050505] min-w-0">
         <SignIn fallbackRedirectUrl="/dashboard" signUpUrl="/signup" />
       </div>
     </div>
