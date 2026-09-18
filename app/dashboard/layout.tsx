@@ -363,7 +363,7 @@ function QuotaWidget() {
 
 function Logo({ collapsed }: { collapsed: boolean }) {
   return (
-    <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "20px 14px 16px" : "20px 16px 16px", textDecoration: "none", justifyContent: collapsed ? "center" : "flex-start" }}>
+    <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "20px 14px 16px" : "20px 16px 16px", textDecoration: "none", justifyContent: collapsed ? "center" : "flex-start" }}>
       <div style={{ width: 26, height: 26, background: "#00e87b", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         {/* Shotbase capture-bracket "S" mark */}
         <ShotbaseMark size={16} fill="#000" />
