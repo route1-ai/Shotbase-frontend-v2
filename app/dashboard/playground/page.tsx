@@ -498,10 +498,27 @@ function PlaygroundInner() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0', overflow: 'hidden' }}>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
+    <div className="pg-root" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0', overflow: 'hidden' }}>
+      {/* Mobile (≤767px): stack config over result and let the dashboard <main>
+          scroll vertically instead of squeezing a 360px column into the phone. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .pg-root { height: auto !important; min-height: calc(100vh - 56px); overflow: visible !important; }
+          /* minmax(0,1fr) lets the track shrink below its content's min-content
+             width; min-width:0 on the children stops a wide input/code block
+             from forcing horizontal overflow. */
+          .pg-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .pg-config, .pg-result { min-width: 0 !important; }
+          .pg-config { border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.07) !important; overflow: visible !important; }
+          .pg-result { min-height: 78vh; }
+          .pg-preview { min-height: 44vh; padding: 14px !important; }
+          .pg-preview img, .pg-preview iframe, .pg-preview > div { max-height: 60vh !important; }
+        }
+      `}</style>
+      <div className="pg-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
         {/* ---------- Left: options ---------- */}
         <div
+          className="pg-config"
           data-lenis-prevent
           style={{
             borderRight: `1px solid ${IDLE_BORDER}`,
@@ -774,8 +791,9 @@ function PlaygroundInner() {
         </div>
 
         {/* ---------- Right: preview + code ---------- */}
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div className="pg-result" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div
+            className="pg-preview"
             style={{
               flex: 1,
               display: 'flex',

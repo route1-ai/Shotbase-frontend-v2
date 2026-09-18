@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
@@ -381,6 +382,135 @@ function Breadcrumbs({ pathname }: { pathname: string }) {
   )
 }
 
+// ----- Mobile off-canvas drawer (≤767px) -----
+function DrawerNavLink({ item, active, onClose }: { item: NavItem; active: boolean; onClose: () => void }) {
+  const [hover, setHover] = useState(false)
+  const fg = active ? ACTIVE_FG : hover ? "#f0f0f0" : IDLE_FG
+  const bg = active ? ACTIVE_BG : hover ? HOVER_BG : "transparent"
+  const inner = (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 8, color: fg, background: bg, fontFamily: "var(--font-inter)", fontSize: 15, fontWeight: active ? 500 : 400, textDecoration: "none", marginBottom: 2 }}
+    >
+      <span style={{ display: "flex", width: 16, justifyContent: "center", opacity: active ? 1 : 0.75 }}>{item.icon}</span>
+      <span style={{ flex: 1 }}>{item.label}</span>
+      {item.external && <span style={{ color: "#444" }}>{ICON.external}</span>}
+    </div>
+  )
+  if (item.external) {
+    return <a href={item.href} target="_blank" rel="noopener noreferrer" onClick={onClose} style={{ textDecoration: "none" }}>{inner}</a>
+  }
+  return <Link href={item.href} onClick={onClose} style={{ textDecoration: "none" }}>{inner}</Link>
+}
+
+function MobileDrawer({
+  open,
+  onClose,
+  isActive,
+  returnFocusRef,
+}: {
+  open: boolean
+  onClose: () => void
+  isActive: (href: string) => boolean
+  returnFocusRef: React.RefObject<HTMLButtonElement | null>
+}) {
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  // Escape to close, focus trap within the panel, body scroll lock, and
+  // focus restoration to the hamburger when the drawer closes.
+  useEffect(() => {
+    if (!open) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return }
+      if (e.key === "Tab" && panelRef.current) {
+        const f = Array.from(
+          panelRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+        ).filter((el) => el.offsetParent !== null)
+        if (f.length === 0) return
+        const first = f[0]
+        const last = f[f.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    const t = window.setTimeout(() => {
+      panelRef.current?.querySelector<HTMLElement>("button, a[href]")?.focus()
+    }, 40)
+
+    return () => {
+      document.body.style.overflow = prevOverflow
+      document.removeEventListener("keydown", onKey)
+      window.clearTimeout(t)
+      returnFocusRef.current?.focus?.()
+    }
+  }, [open, onClose, returnFocusRef])
+
+  if (!mounted) return null
+
+  return createPortal(
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, pointerEvents: open ? "auto" : "none" }} aria-hidden={!open}>
+      <div
+        onClick={onClose}
+        style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)", opacity: open ? 1 : 0, transition: "opacity 0.2s ease" }}
+      />
+      <div
+        ref={panelRef}
+        id="dashboard-mobile-nav"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Dashboard navigation"
+        style={{
+          position: "absolute", top: 0, left: 0, height: "100%", width: 284, maxWidth: "86vw",
+          background: "#0a0a0a", borderRight: `1px solid ${BORDER}`, display: "flex", flexDirection: "column",
+          transform: open ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.24s cubic-bezier(0.16,1,0.3,1)",
+          boxShadow: open ? "0 0 40px rgba(0,0,0,0.6)" : "none",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 12px 12px 14px", borderBottom: `1px solid ${BORDER}` }}>
+          <Link href="/dashboard" onClick={onClose} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+            <div style={{ width: 26, height: 26, background: "#00e87b", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <ShotbaseMark size={16} fill="#000" />
+            </div>
+            <span style={{ fontFamily: "var(--font-ibm-plex)", fontWeight: 600, fontSize: 15, color: "#f0f0f0" }}>shotbase</span>
+          </Link>
+          <button
+            onClick={onClose}
+            aria-label="Close navigation menu"
+            style={{ width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: `1px solid ${BORDER}`, borderRadius: 8, color: "#888", cursor: "pointer", flexShrink: 0 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </button>
+        </div>
+        <nav style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "10px 12px", overscrollBehavior: "contain" }}>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} style={{ marginBottom: 14 }}>
+              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "#444", fontWeight: 600, padding: "8px 14px 6px" }}>{group.label}</div>
+              {group.items.map((item) => (
+                <DrawerNavLink key={item.href + item.label} item={item} active={isActive(item.href)} onClose={onClose} />
+              ))}
+            </div>
+          ))}
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: "#444", fontWeight: 600, padding: "8px 14px 6px" }}>SETTINGS</div>
+            {SETTINGS_ITEMS.map((item) => (
+              <DrawerNavLink key={item.href} item={{ ...item, icon: <span style={{ width: 16, display: "inline-block" }} /> }} active={isActive(item.href)} onClose={onClose} />
+            ))}
+          </div>
+        </nav>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/dashboard"
   const [collapsed, setCollapsed] = useState(false)
@@ -396,10 +526,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [collapsed])
 
+  // ----- Mobile off-canvas drawer state (≤767px) -----
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const hamburgerRef = useRef<HTMLButtonElement>(null)
+  // Close the drawer whenever the route changes or the viewport grows to desktop.
+  useEffect(() => { setMobileNavOpen(false) }, [pathname])
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    const onChange = () => { if (mq.matches) setMobileNavOpen(false) }
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
+
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard"
     return pathname === href || pathname.startsWith(href + "/")
   }
+
+  const pageTitle =
+    ROUTE_LABELS[pathname] ||
+    (pathname.split("/").filter(Boolean).pop() || "dashboard")
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
 
   const w = collapsed ? SIDEBAR_W_COLLAPSED : SIDEBAR_W
 
@@ -457,8 +605,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // events natively.
   return (
     <div style={{ display: "flex", width: "100%", height: "100vh", overflow: "hidden", background: "#050505", color: "#f0f0f0" }}>
-      {/* ----- Sidebar ----- */}
+      {/* Responsive shell rules (inline styles can't express media queries).
+          ≤767px: the desktop sidebar leaves the flow and a hamburger + off-canvas
+          drawer take over; the topbar tightens and drops the Operational badge. */}
+      <style>{`
+        .dash-hamburger { display: none; }
+        .dash-mobile-title { display: none; }
+        @media (max-width: 767px) {
+          .dash-sidebar { display: none !important; }
+          .dash-hamburger { display: inline-flex !important; }
+          .dash-breadcrumbs { display: none !important; }
+          .dash-mobile-title { display: block !important; }
+          .dash-header { padding: 0 14px !important; }
+          .dash-operational { display: none !important; }
+          .dash-main-pad { padding: 20px 16px !important; }
+        }
+      `}</style>
+
+      <MobileDrawer
+        open={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        isActive={isActive}
+        returnFocusRef={hamburgerRef}
+      />
+
+      {/* ----- Sidebar (desktop; removed from flow ≤767px) ----- */}
       <aside
+        className="dash-sidebar"
         style={{
           width: w,
           height: "100%",
@@ -535,6 +708,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ----- Main column ----- */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, height: "100%", overflow: "hidden" }}>
         <header
+          className="dash-header"
           style={{
             height: TOPBAR_H,
             borderBottom: `1px solid ${BORDER}`,
@@ -550,9 +724,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             zIndex: 10,
           }}
         >
-          <Breadcrumbs pathname={pathname} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+            <button
+              ref={hamburgerRef}
+              className="dash-hamburger"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={mobileNavOpen}
+              aria-controls="dashboard-mobile-nav"
+              style={{ alignItems: "center", justifyContent: "center", width: 38, height: 38, borderRadius: 8, background: "none", border: `1px solid ${BORDER}`, color: "#f0f0f0", cursor: "pointer", flexShrink: 0 }}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+            </button>
+            <div className="dash-breadcrumbs"><Breadcrumbs pathname={pathname} /></div>
+            <span className="dash-mobile-title" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 14, fontWeight: 600, color: "#f0f0f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pageTitle}</span>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <a
+              className="dash-operational"
               href="https://status.shotbase.dev"
               target="_blank"
               rel="noopener noreferrer"
@@ -596,6 +785,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <main
           ref={mainRef}
+          className={pathname.startsWith("/dashboard/playground") ? undefined : "dash-main-pad"}
           style={{
             flex: 1,
             // Playground is full-bleed inside the dashboard shell — no padding.
