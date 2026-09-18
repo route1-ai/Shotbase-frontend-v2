@@ -184,7 +184,6 @@ export default function OnboardingPage() {
   const [apiKey, setApiKey] = useState<string>("")
   const [creating, setCreating] = useState(false)
   const [copied, setCopied] = useState<"key" | "code" | null>(null)
-  const [revealed, setRevealed] = useState(false)
   const [skipping, setSkipping] = useState(false)
 
   // Restore in-progress wizard state from localStorage
@@ -237,7 +236,6 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (data?.key) {
         setApiKey(data.key)
-        setRevealed(true)
       }
       setStep(3)
     } catch (err) {
@@ -455,30 +453,25 @@ export default function OnboardingPage() {
                   <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "#00e87b", fontWeight: 600 }}>
                     Your secret key
                   </div>
-                  <button
-                    onClick={() => setRevealed((r) => !r)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-                  >
-                    {revealed ? "Hide" : "Show"}
-                  </button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {/* Shown exactly once — same one-time semantics as the Keys page.
+                      Never persisted; unrecoverable after leaving this screen. */}
                   <code
                     style={{
                       flex: 1,
                       fontFamily: "var(--font-ibm-plex)",
                       fontSize: 13,
-                      color: revealed ? "#f0f0f0" : "#666",
+                      color: "#f0f0f0",
                       background: "#050505",
                       padding: "10px 14px",
                       borderRadius: 6,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      overflowX: "auto",
                       whiteSpace: "nowrap",
                       border: `1px solid ${BORDER}`,
                     }}
                   >
-                    {revealed && apiKey ? apiKey : "sk_prod_••••••••••••••••••••••••"}
+                    {apiKey || "—"}
                   </code>
                   <button
                     onClick={copyKey}
