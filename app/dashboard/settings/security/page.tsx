@@ -1,11 +1,43 @@
 "use client"
 
 import React, { useState } from "react"
-import { useClerk } from "@clerk/nextjs"
+import { useClerk, useUser } from "@clerk/nextjs"
 
 export default function SecurityPage() {
   const { signOut } = useClerk()
+  const { user } = useUser()
+  const email = user?.primaryEmailAddress?.emailAddress ?? ""
   const [deleting, setDeleting] = useState(false)
+  const [confirmText, setConfirmText] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const canDelete = confirmText.trim().toLowerCase() === email.toLowerCase() && email.length > 0
+
+  const deleteAccount = async () => {
+    if (!canDelete) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.ok) {
+        // Everything removed server-side — end the session and leave.
+        await signOut({ redirectUrl: "/" })
+        return
+      }
+      // Surface the exact outcome (gate disabled, partial failure, etc.).
+      if (data?.code === "DELETION_DISABLED" || data?.code === "DB_UNAVAILABLE") {
+        setError("Account deletion isn’t available yet — it’s disabled until data-store cleanup is ready. Please contact support if you need your account removed.")
+      } else {
+        setError(data?.error || "Account deletion failed. Please try again or contact support.")
+      }
+    } catch {
+      setError("Account deletion failed (network). Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div>
@@ -55,16 +87,38 @@ export default function SecurityPage() {
         </p>
 
         {deleting ? (
-          <div style={{ display: "flex", gap: 10 }}>
-            <button style={{ background: "#ff6060", color: "#000", border: "none", padding: "9px 18px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-              Yes, delete my account
-            </button>
-            <button
-              onClick={() => setDeleting(false)}
-              style={{ background: "transparent", color: "#888", border: "1px solid rgba(255,255,255,0.15)", padding: "9px 18px", borderRadius: 7, fontSize: 12, fontWeight: 500, cursor: "pointer" }}
-            >
-              Cancel
-            </button>
+          <div>
+            <label style={{ display: "block", fontSize: 12, color: "#888", marginBottom: 8 }}>
+              Type your email <code style={{ fontFamily: "var(--font-ibm-plex)", color: "#ff8f8f" }}>{email || "(unknown)"}</code> to confirm:
+            </label>
+            <input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={email}
+              autoComplete="off"
+              style={{ width: "100%", maxWidth: 360, fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#111", border: "1px solid rgba(255,96,96,0.25)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none", marginBottom: 14 }}
+            />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                onClick={deleteAccount}
+                disabled={!canDelete || submitting}
+                style={{ background: canDelete && !submitting ? "#ff6060" : "#3a2020", color: canDelete && !submitting ? "#000" : "#8a6060", border: "none", padding: "9px 18px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: canDelete && !submitting ? "pointer" : "not-allowed" }}
+              >
+                {submitting ? "Deleting…" : "Yes, permanently delete my account"}
+              </button>
+              <button
+                onClick={() => { setDeleting(false); setConfirmText(""); setError(null) }}
+                disabled={submitting}
+                style={{ background: "transparent", color: "#888", border: "1px solid rgba(255,255,255,0.15)", padding: "9px 18px", borderRadius: 7, fontSize: 12, fontWeight: 500, cursor: submitting ? "not-allowed" : "pointer" }}
+              >
+                Cancel
+              </button>
+            </div>
+            {error && (
+              <div style={{ marginTop: 14, fontSize: 12, color: "#ff8f8f", background: "rgba(255,96,96,0.08)", border: "1px solid rgba(255,96,96,0.25)", borderRadius: 7, padding: "10px 14px", lineHeight: 1.5 }}>
+                {error}
+              </div>
+            )}
           </div>
         ) : (
           <button
