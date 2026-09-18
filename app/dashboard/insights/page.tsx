@@ -15,7 +15,9 @@ const cardStyle: React.CSSProperties = {
 // Insights require the usage/logs accounting backend, which is not yet wired in
 // production. We intentionally show an honest empty state rather than any
 // fabricated charts/metrics. Real aggregation will replace this once the
-// screenshots-logs pipeline is available.
+// screenshots-logs pipeline is available. (This empty state is responsive by
+// construction — a centered, max-width card — so no mobile-specific layout is
+// needed.)
 export default function InsightsPage() {
   return (
     <div>

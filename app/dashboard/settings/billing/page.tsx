@@ -86,7 +86,11 @@ export default function BillingPage() {
 
       <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 14 }}>Available Plans</h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
+      <style>{`
+        .bill-plans > * { min-width: 0; }
+        @media (max-width: 767px) { .bill-plans { grid-template-columns: minmax(0, 1fr) !important; } }
+      `}</style>
+      <div className="bill-plans" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
         {PLANS.map((p) => {
           const popular = !!p.popular
           return (
