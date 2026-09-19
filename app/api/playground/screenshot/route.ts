@@ -1,16 +1,12 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
-import { createClient } from '@supabase/supabase-js'
 import { ScreenshotRequestSchema, zodErrorResponse } from '@/lib/validation'
 import { validateSafeUrl, safeUrlReasonToMessage } from '@/lib/safe-url'
 import { ensureUserRow } from '@/lib/ensure-user'
 
-// Monthly screenshot limits per plan. Must match limits surfaced in /api/usage.
-const PLAN_LIMITS: Record<string, number> = {
-  free: 10000,
-  starter: 50000,
-  pro: 250000,
-  scale: 1500000,
-}
+// NOTE: this proxy deliberately does NOT enforce capture/AI/rate quotas. The
+// Railway backend is the single authoritative enforcement point (keyed off the
+// trusted X-Shotbase-User-Id + the user's plan). Duplicating limits here caused
+// backend/frontend drift, so it was removed.
 
 // Bound the upstream call so a hung render can't tie up a Vercel function slot.
 const RENDER_TIMEOUT_MS = 60_000
@@ -56,44 +52,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    // 3. Plan-quota check.
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (supabaseUrl && supabaseKey) {
-      const supabase = createClient(supabaseUrl, supabaseKey)
-      const startOfMonth = new Date()
-      startOfMonth.setDate(1)
-      startOfMonth.setHours(0, 0, 0, 0)
-
-      const [userRes, countRes] = await Promise.all([
-        supabase.from('users').select('plan').eq('clerk_id', userId).single(),
-        supabase
-          .from('screenshots')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId)
-          .gte('created_at', startOfMonth.toISOString()),
-      ])
-
-      const plan = (userRes.data?.plan || 'free').toLowerCase()
-      const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free
-      const used = countRes.count ?? 0
-
-      if (used >= limit) {
-        return Response.json(
-          { error: 'Monthly quota exceeded', plan, used, limit },
-          { status: 429 }
-        )
-      }
-    }
-
-    // 4. Forward the validated body to the renderer with a bounded timeout.
+    // 3. Forward the validated body to the renderer with a bounded timeout.
+    //    The backend enforces quotas/rate limits authoritatively.
     const res = await fetch('https://api.shotbase.dev/screenshot', {
       method: 'POST',
       headers: {
         // Authenticate to the render backend with the server-only shared secret
-        // resolved above (backend PLAYGROUND_BYPASS_KEY). Clerk auth + plan-quota
-        // check above already gate this route, so this doesn't widen the attack
-        // surface from the proxy side. The secret is server-only and never logged.
+        // resolved above (backend PLAYGROUND_BYPASS_KEY). Clerk auth gates this
+        // route; the secret is server-only and never logged.
         'Authorization': `Bearer ${backendBypassKey}`,
         'Content-Type': 'application/json',
         // Trusted identity: the authenticated Clerk userId, sourced ONLY from

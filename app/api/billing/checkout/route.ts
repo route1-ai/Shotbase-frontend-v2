@@ -1,6 +1,7 @@
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { priceIdForTier, SELF_SERVE_PAID_IDS } from '@/lib/plans'
 
 // Initialize Stripe if key is present
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
@@ -16,13 +17,16 @@ export async function POST(req: Request) {
     const { tier } = await req.json()
     if (!tier) return Response.json({ error: 'Missing tier' }, { status: 400 })
 
-    let priceId = ''
-    if (tier === 'starter') priceId = process.env.STRIPE_PRICE_STARTER || ''
-    if (tier === 'pro') priceId = process.env.STRIPE_PRICE_PRO || ''
-    if (tier === 'scale') priceId = process.env.STRIPE_PRICE_SCALE || ''
-
+    // Only self-serve paid tiers (builder, pro) are checkout-able. Business is
+    // contact-sales (no checkout); free/legacy/unknown are rejected here.
+    const t = String(tier).toLowerCase()
+    if (!SELF_SERVE_PAID_IDS.includes(t as (typeof SELF_SERVE_PAID_IDS)[number])) {
+      return Response.json({ error: 'Unsupported plan tier' }, { status: 400 })
+    }
+    const priceId = priceIdForTier(t)
     if (!priceId) {
-      return Response.json({ error: 'Invalid tier or missing price configuration' }, { status: 400 })
+      // Tier is valid but its Stripe price env var isn't configured.
+      return Response.json({ error: 'Plan price is not configured' }, { status: 400 })
     }
 
     if (!process.env.STRIPE_SECRET_KEY) {
