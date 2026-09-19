@@ -127,8 +127,8 @@ const CONTENT: Record<string, () => React.ReactNode> = {
             ['url', 'string', 'required', 'The URL to capture. Must include protocol (http/https).'],
             ['format', 'string', '"png"', 'Output format: png, jpeg, webp, or pdf.'],
             ['full_page', 'boolean', 'false', 'Capture the entire scrollable page height.'],
-            ['width', 'integer', '1440', 'Viewport width in pixels.'],
-            ['height', 'integer', '900', 'Viewport height in pixels.'],
+            ['width', 'integer', '1440', 'Viewport width in pixels (100–3840).'],
+            ['height', 'integer', '900', 'Viewport height in pixels (100–2160).'],
             ['include_text', 'boolean', 'false', 'Return the page’s rendered text. Switches the response to JSON.'],
             ['ai_extract', 'object', 'null', 'Request structured data, e.g. { "headings": true, "prices": true, "ctas": true, "page_type": true }. Switches the response to JSON.'],
           ].map(([p, t, d, desc]) => (
@@ -164,7 +164,7 @@ const CONTENT: Record<string, () => React.ReactNode> = {
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>MCP</div>
       <h1>MCP Server</h1>
-      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server over streamable HTTP at <code>POST /api/mcp</code>. It gives MCP-compatible agents one tool, <code>shotbase_capture</code>, that renders a page and returns the screenshot plus structured intelligence.</p>
+      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server over streamable HTTP at <code>POST /api/mcp</code>. It gives MCP-compatible agents one tool, <code>shotbase_capture</code>, that renders a page and returns the screenshot plus structured intelligence. The endpoint is <strong>POST-only</strong> — a <code>GET /api/mcp</code> returns <code>405 Method Not Allowed</code>.</p>
       <h2>Install (Claude Code / Claude Desktop / Cursor)</h2>
       <CodeBlock lang="bash" code={`claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\\n  --header "Authorization: Bearer sk_your_key"`}/>
       <h2>Available tool</h2>
@@ -189,9 +189,9 @@ const CONTENT: Record<string, () => React.ReactNode> = {
             ['400', 'Bad request', 'Missing/invalid parameters, or a blocked (private/internal) URL'],
             ['401', 'Unauthorized', 'Missing or invalid API key'],
             ['413', 'Payload too large', 'Request body exceeds the 1 MiB limit'],
-            ['429', 'Rate limited', 'Too many requests for your plan — back off and retry'],
+            ['429', 'Rate limited / quota reached', 'Per-minute rate limit exceeded OR monthly quota reached'],
             ['500', 'Capture failed', 'The page failed to render or an internal error occurred'],
-            ['503', 'Server busy', 'Renderer temporarily overloaded — check the Retry-After header'],
+            ['503', 'Temporarily unavailable', 'Renderer overloaded (check Retry-After) or an accounting dependency is temporarily unavailable'],
           ].map(([s, c, d]) => (
             <tr key={s}><td>{s}</td><td>{c}</td><td style={{ fontSize: 13, color: '#888' }}>{d}</td></tr>
           ))}
@@ -222,28 +222,40 @@ const CONTENT: Record<string, () => React.ReactNode> = {
       <table>
         <thead><tr><th>Plan</th><th>Requests / minute</th></tr></thead>
         <tbody>
-          {[['Free', '10'], ['Starter', '60'], ['Pro', '300'], ['Scale', '1,000']].map(([p, r]) => (
+          {[['Free', '10'], ['Builder', '20'], ['Pro', '40'], ['Business', 'Custom']].map(([p, r]) => (
             <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{r}</td></tr>
           ))}
         </tbody>
       </table>
-      <Callout type="tip">On a <code>429</code>, back off and retry. Monthly capture quotas are separate from the per-minute rate limit — see Plans &amp; billing.</Callout>
+      <Callout type="tip">A <code>429</code> means either the per-minute rate limit OR your monthly quota has been reached. Back off and retry rate-limit <code>429</code>s; if it&apos;s a monthly quota, upgrade or contact us. Monthly quotas are separate from the per-minute limit — see Plans &amp; billing.</Callout>
     </div>
   ),
   billing: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
       <h1>Plans &amp; billing</h1>
-      <p>Each plan includes a monthly screenshot quota. Manage your plan and usage in the <Link href="/dashboard">dashboard</Link>.</p>
+      <p>Each plan includes a monthly <strong>captures</strong> quota and a separate monthly <strong>AI extractions</strong> quota. Manage your plan and usage in the <Link href="/dashboard">dashboard</Link>.</p>
       <table>
-        <thead><tr><th>Plan</th><th>Screenshots / month</th></tr></thead>
+        <thead><tr><th>Plan</th><th>Price</th><th>Captures / mo</th><th>AI extractions / mo</th><th>Req / min</th></tr></thead>
         <tbody>
-          {[['Free', '10,000'], ['Starter', '50,000'], ['Pro', '250,000'], ['Scale', '1,500,000']].map(([p, q]) => (
-            <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{q}</td></tr>
+          {[
+            ['Free', '$0', '250', '25', '10'],
+            ['Builder', '$9/mo', '1,500', '150', '20'],
+            ['Pro', '$29/mo', '7,500', '1,000', '40'],
+            ['Business', 'Custom', 'Custom', 'Custom', 'Custom'],
+          ].map(([p, price, cap, ai, rpm]) => (
+            <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{price}</td><td style={{ fontSize: 13, color: '#888' }}>{cap}</td><td style={{ fontSize: 13, color: '#888' }}>{ai}</td><td style={{ fontSize: 13, color: '#888' }}>{rpm}</td></tr>
           ))}
         </tbody>
       </table>
-      <Callout type="info">See the <Link href="/#pricing">pricing section</Link> for current plan prices.</Callout>
+      <h2>How usage counts</h2>
+      <ul>
+        <li>Each successful capture uses <strong>1 capture</strong>.</li>
+        <li>A successful AI extraction (<code>ai_extract</code>) additionally uses <strong>1 AI extraction</strong>.</li>
+        <li><code>include_text</code> returns page text and does <strong>not</strong> use AI-extraction quota.</li>
+        <li>No overage billing during the paid beta — once a quota is reached, upgrade or contact us.</li>
+      </ul>
+      <Callout type="info">Business is custom volume and throughput — <a href="mailto:hello@shotbase.dev" style={{ color: '#00e87b', textDecoration: 'none' }}>talk to us</a>. See the <Link href="/#pricing">pricing section</Link> for details.</Callout>
     </div>
   ),
 }
