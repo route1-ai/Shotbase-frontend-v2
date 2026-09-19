@@ -1,56 +1,32 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 
-export default function NotificationsPage() {
-  const [format, setFormat] = useState("png")
-  const [width, setWidth] = useState("1280")
-  const [emailUsage, setEmailUsage] = useState(true)
-  const [emailBilling, setEmailBilling] = useState(true)
-  const [emailIncidents, setEmailIncidents] = useState(true)
-  const [emailProduct, setEmailProduct] = useState(false)
-  const [saved, setSaved] = useState(false)
+interface ToggleProps {
+  value: boolean
+  onChange: (v: boolean) => void
+  label: string
+  sub: string
+}
 
-  useEffect(() => {
-    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
-    if (prefs) {
-      try {
-        const p = JSON.parse(prefs)
-        if (p.format) setFormat(p.format)
-        if (p.width) setWidth(p.width)
-        if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
-        if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
-        if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
-        if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
-      } catch {}
-    }
-  }, [])
-
-  const save = () => {
-    localStorage.setItem(
-      "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
-    )
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+function Toggle({ value, onChange, label, sub }: ToggleProps) {
+  return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
+      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b] rounded-md transition-opacity hover:opacity-90"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         width: "100%",
         padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
         background: "none",
         border: "none",
-        borderBottomWidth: 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: "rgba(255,255,255,0.07)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
         cursor: "pointer",
         textAlign: "left",
         color: "inherit",
@@ -60,11 +36,62 @@ export default function NotificationsPage() {
         <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
         <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#666" }}>{sub}</div>
       </div>
-      <div style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#00e87b" : "#1a1a1a", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <div style={{ width: 16, height: 16, borderRadius: 8, background: "#fff", position: "absolute", top: 3, left: value ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
+      <div
+        style={{
+          width: 40,
+          height: 22,
+          borderRadius: 11,
+          background: value ? "#00e87b" : "#1a1a1a",
+          position: "relative",
+          transition: "background 0.2s",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 8,
+            background: "#fff",
+            position: "absolute",
+            top: 3,
+            left: value ? 21 : 3,
+            transition: "left 0.2s",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+          }}
+        />
       </div>
     </button>
   )
+}
+
+function getSavedPrefs() {
+  if (typeof window === "undefined") return null
+  try {
+    const prefs = localStorage.getItem("shotbase_prefs")
+    return prefs ? JSON.parse(prefs) : null
+  } catch {
+    return null
+  }
+}
+
+export default function NotificationsPage() {
+  const [format, setFormat] = useState(() => getSavedPrefs()?.format ?? "png")
+  const [width, setWidth] = useState(() => getSavedPrefs()?.width ?? "1280")
+  const [emailUsage, setEmailUsage] = useState(() => getSavedPrefs()?.emailUsage ?? true)
+  const [emailBilling, setEmailBilling] = useState(() => getSavedPrefs()?.emailBilling ?? true)
+  const [emailIncidents, setEmailIncidents] = useState(() => getSavedPrefs()?.emailIncidents ?? true)
+  const [emailProduct, setEmailProduct] = useState(() => getSavedPrefs()?.emailProduct ?? false)
+  const [saved, setSaved] = useState(false)
+
+  const save = () => {
+    localStorage.setItem(
+      "shotbase_prefs",
+      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
+    )
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   return (
     <div>
