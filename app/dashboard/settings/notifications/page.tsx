@@ -1,43 +1,21 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 
-export default function NotificationsPage() {
-  const [format, setFormat] = useState("png")
-  const [width, setWidth] = useState("1280")
-  const [emailUsage, setEmailUsage] = useState(true)
-  const [emailBilling, setEmailBilling] = useState(true)
-  const [emailIncidents, setEmailIncidents] = useState(true)
-  const [emailProduct, setEmailProduct] = useState(false)
-  const [saved, setSaved] = useState(false)
+interface ToggleProps {
+  value: boolean
+  onChange: (v: boolean) => void
+  label: string
+  sub: string
+}
 
-  useEffect(() => {
-    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
-    if (prefs) {
-      try {
-        const p = JSON.parse(prefs)
-        if (p.format) setFormat(p.format)
-        if (p.width) setWidth(p.width)
-        if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
-        if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
-        if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
-        if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
-      } catch {}
-    }
-  }, [])
-
-  const save = () => {
-    localStorage.setItem(
-      "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
-    )
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+function Toggle({ value, onChange, label, sub }: ToggleProps) {
+  return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
       style={{
         display: "flex",
@@ -45,7 +23,6 @@ export default function NotificationsPage() {
         justifyContent: "space-between",
         width: "100%",
         padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
         background: "none",
         border: "none",
         borderBottomWidth: 1,
@@ -65,6 +42,35 @@ export default function NotificationsPage() {
       </div>
     </button>
   )
+}
+
+function getStoredPrefs() {
+  if (typeof window === "undefined") return null
+  try {
+    const prefs = localStorage.getItem("shotbase_prefs")
+    return prefs ? JSON.parse(prefs) : null
+  } catch {
+    return null
+  }
+}
+
+export default function NotificationsPage() {
+  const [format, setFormat] = useState(() => getStoredPrefs()?.format ?? "png")
+  const [width, setWidth] = useState(() => getStoredPrefs()?.width ?? "1280")
+  const [emailUsage, setEmailUsage] = useState(() => getStoredPrefs()?.emailUsage ?? true)
+  const [emailBilling, setEmailBilling] = useState(() => getStoredPrefs()?.emailBilling ?? true)
+  const [emailIncidents, setEmailIncidents] = useState(() => getStoredPrefs()?.emailIncidents ?? true)
+  const [emailProduct, setEmailProduct] = useState(() => getStoredPrefs()?.emailProduct ?? false)
+  const [saved, setSaved] = useState(false)
+
+  const save = () => {
+    localStorage.setItem(
+      "shotbase_prefs",
+      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
+    )
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   return (
     <div>
@@ -80,6 +86,7 @@ export default function NotificationsPage() {
             {["png", "jpeg", "webp"].map((f) => (
               <button
                 key={f}
+                type="button"
                 onClick={() => setFormat(f)}
                 style={{
                   flex: 1,
@@ -128,6 +135,7 @@ export default function NotificationsPage() {
       </div>
 
       <button
+        type="button"
         onClick={save}
         style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}
       >
