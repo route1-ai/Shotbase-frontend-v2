@@ -57,16 +57,16 @@ function getStoredPrefs() {
 export default function NotificationsPage() {
   const [format, setFormat] = useState(() => getStoredPrefs()?.format ?? "png")
   const [width, setWidth] = useState(() => getStoredPrefs()?.width ?? "1280")
-  const [emailUsage, setEmailUsage] = useState(() => getStoredPrefs()?.emailUsage ?? true)
-  const [emailBilling, setEmailBilling] = useState(() => getStoredPrefs()?.emailBilling ?? true)
-  const [emailIncidents, setEmailIncidents] = useState(() => getStoredPrefs()?.emailIncidents ?? true)
-  const [emailProduct, setEmailProduct] = useState(() => getStoredPrefs()?.emailProduct ?? false)
+  const [notifyUsage, setNotifyUsage] = useState(() => getStoredPrefs()?.notifyUsage ?? getStoredPrefs()?.emailUsage ?? true)
+  const [notifyBilling, setNotifyBilling] = useState(() => getStoredPrefs()?.notifyBilling ?? getStoredPrefs()?.emailBilling ?? true)
+  const [notifyIncidents, setNotifyIncidents] = useState(() => getStoredPrefs()?.notifyIncidents ?? getStoredPrefs()?.emailIncidents ?? true)
+  const [notifyProduct, setNotifyProduct] = useState(() => getStoredPrefs()?.notifyProduct ?? getStoredPrefs()?.emailProduct ?? false)
   const [saved, setSaved] = useState(false)
 
   const save = () => {
     localStorage.setItem(
       "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
+      JSON.stringify({ format, width, notifyUsage, notifyBilling, notifyIncidents, notifyProduct })
     )
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -128,10 +128,10 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#666", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={emailUsage} onChange={setEmailUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={emailBilling} onChange={setEmailBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={emailIncidents} onChange={setEmailIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={emailProduct} onChange={setEmailProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={notifyUsage} onChange={setNotifyUsage} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyBilling} onChange={setNotifyBilling} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={notifyIncidents} onChange={setNotifyIncidents} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={notifyProduct} onChange={setNotifyProduct} />
       </div>
 
       <button
