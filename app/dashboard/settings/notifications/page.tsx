@@ -2,6 +2,48 @@
 
 import React, { useState, useEffect } from "react"
 
+interface ToggleProps {
+  value: boolean
+  onChange: (v: boolean) => void
+  label: string
+  sub: string
+}
+
+function Toggle({ value, onChange, label, sub }: ToggleProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
+      onClick={() => onChange(!value)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        width: "100%",
+        padding: "14px 0",
+        background: "none",
+        border: "none",
+        borderBottomWidth: 1,
+        borderBottomStyle: "solid",
+        borderBottomColor: "rgba(255,255,255,0.07)",
+        cursor: "pointer",
+        textAlign: "left",
+        color: "inherit",
+      }}
+    >
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
+        <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#666" }}>{sub}</div>
+      </div>
+      <div style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#00e87b" : "#1a1a1a", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+        <div style={{ width: 16, height: 16, borderRadius: 8, background: "#fff", position: "absolute", top: 3, left: value ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
+      </div>
+    </button>
+  )
+}
+
 export default function NotificationsPage() {
   const [format, setFormat] = useState("png")
   const [width, setWidth] = useState("1280")
@@ -35,37 +77,6 @@ export default function NotificationsPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        width: "100%",
-        padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
-        background: "none",
-        border: "none",
-        borderBottomWidth: 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: "rgba(255,255,255,0.07)",
-        cursor: "pointer",
-        textAlign: "left",
-        color: "inherit",
-      }}
-    >
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>{label}</div>
-        <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#666" }}>{sub}</div>
-      </div>
-      <div style={{ width: 40, height: 22, borderRadius: 11, background: value ? "#00e87b" : "#1a1a1a", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-        <div style={{ width: 16, height: 16, borderRadius: 8, background: "#fff", position: "absolute", top: 3, left: value ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
-      </div>
-    </button>
-  )
-
   return (
     <div>
       <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>Notifications</h1>
@@ -80,6 +91,7 @@ export default function NotificationsPage() {
             {["png", "jpeg", "webp"].map((f) => (
               <button
                 key={f}
+                type="button"
                 onClick={() => setFormat(f)}
                 style={{
                   flex: 1,
@@ -128,6 +140,7 @@ export default function NotificationsPage() {
       </div>
 
       <button
+        type="button"
         onClick={save}
         style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}
       >
