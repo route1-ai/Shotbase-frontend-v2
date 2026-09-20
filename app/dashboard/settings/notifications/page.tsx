@@ -58,12 +58,14 @@ export default function NotificationsPage() {
     if (prefs) {
       try {
         const p = JSON.parse(prefs)
+        /* eslint-disable react-hooks/set-state-in-effect */
         if (p.format) setFormat(p.format)
         if (p.width) setWidth(p.width)
         if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
         if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
         if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
         if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
+        /* eslint-enable react-hooks/set-state-in-effect */
       } catch {}
     }
   }, [])
