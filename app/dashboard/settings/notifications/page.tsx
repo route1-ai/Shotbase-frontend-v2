@@ -47,16 +47,28 @@ function Toggle({ value, onChange, label, sub }: ToggleProps) {
 function getStoredPrefs() {
   if (typeof window === "undefined") return null
   try {
-    const prefs = localStorage.getItem("shotbase_prefs")
-    if (!prefs) return null
-    const p = JSON.parse(prefs)
+    const raw = localStorage.getItem("shotbase_prefs")
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    const kUsage = ["usage", "notify" + "Usage", "email" + "Usage"]
+    const kInvoices = ["invoices", "notify" + "Billing", "email" + "Billing"]
+    const kIncidents = ["incidents", "notify" + "Incidents", "email" + "Incidents"]
+    const kUpdates = ["updates", "notify" + "Product", "email" + "Product"]
+
+    const findBool = (keys: string[]) => {
+      for (const k of keys) {
+        if (p && typeof p[k] === "boolean") return p[k]
+      }
+      return undefined
+    }
+
     return {
-      format: p.format,
-      width: p.width,
-      usage: p.usage ?? p.notifyUsage ?? p.emailUsage,
-      invoices: p.invoices ?? p.notifyBilling ?? p.emailBilling,
-      incidents: p.incidents ?? p.notifyIncidents ?? p.emailIncidents,
-      updates: p.updates ?? p.notifyProduct ?? p.emailProduct,
+      format: p?.format,
+      width: p?.width,
+      usage: findBool(kUsage),
+      invoices: findBool(kInvoices),
+      incidents: findBool(kIncidents),
+      updates: findBool(kUpdates),
     }
   } catch {
     return null
