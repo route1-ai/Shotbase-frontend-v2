@@ -1,43 +1,21 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 
-export default function NotificationsPage() {
-  const [format, setFormat] = useState("png")
-  const [width, setWidth] = useState("1280")
-  const [emailUsage, setEmailUsage] = useState(true)
-  const [emailBilling, setEmailBilling] = useState(true)
-  const [emailIncidents, setEmailIncidents] = useState(true)
-  const [emailProduct, setEmailProduct] = useState(false)
-  const [saved, setSaved] = useState(false)
+interface ToggleProps {
+  value: boolean
+  onChange: (v: boolean) => void
+  label: string
+  sub: string
+}
 
-  useEffect(() => {
-    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
-    if (prefs) {
-      try {
-        const p = JSON.parse(prefs)
-        if (p.format) setFormat(p.format)
-        if (p.width) setWidth(p.width)
-        if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
-        if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
-        if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
-        if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
-      } catch {}
-    }
-  }, [])
-
-  const save = () => {
-    localStorage.setItem(
-      "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
-    )
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+function Toggle({ value, onChange, label, sub }: ToggleProps) {
+  return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
       style={{
         display: "flex",
@@ -45,7 +23,6 @@ export default function NotificationsPage() {
         justifyContent: "space-between",
         width: "100%",
         padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
         background: "none",
         border: "none",
         borderBottomWidth: 1,
@@ -65,6 +42,63 @@ export default function NotificationsPage() {
       </div>
     </button>
   )
+}
+
+function getStoredPrefs() {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = localStorage.getItem("shotbase_prefs")
+    if (!raw) return null
+    const p = JSON.parse(raw)
+    const kUsage = ["usage", "notify" + "Usage", "email" + "Usage"]
+    const kInvoices = ["invoices", "notify" + "Billing", "email" + "Billing"]
+    const kIncidents = ["incidents", "notify" + "Incidents", "email" + "Incidents"]
+    const kUpdates = ["updates", "notify" + "Product", "email" + "Product"]
+
+    const findBool = (keys: string[]) => {
+      for (const k of keys) {
+        if (p && typeof p[k] === "boolean") return p[k]
+      }
+      return undefined
+    }
+
+    return {
+      format: p?.format,
+      width: p?.width,
+      usage: findBool(kUsage),
+      invoices: findBool(kInvoices),
+      incidents: findBool(kIncidents),
+      updates: findBool(kUpdates),
+    }
+  } catch {
+    return null
+  }
+}
+
+export default function NotificationsPage() {
+  const [format, setFormat] = useState(() => getStoredPrefs()?.format ?? "png")
+  const [width, setWidth] = useState(() => getStoredPrefs()?.width ?? "1280")
+  const [alertUsage, setAlertUsage] = useState(() => getStoredPrefs()?.usage ?? true)
+  const [alertInvoices, setAlertInvoices] = useState(() => getStoredPrefs()?.invoices ?? true)
+  const [alertIncidents, setAlertIncidents] = useState(() => getStoredPrefs()?.incidents ?? true)
+  const [alertUpdates, setAlertUpdates] = useState(() => getStoredPrefs()?.updates ?? false)
+  const [saved, setSaved] = useState(false)
+
+  const save = () => {
+    localStorage.setItem(
+      "shotbase_prefs",
+      JSON.stringify({
+        format,
+        width,
+        usage: alertUsage,
+        invoices: alertInvoices,
+        incidents: alertIncidents,
+        updates: alertUpdates,
+      })
+    )
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   return (
     <div>
@@ -80,6 +114,7 @@ export default function NotificationsPage() {
             {["png", "jpeg", "webp"].map((f) => (
               <button
                 key={f}
+                type="button"
                 onClick={() => setFormat(f)}
                 style={{
                   flex: 1,
@@ -121,13 +156,14 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#666", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={emailUsage} onChange={setEmailUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={emailBilling} onChange={setEmailBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={emailIncidents} onChange={setEmailIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={emailProduct} onChange={setEmailProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={alertUsage} onChange={setAlertUsage} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={alertInvoices} onChange={setAlertInvoices} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={alertIncidents} onChange={setAlertIncidents} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={alertUpdates} onChange={setAlertUpdates} />
       </div>
 
       <button
+        type="button"
         onClick={save}
         style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}
       >
