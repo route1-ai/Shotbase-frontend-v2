@@ -48,7 +48,16 @@ function getStoredPrefs() {
   if (typeof window === "undefined") return null
   try {
     const prefs = localStorage.getItem("shotbase_prefs")
-    return prefs ? JSON.parse(prefs) : null
+    if (!prefs) return null
+    const p = JSON.parse(prefs)
+    return {
+      format: p.format,
+      width: p.width,
+      usage: p.usage ?? p.notifyUsage ?? p.emailUsage,
+      invoices: p.invoices ?? p.notifyBilling ?? p.emailBilling,
+      incidents: p.incidents ?? p.notifyIncidents ?? p.emailIncidents,
+      updates: p.updates ?? p.notifyProduct ?? p.emailProduct,
+    }
   } catch {
     return null
   }
@@ -57,16 +66,23 @@ function getStoredPrefs() {
 export default function NotificationsPage() {
   const [format, setFormat] = useState(() => getStoredPrefs()?.format ?? "png")
   const [width, setWidth] = useState(() => getStoredPrefs()?.width ?? "1280")
-  const [notifyUsage, setNotifyUsage] = useState(() => getStoredPrefs()?.notifyUsage ?? getStoredPrefs()?.emailUsage ?? true)
-  const [notifyBilling, setNotifyBilling] = useState(() => getStoredPrefs()?.notifyBilling ?? getStoredPrefs()?.emailBilling ?? true)
-  const [notifyIncidents, setNotifyIncidents] = useState(() => getStoredPrefs()?.notifyIncidents ?? getStoredPrefs()?.emailIncidents ?? true)
-  const [notifyProduct, setNotifyProduct] = useState(() => getStoredPrefs()?.notifyProduct ?? getStoredPrefs()?.emailProduct ?? false)
+  const [alertUsage, setAlertUsage] = useState(() => getStoredPrefs()?.usage ?? true)
+  const [alertInvoices, setAlertInvoices] = useState(() => getStoredPrefs()?.invoices ?? true)
+  const [alertIncidents, setAlertIncidents] = useState(() => getStoredPrefs()?.incidents ?? true)
+  const [alertUpdates, setAlertUpdates] = useState(() => getStoredPrefs()?.updates ?? false)
   const [saved, setSaved] = useState(false)
 
   const save = () => {
     localStorage.setItem(
       "shotbase_prefs",
-      JSON.stringify({ format, width, notifyUsage, notifyBilling, notifyIncidents, notifyProduct })
+      JSON.stringify({
+        format,
+        width,
+        usage: alertUsage,
+        invoices: alertInvoices,
+        incidents: alertIncidents,
+        updates: alertUpdates,
+      })
     )
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -128,10 +144,10 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#666", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={notifyUsage} onChange={setNotifyUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyBilling} onChange={setNotifyBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={notifyIncidents} onChange={setNotifyIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={notifyProduct} onChange={setNotifyProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={alertUsage} onChange={setAlertUsage} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={alertInvoices} onChange={setAlertInvoices} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={alertIncidents} onChange={setAlertIncidents} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={alertUpdates} onChange={setAlertUpdates} />
       </div>
 
       <button
