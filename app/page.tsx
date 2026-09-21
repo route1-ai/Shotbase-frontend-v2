@@ -110,8 +110,12 @@ export default function Home() {
   }, [])
 
   // Subtle, restrained scroll reveals (Linear/Vercel style): gentle fade +
-  // upward translate as each block enters the viewport, reversing on the way
-  // back up. Fully disabled under prefers-reduced-motion via gsap.matchMedia.
+  // upward translate as each block enters the viewport — as a PROGRESSIVE
+  // ENHANCEMENT only. Content is visible by default (see the two invariants in
+  // the effect): we never place a not-yet-triggered offscreen element into a
+  // persistent opacity:0 state, so a full-page screenshot / crawler / slow-or-
+  // failed JS still shows every section. Reveals play once and never reverse.
+  // Fully disabled under prefers-reduced-motion via gsap.matchMedia.
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
@@ -148,18 +152,29 @@ export default function Home() {
       // have, we create nothing — elements simply render in their final state.
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const els = gsap.utils.toArray<HTMLElement>(SELECTOR)
+        const viewportH = window.innerHeight
         els.forEach((el) => {
+          // Invariant 1: never animate an element that's already in (or above)
+          // the first viewport — it just stays visible. This avoids an on-load
+          // flash and keeps the first screen static/correct.
+          if (el.getBoundingClientRect().top < viewportH) return
+
           gsap.from(el, {
             opacity: 0,
             y: 24,
             duration: 0.7,
             ease: "power2.out",
+            // Invariant 2: immediateRender:false means GSAP does NOT apply the
+            // hidden from-state at setup. Offscreen elements stay visible until
+            // their trigger actually fires, so if it never fires (screenshot,
+            // crawler, no scroll) the content is simply visible.
+            immediateRender: false,
             scrollTrigger: {
               trigger: el,
               start: "top 88%",
-              // Play on the way down; reverse on the way back up. No scrub,
-              // no pinning — nothing hijacks the scroll.
-              toggleActions: "play none none reverse",
+              // Reveal exactly once and never reverse — once revealed (or if the
+              // user scrolls back up) the section stays visible.
+              once: true,
             },
           })
         })
