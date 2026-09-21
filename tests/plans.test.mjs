@@ -117,3 +117,44 @@ test('supabase schema has ai_requested + ai_succeeded columns', () => {
   assert.ok(/ai_succeeded\s+boolean/.test(schema), 'ai_succeeded column present')
   assert.ok(/add column if not exists ai_requested/i.test(schema), 'idempotent ALTER for existing projects')
 })
+
+// ── Dashboard usage consumers use the Pricing V2 /api/usage shape ──
+const usagePage = src('../app/dashboard/usage/page.tsx')
+const overview = src('../app/dashboard/page.tsx')
+const quotaLayout = src('../app/dashboard/layout.tsx')
+const billing = src('../app/dashboard/settings/billing/page.tsx')
+
+test('A: usage page consumes V2 shape (captures + ai_extractions), not old count/limit', () => {
+  assert.ok(/u\.captures/.test(usagePage) && /u\.ai_extractions/.test(usagePage), 'reads captures + ai_extractions from API')
+  assert.ok(/captures\.used/.test(usagePage) && /captures\.limit/.test(usagePage), 'renders captures used/limit')
+  assert.ok(/ai_extractions\.used/.test(usagePage) && /ai_extractions\.limit/.test(usagePage), 'renders AI used/limit')
+  assert.ok(!/\bu\.count\b/.test(usagePage) && !/\bu\.limit\b/.test(usagePage), 'no old flat u.count/u.limit')
+  assert.ok(/Captures/.test(usagePage) && /AI extractions/.test(usagePage), 'shows both meters')
+})
+
+test('B/C: plan limits come from the central config (Builder 1500/150, Pro 7500/1000)', () => {
+  // The API sends limits from planConfig; the page renders whatever it sends.
+  assert.equal(PLANS.builder.captures, 1500)
+  assert.equal(PLANS.builder.aiExtractions, 150)
+  assert.equal(PLANS.pro.captures, 7500)
+  assert.equal(PLANS.pro.aiExtractions, 1000)
+  assert.equal(PLANS.free.captures, 250)
+  assert.equal(PLANS.free.aiExtractions, 25)
+})
+
+test('D: usage + overview show honest unavailable, never fabricate 0/10000', () => {
+  assert.ok(/Usage tracking temporarily unavailable/.test(usagePage), 'usage page has honest unavailable state')
+  assert.ok(/temporarily unavailable/i.test(overview), 'overview has honest unavailable state')
+})
+
+test('E: no 10000 fallback anywhere in the dashboard usage consumers', () => {
+  for (const [name, code] of [['usage', usagePage], ['overview', overview], ['quota widget', quotaLayout]]) {
+    assert.ok(!/10000|10,000/.test(code), `${name} must not contain a 10000 fallback`)
+    assert.ok(!/\bu\.count\b/.test(code) && !/\bu\.limit\b/.test(code), `${name} must not read old u.count/u.limit`)
+  }
+  // Overview + quota widget consume the V2 captures shape.
+  assert.ok(/captures/.test(overview), 'overview reads captures')
+  assert.ok(/captures/.test(quotaLayout), 'quota widget reads captures')
+  // Billing (the reference) already uses captures + ai_extractions.
+  assert.ok(/captures/.test(billing) && /ai_extractions/.test(billing), 'billing reference intact')
+})
