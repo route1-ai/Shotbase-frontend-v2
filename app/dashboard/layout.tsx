@@ -8,6 +8,7 @@ import { useUser, useClerk } from "@clerk/nextjs"
 import Lenis from "lenis"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ShotbaseMark } from "@/components/shotbase-mark"
+import { planConfig } from "@/lib/plans"
 
 // ----- Shell tokens -----
 const SIDEBAR_W = 240
@@ -305,13 +306,15 @@ function UserMenu() {
 
 function QuotaWidget() {
   // null = still loading; false = accounting unavailable (show honest state).
-  const [usage, setUsage] = useState<{ count: number; plan: string; limit: number } | false | null>(null)
+  const [usage, setUsage] = useState<{ plan: string; used: number; limit: number } | false | null>(null)
   useEffect(() => {
     fetch("/api/usage")
       .then((r) => r.json())
       .then((u) => {
-        if (u && u.available === true && typeof u.count === "number") {
-          setUsage({ count: u.count, plan: u.plan || "Free", limit: u.limit })
+        // V2 shape: { available, plan, captures:{used,limit}, ai_extractions:{…} }.
+        const cap = u?.captures
+        if (u && u.available === true && cap && typeof cap.used === "number" && typeof cap.limit === "number") {
+          setUsage({ plan: u.plan || "free", used: cap.used, limit: cap.limit })
         } else {
           setUsage(false)
         }
@@ -333,7 +336,7 @@ function QuotaWidget() {
     )
   }
 
-  const pct = Math.min(100, (usage.count / Math.max(1, usage.limit)) * 100)
+  const pct = Math.min(100, (usage.used / Math.max(1, usage.limit)) * 100)
   const overHalf = pct > 50
   return (
     <Link
@@ -349,14 +352,14 @@ function QuotaWidget() {
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", marginBottom: 6 }}>
-        <span>{usage.plan} plan</span>
+        <span>{planConfig(usage.plan).name} plan</span>
         <span style={{ color: pct > 80 ? "#ff9060" : "#00e87b" }}>{Math.round(pct)}%</span>
       </div>
       <div style={{ height: 4, background: "#1a1a1a", borderRadius: 2, overflow: "hidden", marginBottom: 6 }}>
         <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 2 }} />
       </div>
       <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: overHalf ? "#888" : "#444" }}>
-        {usage.count.toLocaleString()} / {usage.limit.toLocaleString()} captures
+        {usage.used.toLocaleString()} / {usage.limit.toLocaleString()} captures
       </div>
     </Link>
   )

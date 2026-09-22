@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
+import { PLANS, BUSINESS, salesContactHref } from "@/lib/plans"
 import { useLenis } from "lenis/react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -109,8 +110,12 @@ export default function Home() {
   }, [])
 
   // Subtle, restrained scroll reveals (Linear/Vercel style): gentle fade +
-  // upward translate as each block enters the viewport, reversing on the way
-  // back up. Fully disabled under prefers-reduced-motion via gsap.matchMedia.
+  // upward translate as each block enters the viewport — as a PROGRESSIVE
+  // ENHANCEMENT only. Content is visible by default (see the two invariants in
+  // the effect): we never place a not-yet-triggered offscreen element into a
+  // persistent opacity:0 state, so a full-page screenshot / crawler / slow-or-
+  // failed JS still shows every section. Reveals play once and never reverse.
+  // Fully disabled under prefers-reduced-motion via gsap.matchMedia.
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
@@ -147,18 +152,29 @@ export default function Home() {
       // have, we create nothing — elements simply render in their final state.
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const els = gsap.utils.toArray<HTMLElement>(SELECTOR)
+        const viewportH = window.innerHeight
         els.forEach((el) => {
+          // Invariant 1: never animate an element that's already in (or above)
+          // the first viewport — it just stays visible. This avoids an on-load
+          // flash and keeps the first screen static/correct.
+          if (el.getBoundingClientRect().top < viewportH) return
+
           gsap.from(el, {
             opacity: 0,
             y: 24,
             duration: 0.7,
             ease: "power2.out",
+            // Invariant 2: immediateRender:false means GSAP does NOT apply the
+            // hidden from-state at setup. Offscreen elements stay visible until
+            // their trigger actually fires, so if it never fires (screenshot,
+            // crawler, no scroll) the content is simply visible.
+            immediateRender: false,
             scrollTrigger: {
               trigger: el,
               start: "top 88%",
-              // Play on the way down; reverse on the way back up. No scrub,
-              // no pinning — nothing hijacks the scroll.
-              toggleActions: "play none none reverse",
+              // Reveal exactly once and never reverse — once revealed (or if the
+              // user scrolls back up) the section stays visible.
+              once: true,
             },
           })
         })
@@ -305,7 +321,7 @@ export default function Home() {
             { num: "4", u: "", label: "Output formats", sub: "PNG · JPEG · WebP · PDF" },
             { num: "1", u: " call", label: "Screenshot + text + data", sub: "render once, get all three" },
             { num: "MCP", u: "", label: "Native shotbase_capture", sub: "one tool for AI agents" },
-            { num: "10K", u: "/mo", label: "Free tier", sub: "screenshots included" },
+            { num: "250", u: "/mo", label: "Free tier", sub: "captures included" },
           ].map((stat, i) => (
             <div
               className="stat-item"
@@ -350,7 +366,7 @@ export default function Home() {
             { title: "MCP Server", small: "For AI agents & Claude", desc: "Native Model Context Protocol server. The shotbase_capture tool lets any agent render and read a page in one call." },
             { title: "Structured Extraction", small: "JSON with your screenshot", desc: "Ask for ai_extract and get the page type, headings, CTAs, and prices back as JSON alongside the image." },
             { title: "REST API + MCP", small: "Call it your way", desc: "A simple REST endpoint for any stack, plus a native MCP server so AI agents can render and read any page with a single tool call." },
-            { title: "10,000/mo Free Tier", small: "Generous free quota", desc: "Every account includes 10,000 screenshots per month on the free plan. Upgrade when you need more volume." },
+            { title: "250/mo Free Tier", small: "Free quota to start", desc: "Every account includes 250 captures per month on the free plan. Upgrade when you need more volume." },
           ].map((feat, i) => (
             <div className="frow" key={i}>
               <div className="fnum">0{i + 1}</div>
@@ -414,7 +430,7 @@ export default function Home() {
             <ul>
               <li>Viewport or full-page captures</li>
               <li>Custom capture width and height</li>
-              <li>Waits for network idle before capturing</li>
+              <li>Waits briefly for the page to settle before capturing</li>
               <li>PNG, JPEG, WebP, and PDF output</li>
             </ul>
             <Link href="/dashboard/playground" className="detail-cta">Try the playground <span aria-hidden="true">→</span></Link>
@@ -558,7 +574,7 @@ export default function Home() {
         {/* ── CTA Banner ── */}
         <section className="cta-banner">
           <h2>Ready to capture<br />your first screenshot?</h2>
-          <p>10,000 screenshots a month on the free plan. Start building in minutes.</p>
+          <p>250 captures a month on the free plan. Start building in minutes.</p>
           <div className="dual-cta">
             <Link href="/dashboard/playground" className="cta-outline">Get a Demo →</Link>
             <Link href="/signup" className="cta-fill">Get Started For Free →</Link>
@@ -571,59 +587,37 @@ export default function Home() {
             <h2>Start free.<br />Scale without friction.</h2>
           </div>
           <div className="pg">
+            {[PLANS.free, PLANS.builder, PLANS.pro].map((p) => (
+              <div key={p.id} className={`plan${p.id === "pro" ? " ft" : ""}`}>
+                {p.id === "pro" && <div className="pb">For production</div>}
+                <div className="pn">{p.name}</div>
+                <div className="pp">{p.priceMonthly === 0 ? "$0" : <>${p.priceMonthly}<span>/mo</span></>}</div>
+                <div className="pper">{p.priceMonthly === 0 ? "forever" : "no overage — upgrade when you need more"}</div>
+                <div className="pdiv"></div>
+                <ul className="pfl">
+                  <li><span className="pfc" aria-hidden="true">✓</span>{p.captures.toLocaleString()} captures/mo</li>
+                  <li><span className="pfc" aria-hidden="true">✓</span>{p.aiExtractions.toLocaleString()} AI extractions/mo</li>
+                  <li><span className="pfc" aria-hidden="true">✓</span>{p.rpm} requests/min</li>
+                  <li><span className="pfc" aria-hidden="true">✓</span>REST API + MCP</li>
+                  <li><span className="pfc" aria-hidden="true">✓</span>Page text + structured extraction</li>
+                  <li><span className="pfc" aria-hidden="true">✓</span>PNG · JPEG · WebP · PDF</li>
+                  <li><span className="pfc" aria-hidden="true">✓</span>Full-page &amp; custom viewport</li>
+                </ul>
+                <Link href="/signup" className="pcta" aria-label={`Get started with ${p.name} plan`}>Get started</Link>
+              </div>
+            ))}
             <div className="plan">
-              <div className="pn">Free</div>
-              <div className="pp">$0</div>
-              <div className="pper">forever</div>
+              <div className="pn">{BUSINESS.name}</div>
+              <div className="pp">{BUSINESS.priceLabel}</div>
+              <div className="pper">contact sales</div>
               <div className="pdiv"></div>
               <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>10,000 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>10 requests/min</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>PNG · JPEG · WebP · PDF</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Custom capture volume</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Custom AI extraction volume</li>
+                <li><span className="pfc" aria-hidden="true">✓</span>Custom throughput</li>
                 <li><span className="pfc" aria-hidden="true">✓</span>REST API + MCP</li>
               </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Get started with Free plan">Get started</Link>
-            </div>
-            <div className="plan">
-              <div className="pn">Starter</div>
-              <div className="pp">$9<span>/mo</span></div>
-              <div className="pper">+ $0.012 per extra</div>
-              <div className="pdiv"></div>
-              <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>50,000 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>60 requests/min</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Page text &amp; content</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Structured data extraction</li>
-              </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Get started with Starter plan">Get started</Link>
-            </div>
-            <div className="plan ft">
-              <div className="pb">Most popular</div>
-              <div className="pn">Pro</div>
-              <div className="pp">$19<span>/mo</span></div>
-              <div className="pper">+ $0.008 per extra</div>
-              <div className="pdiv"></div>
-              <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>250,000 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>300 requests/min</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Everything in Starter</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>MCP server access</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Response caching</li>
-              </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Start Pro plan trial">Start Pro trial</Link>
-            </div>
-            <div className="plan">
-              <div className="pn">Scale</div>
-              <div className="pp">$49<span>/mo</span></div>
-              <div className="pper">+ $0.004 per extra</div>
-              <div className="pdiv"></div>
-              <ul className="pfl">
-                <li><span className="pfc" aria-hidden="true">✓</span>1,500,000 screenshots/mo</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>1,000 requests/min</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Everything in Pro</li>
-                <li><span className="pfc" aria-hidden="true">✓</span>Highest volume &amp; rate limits</li>
-              </ul>
-              <Link href="/dashboard" className="pcta" aria-label="Get started with Scale plan">Get started</Link>
+              <a href={salesContactHref()} className="pcta" aria-label="Contact sales about the Business plan">{BUSINESS.cta}</a>
             </div>
           </div>
         </section>

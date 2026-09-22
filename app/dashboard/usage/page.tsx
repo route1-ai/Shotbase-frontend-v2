@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
+import { planConfig } from "@/lib/plans"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -10,9 +11,33 @@ const cardStyle: React.CSSProperties = {
   padding: 28,
 }
 
+type Meter = { used: number; limit: number }
 type Usage =
-  | { available: true; count: number; plan: string; limit: number }
+  | { available: true; plan: string; captures: Meter; ai_extractions: Meter }
   | { available: false }
+
+function isMeter(m: unknown): m is Meter {
+  return !!m && typeof (m as Meter).used === "number" && typeof (m as Meter).limit === "number"
+}
+
+function MeterRow({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0
+  const remaining = Math.max(0, limit - used)
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <div style={{ fontSize: 13, fontWeight: 500 }}>{label}</div>
+        <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
+          <span style={{ color: "#f0f0f0", fontWeight: 500 }}>{used.toLocaleString()}</span> / {limit.toLocaleString()}
+        </div>
+      </div>
+      <div style={{ height: 8, background: "#1a1a24", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 4, transition: "width 0.3s" }} />
+      </div>
+      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444" }}>{remaining.toLocaleString()} remaining</div>
+    </div>
+  )
+}
 
 export default function UsagePage() {
   const [usage, setUsage] = useState<Usage | null>(null)
@@ -23,10 +48,9 @@ export default function UsagePage() {
       .then((r) => r.json())
       .then((u) => {
         // Accounting is available only when the API explicitly says so AND
-        // returns real numbers. Anything else → treat as unavailable (never
-        // fabricate a count/limit).
-        if (u && u.available === true && typeof u.count === "number") {
-          setUsage({ available: true, count: u.count, plan: u.plan || "Free", limit: u.limit })
+        // returns the V2 meters. Anything else → unavailable (never fabricate).
+        if (u && u.available === true && isMeter(u.captures) && isMeter(u.ai_extractions)) {
+          setUsage({ available: true, plan: u.plan || "free", captures: u.captures, ai_extractions: u.ai_extractions })
         } else {
           setUsage({ available: false })
         }
@@ -38,8 +62,6 @@ export default function UsagePage() {
       })
   }, [])
 
-  const available = usage?.available === true
-
   return (
     <div>
       <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>Usage</h1>
@@ -47,7 +69,7 @@ export default function UsagePage() {
 
       {loading ? (
         <div style={{ ...cardStyle, fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", textAlign: "center" }}>Loading usage…</div>
-      ) : !available ? (
+      ) : usage?.available !== true ? (
         // Honest unavailable state — no fabricated numbers.
         <div style={{ ...cardStyle }}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Usage tracking temporarily unavailable</div>
@@ -58,11 +80,10 @@ export default function UsagePage() {
         </div>
       ) : (
         <div style={{ ...cardStyle }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "#00e87b", fontWeight: 600, marginBottom: 6 }}>Current Plan</div>
-              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 2 }}>{(usage as { plan: string }).plan}</div>
-              <div style={{ color: "#888", fontSize: 13 }}>{(usage as { limit: number }).limit.toLocaleString()} captures per month</div>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: "-0.02em" }}>{planConfig(usage.plan).name}</div>
             </div>
             <Link
               href="/dashboard/settings/billing"
@@ -72,27 +93,10 @@ export default function UsagePage() {
             </Link>
           </div>
 
-          {(() => {
-            const u = usage as { count: number; limit: number }
-            const percentage = u.limit > 0 ? (u.count / u.limit) * 100 : 0
-            const remaining = Math.max(0, u.limit - u.count)
-            return (
-              <>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>Captures used</div>
-                  <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
-                    <span style={{ color: "#f0f0f0", fontWeight: 500 }}>{u.count.toLocaleString()}</span> / {u.limit.toLocaleString()}
-                  </div>
-                </div>
-                <div style={{ height: 8, background: "#1a1a24", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
-                  <div style={{ height: "100%", width: `${Math.min(100, percentage)}%`, background: percentage > 80 ? "#ff9060" : "#00e87b", borderRadius: 4, transition: "width 0.3s" }} />
-                </div>
-                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444" }}>
-                  {remaining.toLocaleString()} remaining · resets on the 1st of next month
-                </div>
-              </>
-            )
-          })()}
+          <MeterRow label="Captures" used={usage.captures.used} limit={usage.captures.limit} />
+          <MeterRow label="AI extractions" used={usage.ai_extractions.used} limit={usage.ai_extractions.limit} />
+
+          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444" }}>Resets on the 1st of next month (UTC).</div>
         </div>
       )}
 
