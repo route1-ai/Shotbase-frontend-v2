@@ -46,12 +46,11 @@ export const ScreenshotRequestSchema = z.object({
   // Wait conditions
   wait_until: z.enum(['load', 'domcontentloaded', 'networkidle', 'commit']).optional(),
   wait_for_selector: z.string().max(500).optional(),
-  delay_ms: z.number().int().min(0).max(30_000).optional(),
+  delay_ms: z.number().int().min(0).max(10_000).optional(),
 
   // Behavior toggles
   remove_popups: z.boolean().optional(),
   block_ads: z.boolean().optional(),
-  block_cookies_banners: z.boolean().optional(),
   dark_mode: z.boolean().optional(),
   reduced_motion: z.boolean().optional(),
 
