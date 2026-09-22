@@ -73,9 +73,29 @@ export async function POST(req: Request) {
       signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
     })
 
+    const upstreamType = res.headers.get('Content-Type') || ''
+
     if (!res.ok) {
-      // Log the upstream details server-side but DO NOT echo them back —
-      // raw render errors can leak internals (paths, queue states, etc.).
+      // Quota rejections (429) carry structured, non-sensitive fields the UI
+      // needs to tell the user WHICH quota was hit (captures vs AI extractions)
+      // and how much is left. Whitelist only those fields — never echo the raw
+      // upstream body, which can leak internals (paths, queue states, etc.).
+      if (res.status === 429) {
+        const j = (await res.json().catch(() => null)) as
+          | { error?: unknown; quota_type?: unknown; limit?: unknown; used?: unknown }
+          | null
+        const quotaType = j?.quota_type === 'ai_extractions' ? 'ai_extractions' : 'captures'
+        return Response.json(
+          {
+            error: typeof j?.error === 'string' ? j.error : 'Quota exceeded',
+            quota_type: quotaType,
+            limit: typeof j?.limit === 'number' ? j.limit : undefined,
+            used: typeof j?.used === 'number' ? j.used : undefined,
+          },
+          { status: 429 }
+        )
+      }
+      // Log the upstream details server-side but DO NOT echo them back.
       const errorText = await res.text().catch(() => '')
       console.error('Render upstream error:', res.status, errorText.slice(0, 500))
       return Response.json(
@@ -84,10 +104,23 @@ export async function POST(req: Request) {
       )
     }
 
-    // 5. Stream the binary back to the client. Whitelist the headers we copy.
+    // 5. Return the upstream result. Screenshot/PDF mode is binary (image/* or
+    //    application/pdf) and is streamed straight through. Page-text / AI mode
+    //    responds with application/json (page text + structured ai_data), which
+    //    we parse and re-emit as JSON — the old code assumed every 200 was
+    //    binary and called res.blob(), which corrupted JSON responses. Whitelist
+    //    the headers we copy either way (never forward X-Shotbase-User-Id back).
+    if (upstreamType.includes('application/json')) {
+      const data = await res.json().catch(() => null)
+      const headers = new Headers()
+      headers.set('Content-Type', 'application/json')
+      headers.set('x-cache', res.headers.get('x-cache') || 'MISS')
+      return new Response(JSON.stringify(data), { status: 200, headers })
+    }
+
     const blob = await res.blob()
     const headers = new Headers()
-    headers.set('Content-Type', res.headers.get('Content-Type') || 'image/png')
+    headers.set('Content-Type', upstreamType || 'image/png')
     headers.set('x-cache', res.headers.get('x-cache') || 'MISS')
     return new Response(blob, { status: 200, headers })
   } catch (err) {
