@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -31,6 +31,21 @@ const EVENT_TYPES = [
   { id: "key.revoked",          label: "API key revoked",      sub: "Fires when a key is revoked" },
 ]
 
+const VERIFY_SNIPPET = `// Every delivery includes a 'Shotbase-Signature' header.
+// Verify in Node:
+import crypto from 'crypto'
+
+function verifyWebhook(rawBody, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody)
+    .digest('hex')
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  )
+}`
+
 export default function WebhooksPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([])
   const [showCreate, setShowCreate] = useState(false)
@@ -38,6 +53,15 @@ export default function WebhooksPage() {
   const [newEvents, setNewEvents] = useState<string[]>(["screenshot.completed", "screenshot.failed"])
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [copied, setCopied] = useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [copiedSnippet, setCopiedSnippet] = useState(false)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    }
+  }, [])
 
   const toggleEvent = (id: string) =>
     setNewEvents((es) => (es.includes(id) ? es.filter((e) => e !== id) : [...es, id]))
@@ -64,7 +88,27 @@ export default function WebhooksPage() {
     } catch {}
   }
 
-  const remove = (id: string) => setEndpoints((es) => es.filter((e) => e.id !== id))
+  const handleDelete = (id: string) => {
+    if (deleteConfirmId === id) {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setEndpoints((es) => es.filter((e) => e.id !== id))
+      setDeleteConfirmId(null)
+    } else {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+      setDeleteConfirmId(id)
+      deleteTimerRef.current = setTimeout(() => {
+        setDeleteConfirmId(null)
+      }, 3000)
+    }
+  }
+
+  const copySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(VERIFY_SNIPPET)
+      setCopiedSnippet(true)
+      setTimeout(() => setCopiedSnippet(false), 1500)
+    } catch {}
+  }
 
   return (
     <div>
@@ -222,12 +266,27 @@ export default function WebhooksPage() {
                       {ep.events.length} event{ep.events.length === 1 ? "" : "s"} · {ep.active ? "Active" : "Disabled"} · {ep.id}
                     </div>
                   </div>
-                  <button
-                    onClick={() => remove(ep.id)}
-                    style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#ff6060", background: "transparent", border: "1px solid rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: "pointer" }}
-                  >
-                    Delete
-                  </button>
+                  <div aria-live="polite">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(ep.id)}
+                      aria-label={deleteConfirmId === ep.id ? "Confirm deletion of webhook endpoint" : "Delete webhook endpoint"}
+                      style={{
+                        fontFamily: "var(--font-ibm-plex)",
+                        fontSize: 11,
+                        color: deleteConfirmId === ep.id ? "#ff4d4d" : "#ff6060",
+                        background: deleteConfirmId === ep.id ? "rgba(255,60,60,0.15)" : "transparent",
+                        border: `1px solid ${deleteConfirmId === ep.id ? "rgba(255,60,60,0.5)" : "rgba(255,60,60,0.2)"}`,
+                        padding: "5px 12px",
+                        borderRadius: 6,
+                        cursor: "pointer",
+                        fontWeight: deleteConfirmId === ep.id ? 600 : 400,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {deleteConfirmId === ep.id ? "Confirm delete?" : "Delete"}
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
@@ -279,22 +338,32 @@ export default function WebhooksPage() {
             <div style={{ fontWeight: 500, fontSize: 13 }}>Verifying webhook signatures</div>
             <a href="/docs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", textDecoration: "none" }}>Full docs →</a>
           </div>
-          <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
-{`// Every delivery includes a 'Shotbase-Signature' header.
-// Verify in Node:
-import crypto from 'crypto'
-
-function verifyWebhook(rawBody, signature, secret) {
-  const expected = crypto
-    .createHmac('sha256', secret)
-    .update(rawBody)
-    .digest('hex')
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  )
-}`}
-          </pre>
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={copySnippet}
+              aria-label="Copy signature verification snippet"
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                fontFamily: "var(--font-ibm-plex)",
+                fontSize: 10,
+                color: copiedSnippet ? "#00e87b" : "#888",
+                background: "rgba(255,255,255,0.05)",
+                border: `1px solid ${copiedSnippet ? ACTIVE_BORDER : BORDER}`,
+                padding: "4px 8px",
+                borderRadius: 4,
+                cursor: "pointer",
+                zIndex: 1,
+              }}
+            >
+              {copiedSnippet ? "✓ Copied" : "Copy"}
+            </button>
+            <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#050505", border: `1px solid ${BORDER}`, padding: "12px 70px 12px 12px", borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.65 }}>
+              {VERIFY_SNIPPET}
+            </pre>
+          </div>
         </div>
       )}
     </div>
