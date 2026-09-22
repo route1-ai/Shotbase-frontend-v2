@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -45,11 +45,22 @@ const SUBPROCESSORS = [
   { name: "Clerk", purpose: "Authentication and session management", region: "US" },
   { name: "Stripe", purpose: "Billing and payment processing", region: "US" },
   { name: "Unkey", purpose: "API key issuance and verification", region: "US" },
-  { name: "Upstash", purpose: "Rate-limiting + caching (Redis)", region: "US" },
+  { name: "Redis", purpose: "Rate limiting + caching", region: "US" },
   { name: "Sentry", purpose: "Error tracking (PII-redacted)", region: "US" },
 ]
 
 export default function TrustPage() {
+  // GDPR right-to-erasure is only "Ready" when self-serve account deletion is
+  // actually enabled in production (same gate the Security page reads). Until
+  // then it's in progress — no overclaiming. null = still checking → in progress.
+  const [deletionEnabled, setDeletionEnabled] = useState<boolean | null>(null)
+  useEffect(() => {
+    fetch("/api/account/delete")
+      .then((r) => r.json())
+      .then((d) => setDeletionEnabled(d?.enabled === true))
+      .catch(() => setDeletionEnabled(false))
+  }, [])
+
   return (
     <div style={{ maxWidth: 820 }}>
       <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>Trust Center</h1>
@@ -62,8 +73,8 @@ export default function TrustPage() {
       <div style={{ ...cardStyle, marginBottom: 24, padding: "8px 24px" }}>
         <Row name="Encryption in transit" status="ready" note="TLS 1.3, HSTS preload (max-age 2 years)" />
         <Row name="Encryption at rest" status="ready" note="AES-256 on Supabase + Vercel managed storage" />
-        <Row name="Audit logging" status="ready" note="Every API call appended, 90-day default retention (configurable)" />
-        <Row name="Rate limiting + abuse protection" status="ready" note="Per-IP + per-key sliding window via Upstash Redis" />
+        <Row name="Audit logging" status="in_progress" note="Every capture is logged; configurable retention is in progress" />
+        <Row name="Rate limiting + abuse protection" status="ready" note="Per-API-key limit per minute (Redis)" />
         <Row name="SSRF defense on render proxy" status="ready" note="URL allowlist + private-IP blocking + scheme filtering" />
         <Row name="Bot protection on signup" status="ready" note="Cloudflare Turnstile via Clerk" />
         <Row name="Daily secret scanning + SAST" status="ready" note="gitleaks + CodeQL on every PR + nightly" />
@@ -71,8 +82,16 @@ export default function TrustPage() {
 
       <h2 style={{ fontSize: 14, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: "#666", marginBottom: 12 }}>Privacy + data controls</h2>
       <div style={{ ...cardStyle, marginBottom: 24, padding: "8px 24px" }}>
-        <Row name="GDPR / CCPA right-to-erasure" status="ready" note="DELETE /api/account wipes user + screenshots + audit logs" />
-        <Row name="Configurable screenshot retention" status="ready" note="30 / 60 / 90 / 365 days (per workspace)" />
+        <Row
+          name="GDPR / CCPA right-to-erasure"
+          status={deletionEnabled ? "ready" : "in_progress"}
+          note={
+            deletionEnabled
+              ? "Self-serve deletion wipes your user record, screenshots, and API keys"
+              : "Enabled in production once self-serve deletion is switched on; contact support meanwhile"
+          }
+        />
+        <Row name="Configurable screenshot retention" status="in_progress" note="Planned: choose how long captures are retained (30 / 60 / 90 / 365 days)" />
         <Row name="PII redaction toggle on /extract" status="in_progress" note="Detected PII redacted before storage when redact_pii=true" />
         <Row name="Cookie consent (EU)" status="in_progress" note="Honoring the user's choice — analytics gated on accept" />
         <Row name="Data Processing Agreement (DPA)" status="available_enterprise" note="Available on Pro+ plans" />

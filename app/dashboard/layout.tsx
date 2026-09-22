@@ -26,6 +26,7 @@ type NavItem = {
   label: string
   icon: React.ReactNode
   external?: boolean
+  soon?: boolean
 }
 
 const ICON = {
@@ -72,7 +73,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "MONITOR",
     items: [
       { href: "/dashboard/logs", label: "Activity", icon: ICON.logs },
-      { href: "/dashboard/webhooks", label: "Webhooks", icon: ICON.webhooks },
+      { href: "/dashboard/webhooks", label: "Webhooks", icon: ICON.webhooks, soon: true },
       { href: "/dashboard/usage", label: "Usage", icon: ICON.usage },
       { href: "/dashboard/insights", label: "Insights", icon: ICON.insights },
     ],
@@ -117,6 +118,15 @@ const ROUTE_LABELS: Record<string, string> = {
   "/dashboard/settings/notifications": "Notifications",
 }
 
+// Small "Soon" pill for nav items that aren't shipped yet (e.g. Webhooks).
+function SoonPill() {
+  return (
+    <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 9, background: "#1a1a24", padding: "2px 6px", borderRadius: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, flexShrink: 0 }}>
+      Soon
+    </span>
+  )
+}
+
 function SidebarLink({
   item,
   active,
@@ -155,6 +165,7 @@ function SidebarLink({
     >
       <span style={{ display: "flex", opacity: active ? 1 : 0.75 }}>{item.icon}</span>
       {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+      {!collapsed && item.soon && <SoonPill />}
       {!collapsed && item.external && <span style={{ color: "#444" }}>{ICON.external}</span>}
     </div>
   )
@@ -478,6 +489,7 @@ function DrawerNavLink({ item, active, onClose }: { item: NavItem; active: boole
     >
       <span style={{ display: "flex", width: 16, justifyContent: "center", opacity: active ? 1 : 0.75 }}>{item.icon}</span>
       <span style={{ flex: 1 }}>{item.label}</span>
+      {item.soon && <SoonPill />}
       {item.external && <span style={{ color: "#444" }}>{ICON.external}</span>}
     </div>
   )

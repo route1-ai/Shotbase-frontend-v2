@@ -359,10 +359,7 @@ export default function OverviewPage() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {[
-              { label: "LangChain", href: "/dashboard/integrations" },
-              { label: "Vercel AI SDK", href: "/dashboard/integrations" },
               { label: "MCP Server", href: "/dashboard/integrations" },
-              { label: "Claude Skill", href: "/dashboard/integrations" },
               { label: "n8n", href: "/dashboard/integrations" },
             ].map((i) => (
               <Link key={i.label} href={i.href} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, color: "#888", textDecoration: "none", fontSize: 12 }}>

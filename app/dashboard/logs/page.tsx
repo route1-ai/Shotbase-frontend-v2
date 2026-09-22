@@ -421,10 +421,9 @@ export default function LogsPage() {
       {activeTab === "audit" && (
         <div style={{ ...cardStyle, textAlign: "center", padding: 40 }}>
           <div style={{ fontSize: 14, color: "#888", marginBottom: 6 }}>Audit log</div>
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", marginBottom: 8 }}>
+          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444" }}>
             Every account-changing action (key creation/revoke, plan change, settings edit) is recorded here with timestamp and IP.
           </div>
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>90-day retention (Pro+ plan)</div>
         </div>
       )}
 
