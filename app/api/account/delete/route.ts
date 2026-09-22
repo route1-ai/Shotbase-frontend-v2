@@ -16,6 +16,22 @@ import { listKeysByExternalId, deleteKey } from '@/lib/unkey'
  * keys remain would orphan working credentials), then delete DB data, then the
  * Clerk account. Any failure before the Clerk step aborts and is reported.
  */
+/**
+ * Report whether self-serve account deletion is currently possible, so the UI
+ * can show the confirm flow only when it would actually work (and otherwise
+ * point users to support up front). Mirrors the exact gate POST enforces. Auth
+ * required; no side effects.
+ */
+export async function GET() {
+  const { userId } = await auth()
+  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const enabled = process.env.ACCOUNT_DELETION_ENABLED === 'true' && !!supabaseUrl && !!supabaseKey
+  return Response.json({ enabled })
+}
+
 export async function POST() {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
