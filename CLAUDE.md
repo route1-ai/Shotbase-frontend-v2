@@ -6,10 +6,10 @@
 Three things only:
 1. **Marketing site** — `app/page.tsx` (public, no auth)
 2. **Dashboard** — `app/dashboard/**` (requires Clerk auth)
-3. **API proxy layer** — `app/api/**` (server-side routes that talk to Railway backend or third-party services)
+3. **API proxy layer** — `app/api/**` (server-side routes that talk to the backend or third-party services)
 
 Production: Vercel (auto-deploys from `main`)
-Backend: `https://shotbase-production.up.railway.app`
+Backend: `https://api.shotbase.dev`
 Public API base: `https://api.shotbase.dev/v1` (referenced in playground code samples)
 
 ---
@@ -17,7 +17,7 @@ Public API base: `https://api.shotbase.dev/v1` (referenced in playground code sa
 ## Stack (exact — do not upgrade without reading CHANGELOG)
 | Concern | Package | Version | Notes |
 |---------|---------|---------|-------|
-| Framework | next | **16.2.4** | Forked — NOT standard 14/15. Read `node_modules/next/dist/docs/` before writing any Next.js code |
+| Framework | next | **16.3.5** | Standard npm package (not a fork). Read `node_modules/next/dist/docs/` before writing any Next.js code — these are the version-matched docs |
 | React | react + react-dom | 19.2.4 | — |
 | Auth | @clerk/nextjs | 7.3.0 | v7 — breaking changes from v5/v6 |
 | DB client | @supabase/supabase-js | 2.105.1 | — |
@@ -46,14 +46,16 @@ app/
       portal/route.ts     POST → opens Stripe billing portal (needs existing stripe_customer_id)
     keys/
       create/route.ts     POST → fetch plan from Supabase → call Unkey v2 createKey → return raw key (ONLY time it's visible)
-      list/route.ts       GET  → list user's Unkey keys — ⚠️ STILL USES v1 API (deprecated)
-      revoke/route.ts     POST → verify ownership → delete via Unkey — ⚠️ STILL USES v1 API (deprecated)
+      list/route.ts       GET  → list user's Unkey keys (v2)
+      revoke/route.ts     POST → verify ownership → delete via Unkey (v2)
+    insights/route.ts     GET  → aggregate analytics (captures/success/latency/domains) over 7 or 30 days
+    health/route.ts       GET  → proxies backend /health for the dashboard status badge
     logs/route.ts         GET  → last 50 screenshots from Supabase for current user (no pagination)
     playground/
-      screenshot/route.ts POST → SSRF-guarded proxy to Railway /screenshot using playground_bypass
-    usage/route.ts        GET  → count screenshots this month + plan + limit
+      screenshot/route.ts POST → SSRF-guarded proxy to the backend /screenshot; authenticates with SHOTBASE_BACKEND_BYPASS_KEY
+    usage/route.ts        GET  → per-plan capture + AI-extraction usage this month
     webhooks/
-      clerk/route.ts      POST → Clerk user.created → insert Supabase user + create Unkey key (⚠️ uses v1 API)
+      clerk/route.ts      POST → Clerk user.created → insert Supabase user + create Unkey key (v2)
       stripe/route.ts     POST → handle checkout/subscription events → update Supabase plan
 
   dashboard/
@@ -62,13 +64,13 @@ app/
     keys/page.tsx         List/create/revoke API keys
     logs/page.tsx         Request history with filter drawer (Webhooks + Audit tabs are stubs)
     playground/page.tsx   Interactive screenshot tool (URL input, settings, preview, code gen)
-    usage/page.tsx        Plan details, usage bar chart
-    settings/page.tsx     Profile/security/notifications (navigation stubs — not implemented)
+    usage/page.tsx        Captures + AI-extraction usage meters
+    settings/page.tsx     Profile / billing / security / notifications (real sub-pages)
     billing/page.tsx      Plan upgrade UI
     integrations/page.tsx Make, n8n, Zapier connector info (static content)
-    insights/page.tsx     Analytics stub
-    templates/page.tsx    Preset templates stub
-    webhooks/page.tsx     Webhook config stub
+    insights/page.tsx     Real analytics from the screenshots table (via /api/insights)
+    templates/page.tsx    Preset templates
+    webhooks/page.tsx     "Coming soon" notice (not yet implemented)
     trust/page.tsx        Security/compliance static page
     api-explorer/page.tsx API explorer stub
 
@@ -125,12 +127,12 @@ UNKEY_ROOT_KEY=unkey_...              # ⚠️ server-only — NEVER NEXT_PUBLIC
 # Stripe
 STRIPE_SECRET_KEY=sk_live_...         # ⚠️ server-only
 STRIPE_WEBHOOK_SECRET=whsec_...       # from Stripe Dashboard → Webhooks
-STRIPE_PRICE_STARTER=price_...        # Stripe Price ID for Starter plan
+STRIPE_PRICE_BUILDER=price_...        # Stripe Price ID for Builder plan
 STRIPE_PRICE_PRO=price_...            # Stripe Price ID for Pro plan
-STRIPE_PRICE_SCALE=price_...          # Stripe Price ID for Scale plan
 
 # Backend
-NEXT_PUBLIC_BACKEND_URL=https://shotbase-production.up.railway.app
+NEXT_PUBLIC_BACKEND_URL=https://api.shotbase.dev
+SHOTBASE_BACKEND_BYPASS_KEY=...       # ⚠️ server-only — playground proxy → backend auth. NEVER NEXT_PUBLIC_, never logged
 ```
 
 ---
@@ -144,8 +146,8 @@ User fills Clerk form
 → Clerk fires POST to /api/webhooks/clerk
 → svix.Webhook.verify(body, headers, CLERK_WEBHOOK_SECRET)
 → event.type === 'user.created'
-→ supabase.from('users').insert({ clerk_id, email, plan: 'Free' })
-→ fetch('https://api.unkey.com/v2/keys.createKey', {   ← ⚠️ clerk webhook still uses v1
+→ supabase.from('users').insert({ clerk_id, email, plan: 'free' })
+→ fetch('https://api.unkey.com/v2/keys.createKey', {
      apiId, ownerId: clerk_id, prefix: 'sk_live', meta: { plan: 'free' }
    })
 → Key created, stored in Unkey only (NOT Supabase)
@@ -170,17 +172,21 @@ User clicks "Create Key" in /dashboard/keys
 ### Playground Screenshot
 ```
 User enters URL in /dashboard/playground → POST /api/playground/screenshot
-→ validateSafeUrl(url)     ← blocks private IPs, file://, credentials, etc.
-→ count screenshots this month from Supabase
-→ check against PLAN_LIMITS[plan]   ← { Free: 500, starter: 5000, pro: 25000, scale: Infinity }
-→ fetch('https://shotbase-production.up.railway.app/screenshot', {
+→ auth() → userId (401 if none)
+→ ensureUserRow(userId, email)   ← self-heal Supabase row for pre-webhook users
+→ validateSafeUrl(url)           ← blocks private IPs, file://, credentials, etc.
+→ fetch('https://api.shotbase.dev/screenshot', {
      method: 'POST',
-     headers: { Authorization: 'Bearer playground_bypass' },   ← NOT user's real key
+     headers: {
+       Authorization: `Bearer ${SHOTBASE_BACKEND_BYPASS_KEY}`,  ← server-only env secret, never hardcoded
+       'X-Shotbase-User-Id': userId,                            ← trusted identity, ONLY from auth()
+     },
      body: JSON.stringify({ url, format, ... }),
      signal: AbortSignal.timeout(60000)
    })
-→ Return binary or JSON from backend
+→ Backend enforces quota/rate limits, then returns the image/PDF or JSON (page text / AI data)
 ```
+The frontend does NOT count usage or enforce quotas — the backend is the single authority.
 
 ### Stripe Checkout
 ```
@@ -213,11 +219,11 @@ POST /api/webhooks/stripe
        .eq('clerk_id', session.metadata.clerk_id)
 
   'customer.subscription.updated':
-    → status === 'active' ? getPlanFromPriceId(priceId) : 'Free'
+    → status === 'active' ? getPlanFromPriceId(priceId) : 'free'
     → supabase.update({ plan }).eq('stripe_customer_id', customerId)
 
   'customer.subscription.deleted':
-    → supabase.update({ stripe_subscription_id: null, plan: 'Free' })
+    → supabase.update({ stripe_subscription_id: null, plan: 'free' })
        .eq('stripe_customer_id', customerId)
 ```
 
@@ -232,21 +238,20 @@ Blocks:
 - Private IPv6: `::1`, `fc00::/7`, `fe80::/10`, `ff00::/8`
 - Internal hostnames: `localhost`, `*.local`, `*.internal`, `*.cluster.local`
 
-**Known gap**: DNS rebinding — hostname resolves to public IP at check time, private IP at fetch time. Mitigated by backend re-validating the actual fetch target.
+The backend also re-validates the actual fetch target before rendering.
 
 ---
 
-## Plan Quota System (frontend-enforced)
-Hardcoded in `app/api/playground/screenshot/route.ts` AND `app/api/usage/route.ts`:
-```typescript
-const PLAN_LIMITS = {
-  Free: 500,
-  starter: 5000,
-  pro: 25000,
-  scale: Infinity
-}
-```
-⚠️ **Case sensitivity**: Supabase stores `Free` (capital F for default), lowercase for paid tiers. These constants must match exactly what's in the Supabase `users.plan` column.
+## Plans & Quota (backend-authoritative)
+Plans are defined once in `lib/plans.ts`: **free / builder / pro** (plus **Business**, contact-sales only). Legacy `starter`/`scale` normalize to `builder`/`pro`.
+
+| Plan    | Captures / mo | AI extractions / mo | Rate limit (rpm) |
+|---------|---------------|---------------------|------------------|
+| Free    | 250           | 25                  | 10               |
+| Builder | 1,500         | 150                 | 20               |
+| Pro     | 7,500         | 1,000               | 40               |
+
+The **backend enforces all quotas and rate limits** (keyed off the trusted `X-Shotbase-User-Id`). The frontend does not maintain a limit table; `/api/usage` and `/api/insights` only *display* usage read from Supabase.
 
 ---
 
@@ -265,46 +270,30 @@ Applied to ALL routes:
 
 ---
 
-## Known Bugs & Technical Debt
-
-| ID | File | Description | Severity |
-|----|------|-------------|----------|
-| F1 | keys/list/route.ts | Uses deprecated Unkey v1 API (`api.unkey.dev/v1`) | HIGH |
-| F2 | keys/revoke/route.ts | Uses deprecated Unkey v1 API | HIGH |
-| F3 | webhooks/clerk/route.ts | Uses deprecated Unkey v1 API for initial key creation | HIGH |
-| F4 | playground/screenshot/route.ts | `playground_bypass` hardcoded — should be env var | MEDIUM |
-| F5 | dashboard/page.tsx | 24h chart data is hardcoded, not real | MEDIUM |
-| F6 | dashboard/logs/page.tsx | Webhooks + Audit tabs are empty stubs | LOW |
-| F7 | instrumentation.ts | Sentry not wired — `sentry-redact.ts` helpers unused | MEDIUM |
-| F8 | dashboard/settings/* | Settings sub-pages are navigation stubs | LOW |
-| F9 | next.config.ts | CSP header not configured | MEDIUM |
-| F10 | No E2E tests | No Playwright/Cypress test suite | HIGH |
-| F11 | billing/checkout/route.ts | Missing hard error if STRIPE_SECRET_KEY is undefined | LOW |
-
----
-
 ## Supabase Schema (what this app reads/writes)
 ```sql
 users (
   id                    uuid primary key,
   clerk_id              text unique,   -- Clerk userId — joins everything
   email                 text,
-  plan                  text default 'Free',  -- 'Free'|'starter'|'pro'|'scale'
+  plan                  text default 'free',  -- 'free'|'builder'|'pro'
   stripe_customer_id    text,
   stripe_subscription_id text,
   created_at            timestamptz
 )
 
 screenshots (
-  id          uuid primary key,
-  user_id     text,         -- = clerk_id / Unkey ownerId
-  url         text,
-  format      text,
-  status      int,
-  time_ms     int,
-  size_kb     float,
-  cached      boolean,
-  created_at  timestamptz
+  id            uuid primary key,
+  user_id       text,       -- = clerk_id / Unkey ownerId
+  url           text,
+  format        text,
+  status        int,
+  time_ms       int,
+  size_kb       int,
+  cached        boolean,
+  ai_requested  boolean,
+  ai_succeeded  boolean,
+  created_at    timestamptz
 )
 ```
 Frontend reads `screenshots` for logs/usage. Backend writes it. Frontend never writes to `screenshots`.
@@ -319,12 +308,9 @@ These three must always be the same string. If any route breaks this thread, key
 
 ---
 
-## Hardcoded Values That Should Be Env Vars
-These are hardcoded today — flag before changing, don't silently move them:
-- `playground_bypass` in `app/api/playground/screenshot/route.ts`
-- `PLAN_LIMITS` object in playground + usage routes
-- Bedrock model ID (backend, not here)
-- Rate limit per-plan numbers (backend)
+## Config that lives outside this repo
+- Backend→proxy auth: `SHOTBASE_BACKEND_BYPASS_KEY` (env var, server-only) — rotate on the backend side.
+- Bedrock model ID, per-plan rate-limit numbers: owned by the backend, not here.
 
 ---
 
@@ -337,13 +323,14 @@ These are hardcoded today — flag before changing, don't silently move them:
 | /dashboard/playground | Real |
 | /dashboard/usage | Real |
 | /dashboard/billing | Real (Stripe integration) |
-| /dashboard/settings | Navigation only — no forms work |
+| /dashboard/settings | Real (profile, billing, security, notifications) |
+| /dashboard/settings/security | Real (Clerk sessions, change password, account deletion gate) |
 | /dashboard/integrations | Static content only |
-| /dashboard/insights | Stub |
-| /dashboard/templates | Stub |
-| /dashboard/webhooks | Stub |
+| /dashboard/insights | Real (analytics from the screenshots table) |
+| /dashboard/templates | Real |
+| /dashboard/webhooks | "Coming soon" notice — not implemented |
 | /dashboard/trust | Static content |
-| /dashboard/api-explorer | Stub |
+| /dashboard/api-explorer | Real |
 
 ---
 
@@ -357,22 +344,20 @@ npx vercel --prod    # manual deploy to Vercel production
 ## What NOT To Do
 - Never `import { auth } from '@clerk/nextjs/server'` inside a `'use client'` component
 - Never use `SUPABASE_SERVICE_ROLE_KEY` in client components or with `NEXT_PUBLIC_` prefix
-- Never call `https://shotbase-production.up.railway.app` directly from client components — always route through `/api/playground/screenshot`
+- Never call `https://api.shotbase.dev` (the backend) directly from client components — always route through `/api/playground/screenshot`
 - Never use `UNKEY_ROOT_KEY` or `STRIPE_SECRET_KEY` client-side
-- Never upgrade Next.js without reading `node_modules/next/dist/docs/` — this is a forked build
+- Never upgrade Next.js without reading `node_modules/next/dist/docs/` — it carries the version-matched docs and deprecation notices
 - Never add a new `NEXT_PUBLIC_` secret — if it shouldn't be in the browser, it shouldn't have that prefix
 - Never write to the `screenshots` table from frontend — that's backend's job
 - Never hardcode `stripe_customer_id` or assume it exists — always fetch from Supabase first
 
 ## Backlog (prioritized)
-- [ ] Migrate keys/list, keys/revoke, webhooks/clerk to Unkey v2 API
-- [ ] Move playground_bypass to env var
 - [ ] Wire Sentry via instrumentation.ts + sentry-redact.ts
 - [ ] Add CSP header to next.config.ts
 - [ ] Implement /api/mcp route (MCP server exposing screenshot tool)
 - [ ] Build Make.com + n8n connector endpoints
 - [ ] Add pagination to logs (cursor-based, Supabase .range())
-- [ ] Implement settings pages (profile update, notification prefs)
+- [ ] Implement webhooks (backend endpoints + signed deliveries)
 - [ ] Add E2E tests for critical flows (signup → key → playground → log)
 
 ---
@@ -387,10 +372,10 @@ gstack is installed at `~/.claude/skills/gstack`. Skills are available as slash 
 - `/qa-only` — QA only, no code changes (use before every push)
 - `/ship` — pre-ship checklist: `npm run build` must pass, no TS errors, env vars set in Vercel
 - `/land-and-deploy` — ship + `git push` → Vercel auto-deploy
-- `/investigate` — trace bugs across routes (e.g. "quota not enforcing" → trace from usage/route.ts → PLAN_LIMITS → plan casing)
+- `/investigate` — trace bugs across routes (e.g. "usage looks wrong" → trace from usage/route.ts → lib/plans.ts → Supabase `users.plan`)
 - `/office-hours` — architecture decisions: new dashboard pages, new API routes, data model changes
 - `/plan-eng-review` — validate plan before implementing (use for anything touching Stripe webhooks, Clerk webhooks, or Unkey)
-- `/browse` — fetch Unkey v2 / Clerk v7 / Stripe v22 / Next.js 16.2.4 docs (this fork has different APIs)
+- `/browse` — fetch Unkey v2 / Clerk v7 / Stripe v22 / Next.js 16.3.5 docs
 - `/document-release` — changelog after a deploy
 - `/gstack-upgrade` — update gstack to latest
 
