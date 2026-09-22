@@ -26,6 +26,7 @@ type NavItem = {
   label: string
   icon: React.ReactNode
   external?: boolean
+  soon?: boolean
 }
 
 const ICON = {
@@ -72,7 +73,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: "MONITOR",
     items: [
       { href: "/dashboard/logs", label: "Activity", icon: ICON.logs },
-      { href: "/dashboard/webhooks", label: "Webhooks", icon: ICON.webhooks },
+      { href: "/dashboard/webhooks", label: "Webhooks", icon: ICON.webhooks, soon: true },
       { href: "/dashboard/usage", label: "Usage", icon: ICON.usage },
       { href: "/dashboard/insights", label: "Insights", icon: ICON.insights },
     ],
@@ -95,19 +96,35 @@ const SETTINGS_ITEMS: NavItem[] = [
 ]
 
 // Breadcrumb labels (kept in sync with the IA above)
+// Every dashboard route needs an entry here. A missing one makes Breadcrumbs
+// stop at the last matching ancestor — e.g. /dashboard/insights had no entry, so
+// the crumb walk matched only "/dashboard" and wrongly rendered "Overview".
 const ROUTE_LABELS: Record<string, string> = {
   "/dashboard": "Overview",
+  "/dashboard/playground": "Playground",
   "/dashboard/keys": "Keys",
   "/dashboard/integrations": "Integrations",
-  "/dashboard/logs": "Logs",
+  "/dashboard/templates": "Templates",
+  "/dashboard/api-explorer": "API Explorer",
+  "/dashboard/logs": "Activity",
   "/dashboard/webhooks": "Webhooks",
   "/dashboard/usage": "Usage",
+  "/dashboard/insights": "Insights",
   "/dashboard/trust": "Trust Center",
   "/dashboard/settings": "Settings",
   "/dashboard/settings/profile": "Profile",
   "/dashboard/settings/billing": "Billing",
   "/dashboard/settings/security": "Security",
   "/dashboard/settings/notifications": "Notifications",
+}
+
+// Small "Soon" pill for nav items that aren't shipped yet (e.g. Webhooks).
+function SoonPill() {
+  return (
+    <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 9, background: "#1a1a24", padding: "2px 6px", borderRadius: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, flexShrink: 0 }}>
+      Soon
+    </span>
+  )
 }
 
 function SidebarLink({
@@ -148,6 +165,7 @@ function SidebarLink({
     >
       <span style={{ display: "flex", opacity: active ? 1 : 0.75 }}>{item.icon}</span>
       {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+      {!collapsed && item.soon && <SoonPill />}
       {!collapsed && item.external && <span style={{ color: "#444" }}>{ICON.external}</span>}
     </div>
   )
@@ -365,6 +383,59 @@ function QuotaWidget() {
   )
 }
 
+// Live system-status badge. Reflects the backend's GET /health (via /api/health)
+// instead of a hardcoded green dot: green only when the health check succeeds,
+// amber when it doesn't, grey while the first check is in flight. Re-checks
+// every 60s. Still links to the public status page.
+function OperationalBadge() {
+  // null = checking; true = ok; false = health check failed.
+  const [ok, setOk] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const check = () => {
+      fetch("/api/health", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => { if (!cancelled) setOk(d?.ok === true) })
+        .catch(() => { if (!cancelled) setOk(false) })
+    }
+    check()
+    const id = window.setInterval(check, 60_000)
+    return () => { cancelled = true; window.clearInterval(id) }
+  }, [])
+
+  const dot = ok === null ? "#666" : ok ? "#00e87b" : "#ff9060"
+  const label = ok === null ? "Checking…" : ok ? "Operational" : "Degraded"
+  const title = ok === false
+    ? "Backend health check failed — opens status page"
+    : "System status — opens status page"
+
+  return (
+    <a
+      className="dash-operational"
+      href="https://status.shotbase.dev"
+      target="_blank"
+      rel="noopener noreferrer"
+      title={title}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        fontFamily: "var(--font-ibm-plex)",
+        fontSize: 11,
+        color: "#888",
+        padding: "5px 10px",
+        border: `1px solid ${BORDER}`,
+        borderRadius: 6,
+        textDecoration: "none",
+      }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot }} />
+      {label}
+    </a>
+  )
+}
+
 function Logo({ collapsed }: { collapsed: boolean }) {
   return (
     <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, padding: collapsed ? "20px 14px 16px" : "20px 16px 16px", textDecoration: "none", justifyContent: collapsed ? "center" : "flex-start" }}>
@@ -418,6 +489,7 @@ function DrawerNavLink({ item, active, onClose }: { item: NavItem; active: boole
     >
       <span style={{ display: "flex", width: 16, justifyContent: "center", opacity: active ? 1 : 0.75 }}>{item.icon}</span>
       <span style={{ flex: 1 }}>{item.label}</span>
+      {item.soon && <SoonPill />}
       {item.external && <span style={{ color: "#444" }}>{ICON.external}</span>}
     </div>
   )
@@ -767,28 +839,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <span className="dash-mobile-title" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 14, fontWeight: 600, color: "#f0f0f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{pageTitle}</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <a
-              className="dash-operational"
-              href="https://status.shotbase.dev"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="System status — opens status page"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                fontFamily: "var(--font-ibm-plex)",
-                fontSize: 11,
-                color: "#888",
-                padding: "5px 10px",
-                border: `1px solid ${BORDER}`,
-                borderRadius: 6,
-                textDecoration: "none",
-              }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#00e87b" }} />
-              Operational
-            </a>
+            <OperationalBadge />
             <span
               title="Press ⌘K (or Ctrl+K) anywhere — coming in next polish PR"
               style={{
