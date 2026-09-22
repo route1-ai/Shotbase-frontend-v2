@@ -265,7 +265,9 @@ function buildPayload(c: Config) {
     const h = typeof c.height === 'string' ? parseInt(c.height) : c.height
     if (h && !Number.isNaN(h)) payload.height = h
   }
-  if (c.waitFor) payload.wait_until = c.waitFor
+  // 'auto' means "let the backend decide" — omit wait_until entirely so the
+  // backend applies its default (load + up to 2s for the network to go quiet).
+  if (c.waitFor && c.waitFor !== 'auto') payload.wait_until = c.waitFor
   const d = typeof c.delay === 'string' ? parseInt(c.delay) : c.delay
   if (d && !Number.isNaN(d) && d > 0) payload.delay_ms = d
   if (c.blockAds) payload.block_ads = true
@@ -409,7 +411,7 @@ function PlaygroundInner() {
   const [format, setFormat] = useState(() => getInitial('format', 'png'))
   const [removePopups, setRemovePopups] = useState(() => getInitial('popups', true, (v) => v !== '0'))
   const [fullPage, setFullPage] = useState(() => getInitial('full', false, (v) => v === '1'))
-  const [waitFor, setWaitFor] = useState(() => getInitial('wait', 'load'))
+  const [waitFor, setWaitFor] = useState(() => getInitial('wait', 'auto'))
   const [delay, setDelay] = useState<string | number>(() => getInitial('delay', 0 as number | string))
   const [blockAds, setBlockAds] = useState(() => getInitial('ads', false, (v) => v === '1'))
   const [darkMode, setDarkMode] = useState(() => getInitial('dark', false, (v) => v === '1'))
@@ -866,9 +868,10 @@ function PlaygroundInner() {
               value={waitFor}
               onChange={setWaitFor}
               options={[
-                { label: 'networkidle', value: 'networkidle' },
-                { label: 'domcontentloaded', value: 'domcontentloaded' },
+                { label: 'auto', value: 'auto' },
                 { label: 'load', value: 'load' },
+                { label: 'domcontentloaded', value: 'domcontentloaded' },
+                { label: 'networkidle', value: 'networkidle' },
               ]}
             />
 
@@ -1123,7 +1126,7 @@ function PlaygroundInner() {
                   {isDataMode(config) ? 'Extracting data…' : 'Capturing screenshot…'}
                 </div>
                 <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', marginTop: 4 }}>
-                  Loading page, waiting for {waitFor}
+                  {waitFor === 'auto' ? 'Loading page' : `Loading page, waiting for ${waitFor}`}
                 </div>
               </div>
             )}
