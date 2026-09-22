@@ -8,7 +8,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 // Customer-facing API endpoint shown in code samples. Defaults to api.shotbase.dev
 // so we never leak the Railway internal hostname into customer-visible curl/JS/Python.
 const PUBLIC_API_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.shotbase.dev/v1/screenshot'
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.shotbase.dev/screenshot'
 
 const PRESETS = [
   { label: 'Stripe', url: 'https://stripe.com' },
@@ -215,6 +215,15 @@ function SelectGroup({
 
 // ---------- Code-sample generation ----------
 
+type AiFields = { page_type: boolean; headings: boolean; ctas: boolean; prices: boolean }
+
+const AI_FIELD_LABELS: { key: keyof AiFields; label: string }[] = [
+  { key: 'page_type', label: 'Page type' },
+  { key: 'headings', label: 'Headings' },
+  { key: 'ctas', label: 'CTAs' },
+  { key: 'prices', label: 'Prices' },
+]
+
 type Config = {
   url: string
   width: number | string
@@ -227,6 +236,21 @@ type Config = {
   blockAds: boolean
   darkMode: boolean
   deviceScaleFactor: number
+  includeText: boolean
+  aiExtractEnabled: boolean
+  aiFields: AiFields
+}
+
+// Which AI facets are selected — used both to build the payload and to guard
+// against ever sending an all-false ai_extract (a no-op that still counts).
+function selectedAiFields(fields: AiFields): (keyof AiFields)[] {
+  return (Object.keys(fields) as (keyof AiFields)[]).filter((k) => fields[k])
+}
+
+// True when the request asks for data (page text and/or AI extraction), which
+// makes the backend answer with application/json instead of a binary capture.
+function isDataMode(c: Config) {
+  return c.includeText || (c.aiExtractEnabled && selectedAiFields(c.aiFields).length > 0)
 }
 
 function buildPayload(c: Config) {
@@ -241,37 +265,75 @@ function buildPayload(c: Config) {
     const h = typeof c.height === 'string' ? parseInt(c.height) : c.height
     if (h && !Number.isNaN(h)) payload.height = h
   }
-  if (c.waitFor) payload.wait_until = c.waitFor
+  // 'auto' means "let the backend decide" — omit wait_until entirely so the
+  // backend applies its default (load + up to 2s for the network to go quiet).
+  if (c.waitFor && c.waitFor !== 'auto') payload.wait_until = c.waitFor
   const d = typeof c.delay === 'string' ? parseInt(c.delay) : c.delay
   if (d && !Number.isNaN(d) && d > 0) payload.delay_ms = d
   if (c.blockAds) payload.block_ads = true
   if (c.darkMode) payload.dark_mode = true
   if (c.deviceScaleFactor && c.deviceScaleFactor !== 1) payload.device_scale_factor = c.deviceScaleFactor
+  // Page text — a plain boolean flag when on; omitted entirely when off.
+  if (c.includeText) payload.include_text = true
+  // AI extraction — only when enabled AND at least one facet is selected. An
+  // all-false ai_extract is never sent: it would still consume an AI credit
+  // while asking for nothing.
+  if (c.aiExtractEnabled) {
+    const selected = selectedAiFields(c.aiFields)
+    if (selected.length > 0) {
+      payload.ai_extract = selected.reduce(
+        (acc, k) => {
+          acc[k] = true
+          return acc
+        },
+        {} as Record<string, boolean>
+      )
+    }
+  }
   return payload
 }
 
-function formatJson(obj: Record<string, unknown>, indent: string) {
-  const entries = Object.entries(obj)
-  if (entries.length === 0) return '{}'
-  const lines = entries.map(([k, v], i) => {
-    const value = typeof v === 'string' ? `"${v}"` : String(v)
-    const comma = i < entries.length - 1 ? ',' : ''
-    return `${indent}  "${k}": ${value}${comma}`
-  })
-  return `{\n${lines.join('\n')}\n${indent}}`
+// Re-indent a JSON.stringify block so nested continuation lines line up under a
+// leading token (curl's `-d '` / a JS variable). Handles nested objects +
+// booleans for free, unlike the old flat formatter.
+function indentJson(obj: Record<string, unknown>, pad: string) {
+  return JSON.stringify(obj, null, 2)
+    .split('\n')
+    .map((line, i) => (i === 0 ? line : pad + line))
+    .join('\n')
+}
+
+// Serialize a payload value as a Python literal (True/False, nested dicts).
+function toPyLiteral(v: unknown, indent: string): string {
+  if (v === true) return 'True'
+  if (v === false) return 'False'
+  if (typeof v === 'string') return `"${v}"`
+  if (v && typeof v === 'object') {
+    const entries = Object.entries(v as Record<string, unknown>)
+    const inner = entries
+      .map(([k, val], i) => `${indent}    "${k}": ${toPyLiteral(val, indent + '    ')}${i < entries.length - 1 ? ',' : ''}`)
+      .join('\n')
+    return `{\n${inner}\n${indent}}`
+  }
+  return String(v)
 }
 
 function generateCode(lang: 'curl' | 'js' | 'python', config: Config, apiKey: string) {
   const payload = buildPayload(config)
   const keyDisplay = apiKey || 'YOUR_API_KEY'
+  // In data mode the response is JSON, so we don't save a binary file — we parse
+  // and read the returned page text / structured data instead.
+  const dataMode = isDataMode(config)
 
   if (lang === 'curl') {
-    const body = formatJson(payload, '    ')
-    return `curl -X POST '${PUBLIC_API_URL}' \\\n  -H 'Authorization: Bearer ${keyDisplay}' \\\n  -H 'Content-Type: application/json' \\\n  -d '${body}' \\\n  --output screenshot.${config.format}`
+    const body = indentJson(payload, '    ')
+    const base = `curl -X POST '${PUBLIC_API_URL}' \\\n  -H 'Authorization: Bearer ${keyDisplay}' \\\n  -H 'Content-Type: application/json' \\\n  -d '${body}'`
+    // Binary capture → write to a file; data mode → let the JSON print to stdout.
+    return dataMode ? base : `${base} \\\n  --output screenshot.${config.format}`
   }
   if (lang === 'js') {
-    const body = formatJson(payload, '  ')
-    return `const res = await fetch('${PUBLIC_API_URL}', {
+    const body = indentJson(payload, '  ')
+    const head = `const res = await fetch('${PUBLIC_API_URL}', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ${keyDisplay}',
@@ -280,18 +342,22 @@ function generateCode(lang: 'curl' | 'js' | 'python', config: Config, apiKey: st
   body: JSON.stringify(${body}),
 })
 
-if (!res.ok) throw new Error(\`Screenshot failed: \${res.status}\`)
+if (!res.ok) throw new Error(\`Request failed: \${res.status}\`)`
+    return dataMode
+      ? `${head}
+// Data mode returns JSON: { text, ai_data, ...metadata }
+const data = await res.json()
+console.log(data.text)
+console.log(data.ai_data)`
+      : `${head}
 const blob = await res.blob()
 const imageUrl = URL.createObjectURL(blob)`
   }
   // python
   const pyBody = Object.entries(payload)
-    .map(([k, v], i, arr) => {
-      const value = typeof v === 'string' ? `"${v}"` : v === true ? 'True' : v === false ? 'False' : String(v)
-      return `        "${k}": ${value}${i < arr.length - 1 ? ',' : ''}`
-    })
+    .map(([k, v], i, arr) => `        "${k}": ${toPyLiteral(v, '        ')}${i < arr.length - 1 ? ',' : ''}`)
     .join('\n')
-  return `import httpx
+  const pyHead = `import httpx
 
 r = httpx.post(
     '${PUBLIC_API_URL}',
@@ -301,7 +367,14 @@ ${pyBody}
     },
     timeout=60.0,
 )
-r.raise_for_status()
+r.raise_for_status()`
+  return dataMode
+    ? `${pyHead}
+# Data mode returns JSON: { "text", "ai_data", ...metadata }
+data = r.json()
+print(data["text"])
+print(data["ai_data"])`
+    : `${pyHead}
 with open('screenshot.${config.format}', 'wb') as f:
     f.write(r.content)`
 }
@@ -338,11 +411,28 @@ function PlaygroundInner() {
   const [format, setFormat] = useState(() => getInitial('format', 'png'))
   const [removePopups, setRemovePopups] = useState(() => getInitial('popups', true, (v) => v !== '0'))
   const [fullPage, setFullPage] = useState(() => getInitial('full', false, (v) => v === '1'))
-  const [waitFor, setWaitFor] = useState(() => getInitial('wait', 'networkidle'))
+  const [waitFor, setWaitFor] = useState(() => getInitial('wait', 'auto'))
   const [delay, setDelay] = useState<string | number>(() => getInitial('delay', 0 as number | string))
   const [blockAds, setBlockAds] = useState(() => getInitial('ads', false, (v) => v === '1'))
   const [darkMode, setDarkMode] = useState(() => getInitial('dark', false, (v) => v === '1'))
   const [deviceScaleFactor, setDeviceScaleFactor] = useState(() => getInitial('dpr', 1, (v) => Number(v) || 1))
+
+  // Output / data extraction. AI is available on every plan (usage-metered, not
+  // gated) — so no plan check here. Fields default to all-selected; the `fields`
+  // param only appears in the URL when the user narrows the selection.
+  const [includeText, setIncludeText] = useState(() => getInitial('text', false, (v) => v === '1'))
+  const [aiExtractEnabled, setAiExtractEnabled] = useState(() => getInitial('ai', false, (v) => v === '1'))
+  const [aiFields, setAiFields] = useState<AiFields>(() => {
+    const raw = getInitial('fields', '', (v) => v)
+    if (!raw) return { page_type: true, headings: true, ctas: true, prices: true }
+    const set = new Set(raw.split(',').map((s) => s.trim()))
+    return {
+      page_type: set.has('page_type'),
+      headings: set.has('headings'),
+      ctas: set.has('ctas'),
+      prices: set.has('prices'),
+    }
+  })
 
   // PDF output is always a multi-page document — every printed page is the
   // viewport-width capture of the scroll position. Until the renderer learns
@@ -355,14 +445,34 @@ function PlaygroundInner() {
 
   const [codeLang, setCodeLang] = useState<'curl' | 'js' | 'python'>('curl')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<{
-    screenshotUrl: string
-    tookMs: number
-    cached: boolean
-    width: number
-    height: number
-    size: number
-  } | null>(null)
+  // A capture returns an image/PDF (kind:'image'); page-text / AI mode returns
+  // structured JSON (kind:'data'). Discriminated union so the render paths and
+  // the lightbox/download (image-only) can't touch the wrong shape.
+  const [result, setResult] = useState<
+    | {
+        kind: 'image'
+        screenshotUrl: string
+        tookMs: number
+        cached: boolean
+        width: number
+        height: number
+        size: number
+      }
+    | {
+        kind: 'data'
+        tookMs: number
+        cached: boolean
+        text: string | null
+        aiData: Record<string, unknown> | null
+        aiError: string | null
+        format?: string
+        width?: number
+        height?: number
+        renderTimeMs?: number
+        fallbackUsed?: boolean
+      }
+    | null
+  >(null)
   const [hasRun, setHasRun] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -394,6 +504,9 @@ function PlaygroundInner() {
     blockAds,
     darkMode,
     deviceScaleFactor,
+    includeText,
+    aiExtractEnabled,
+    aiFields,
   }
 
   // Persist config to URL search params (debounced via URL update)
@@ -410,10 +523,18 @@ function PlaygroundInner() {
     if (blockAds) params.set('ads', '1')
     if (darkMode) params.set('dark', '1')
     if (deviceScaleFactor !== 1) params.set('dpr', String(deviceScaleFactor))
+    if (includeText) params.set('text', '1')
+    if (aiExtractEnabled) {
+      params.set('ai', '1')
+      const sel = selectedAiFields(aiFields)
+      // Only serialize the facet list when it's been narrowed from the default
+      // (all four); the shorter URL is nicer to share.
+      if (sel.length > 0 && sel.length < 4) params.set('fields', sel.join(','))
+    }
     const qs = params.toString()
     router.replace(`/dashboard/playground${qs ? `?${qs}` : ''}`, { scroll: false })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, width, height, format, waitFor, delay, removePopups, fullPage, blockAds, darkMode, deviceScaleFactor])
+  }, [url, width, height, format, waitFor, delay, removePopups, fullPage, blockAds, darkMode, deviceScaleFactor, includeText, aiExtractEnabled, aiFields])
 
   const run = useCallback(async () => {
     if (!user) return
@@ -428,16 +549,67 @@ function PlaygroundInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildPayload(config)),
       })
+
       if (!res.ok) {
-        const text = await res.text().catch(() => '')
-        throw new Error(text || `Request failed (${res.status})`)
+        const ct = res.headers.get('content-type') || ''
+        const j = ct.includes('application/json') ? await res.json().catch(() => null) : null
+        // Quota rejections (429) tell the user which meter was hit. Captures and
+        // AI extractions have separate monthly quotas — surface the right one.
+        if (res.status === 429 && j) {
+          const isAi = j.quota_type === 'ai_extractions'
+          const meter = isAi ? 'AI extraction' : 'capture'
+          const detail =
+            typeof j.used === 'number' && typeof j.limit === 'number' ? ` (${j.used}/${j.limit} used)` : ''
+          setError(
+            `Monthly ${meter} quota reached${detail}. Usage resets on the 1st (UTC), or upgrade your plan for more.`
+          )
+          return
+        }
+        const message =
+          (j && typeof j.error === 'string' && j.error) ||
+          (!j ? await res.text().catch(() => '') : '') ||
+          `Request failed (${res.status})`
+        throw new Error(message)
       }
-      const blob = await res.blob()
-      const imageUrl = URL.createObjectURL(blob)
+
       const tookMs = Date.now() - startTime
       const cached = res.headers.get('x-cache') === 'HIT'
+      const contentType = res.headers.get('content-type') || ''
+
+      // Data mode: page text and/or structured AI extraction come back as JSON.
+      if (contentType.includes('application/json')) {
+        const data = (await res.json().catch(() => null)) as Record<string, unknown> | null
+        const aiData =
+          data && typeof data.ai_data === 'object' ? (data.ai_data as Record<string, unknown> | null) : null
+        setResult({
+          kind: 'data',
+          tookMs,
+          cached,
+          text: data && typeof data.text === 'string' ? data.text : null,
+          aiData,
+          // ai_error surfaces only when AI was requested but produced no data;
+          // it's a soft/partial failure, never a hard error for the whole call.
+          aiError:
+            aiExtractEnabled && !aiData && data && typeof data.ai_error === 'string'
+              ? data.ai_error
+              : aiExtractEnabled && !aiData
+                ? 'AI extraction temporarily unavailable'
+                : null,
+          format: data && typeof data.format === 'string' ? data.format : undefined,
+          width: data && typeof data.width === 'number' ? data.width : undefined,
+          height: data && typeof data.height === 'number' ? data.height : undefined,
+          renderTimeMs: data && typeof data.render_time_ms === 'number' ? data.render_time_ms : undefined,
+          fallbackUsed: data && typeof data.fallback_used === 'boolean' ? data.fallback_used : undefined,
+        })
+        return
+      }
+
+      // Capture mode: binary image / PDF.
+      const blob = await res.blob()
+      const imageUrl = URL.createObjectURL(blob)
       const sizeKb = Math.round(blob.size / 1024)
       setResult({
+        kind: 'image',
         screenshotUrl: imageUrl,
         tookMs,
         cached,
@@ -446,12 +618,12 @@ function PlaygroundInner() {
         size: sizeKb,
       })
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Screenshot failed. Please try again.'
+      const message = err instanceof Error ? err.message : 'Request failed. Please try again.'
       setError(message)
     } finally {
       setLoading(false)
     }
-  }, [user, config, width, height])
+  }, [user, config, width, height, aiExtractEnabled])
 
   // Cmd/Ctrl+Enter triggers run from anywhere on the page
   useEffect(() => {
@@ -466,6 +638,19 @@ function PlaygroundInner() {
   }, [run])
 
   const code = generateCode(codeLang, config, apiKey)
+
+  // Copy state for the data-mode panels (page text / AI JSON), keyed so the
+  // "Copied" flash lands on the right button.
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const copyField = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 1500)
+    } catch {
+      // Best-effort; clipboard can be blocked. No crash, no fake success.
+    }
+  }
 
   const copyCode = async () => {
     try {
@@ -487,8 +672,18 @@ function PlaygroundInner() {
     }
   }
 
+  // Toggling an AI facet, but never below one selected facet (an empty
+  // selection would send nothing while still costing an AI credit).
+  const toggleAiField = (key: keyof AiFields) => {
+    setAiFields((prev) => {
+      const next = { ...prev, [key]: !prev[key] }
+      if (selectedAiFields(next).length === 0) return prev
+      return next
+    })
+  }
+
   const downloadResult = () => {
-    if (!result) return
+    if (!result || result.kind !== 'image') return
     const a = document.createElement('a')
     a.href = result.screenshotUrl
     a.download = `shotbase-${Date.now()}.${format}`
@@ -498,10 +693,27 @@ function PlaygroundInner() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0', overflow: 'hidden' }}>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
+    <div className="pg-root" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', background: '#050505', color: '#f0f0f0', overflow: 'hidden' }}>
+      {/* Mobile (≤767px): stack config over result and let the dashboard <main>
+          scroll vertically instead of squeezing a 360px column into the phone. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .pg-root { height: auto !important; min-height: calc(100vh - 56px); overflow: visible !important; }
+          /* minmax(0,1fr) lets the track shrink below its content's min-content
+             width; min-width:0 on the children stops a wide input/code block
+             from forcing horizontal overflow. */
+          .pg-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .pg-config, .pg-result { min-width: 0 !important; }
+          .pg-config { border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.07) !important; overflow: visible !important; }
+          .pg-result { min-height: 78vh; }
+          .pg-preview { min-height: 44vh; padding: 14px !important; }
+          .pg-preview img, .pg-preview iframe, .pg-preview > div { max-height: 60vh !important; }
+        }
+      `}</style>
+      <div className="pg-grid" style={{ flex: 1, display: 'grid', gridTemplateColumns: '360px 1fr', minHeight: 0 }}>
         {/* ---------- Left: options ---------- */}
         <div
+          className="pg-config"
           data-lenis-prevent
           style={{
             borderRight: `1px solid ${IDLE_BORDER}`,
@@ -656,9 +868,10 @@ function PlaygroundInner() {
               value={waitFor}
               onChange={setWaitFor}
               options={[
-                { label: 'networkidle', value: 'networkidle' },
-                { label: 'domcontentloaded', value: 'domcontentloaded' },
+                { label: 'auto', value: 'auto' },
                 { label: 'load', value: 'load' },
+                { label: 'domcontentloaded', value: 'domcontentloaded' },
+                { label: 'networkidle', value: 'networkidle' },
               ]}
             />
 
@@ -681,7 +894,7 @@ function PlaygroundInner() {
                 id={delayId}
                 type="number"
                 min={0}
-                max={30000}
+                max={10000}
                 value={delay}
                 onChange={(e) => setDelay(e.target.value)}
                 style={{
@@ -698,8 +911,8 @@ function PlaygroundInner() {
               />
             </div>
 
-            <Toggle label="Remove popups" sub="AI popup removal" value={removePopups} onChange={setRemovePopups} />
-            <Toggle label="Block ads & trackers" sub="20K+ rules applied" value={blockAds} onChange={setBlockAds} />
+            <Toggle label="Remove popups" sub="Hides cookie banners and popups" value={removePopups} onChange={setRemovePopups} />
+            <Toggle label="Block ads & trackers" sub="Blocks known ad and tracker requests" value={blockAds} onChange={setBlockAds} />
             <Toggle label="Dark mode" sub="prefers-color-scheme: dark" value={darkMode} onChange={setDarkMode} />
             <Toggle
               label="Full page"
@@ -709,6 +922,70 @@ function PlaygroundInner() {
               disabled={format === 'pdf'}
               lockedReason="PDF always captures the full scrollable document"
             />
+
+            {/* ---------- Output / data extraction ---------- */}
+            <div
+              style={{
+                fontFamily: 'var(--font-ibm-plex)',
+                fontSize: 11,
+                color: '#444',
+                textTransform: 'uppercase',
+                letterSpacing: '0.08em',
+                margin: '22px 0 4px',
+              }}
+            >
+              Data extraction
+            </div>
+            <Toggle
+              label="Page text"
+              sub="Return the page's extracted text"
+              value={includeText}
+              onChange={setIncludeText}
+            />
+            <Toggle
+              label="AI extraction"
+              sub="Structured data via AI — available on every plan"
+              value={aiExtractEnabled}
+              onChange={setAiExtractEnabled}
+            />
+            {aiExtractEnabled && (
+              <div style={{ padding: '14px 2px 4px' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-ibm-plex)',
+                    fontSize: 10,
+                    color: '#555',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: 10,
+                  }}
+                >
+                  Fields to extract
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {AI_FIELD_LABELS.map(({ key, label }) => {
+                    const on = aiFields[key]
+                    // The last remaining field can't be turned off — an empty
+                    // selection is invalid, so it renders as a disabled pill.
+                    const isLast = on && selectedAiFields(aiFields).length === 1
+                    return (
+                      <PillButton
+                        key={key}
+                        active={on}
+                        onClick={() => toggleAiField(key)}
+                        title={isLast ? 'Keep at least one field selected' : undefined}
+                      >
+                        {on ? '✓ ' : ''}
+                        {label}
+                      </PillButton>
+                    )
+                  })}
+                </div>
+                <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', marginTop: 10 }}>
+                  Counts toward your monthly capture quota.
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ padding: 20, borderTop: `1px solid ${IDLE_BORDER}` }}>
@@ -765,6 +1042,8 @@ function PlaygroundInner() {
                   </svg>
                   Capturing…
                 </React.Fragment>
+              ) : isDataMode(config) ? (
+                '▶ Run extraction'
               ) : (
                 '▶ Run screenshot'
               )}
@@ -774,8 +1053,9 @@ function PlaygroundInner() {
         </div>
 
         {/* ---------- Right: preview + code ---------- */}
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div className="pg-result" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div
+            className="pg-preview"
             style={{
               flex: 1,
               display: 'flex',
@@ -843,10 +1123,10 @@ function PlaygroundInner() {
                   }}
                 />
                 <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#888' }}>
-                  Capturing screenshot…
+                  {isDataMode(config) ? 'Extracting data…' : 'Capturing screenshot…'}
                 </div>
                 <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', marginTop: 4 }}>
-                  Loading page, waiting for {waitFor}
+                  {waitFor === 'auto' ? 'Loading page' : `Loading page, waiting for ${waitFor}`}
                 </div>
               </div>
             )}
@@ -860,7 +1140,7 @@ function PlaygroundInner() {
                 </div>
               </div>
             )}
-            {result && !loading && (
+            {result && result.kind === 'image' && !loading && (
               <React.Fragment>
                 {/* PDF format renders in an iframe (native PDF viewer); image formats use <img>.
                     Either way, the preview is always contained — full size lives in the lightbox. */}
@@ -1010,6 +1290,184 @@ function PlaygroundInner() {
                 </div>
               </React.Fragment>
             )}
+            {result && result.kind === 'data' && !loading && (
+              <div
+                data-lenis-prevent
+                style={{
+                  alignSelf: 'stretch',
+                  width: '100%',
+                  height: '100%',
+                  overflow: 'auto',
+                  padding: 4,
+                  textAlign: 'left',
+                }}
+              >
+                {/* Result metadata line */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-ibm-plex)',
+                      fontSize: 11,
+                      background: ACTIVE_BG,
+                      border: `1px solid ${ACTIVE_BORDER}`,
+                      color: '#00e87b',
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                    }}
+                  >
+                    200 OK
+                  </span>
+                  <span
+                    style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}
+                    title="Total round-trip time"
+                  >
+                    {result.tookMs}ms
+                  </span>
+                  {typeof result.renderTimeMs === 'number' && (
+                    <span
+                      style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}
+                      title="Backend render time"
+                    >
+                      render {result.renderTimeMs}ms
+                    </span>
+                  )}
+                  {result.cached && (
+                    <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}>
+                      cached
+                    </span>
+                  )}
+                  {(result.width || result.height || result.format) && (
+                    <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}>
+                      {result.width && result.height ? `${result.width}×${result.height}` : ''}
+                      {result.format ? ` ${result.format.toUpperCase()}` : ''}
+                    </span>
+                  )}
+                  {result.fallbackUsed && (
+                    <span
+                      style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid rgba(255,144,96,0.3)`, color: '#ff9060', padding: '4px 10px', borderRadius: 6 }}
+                      title="A rendering fallback was used for this request"
+                    >
+                      fallback used
+                    </span>
+                  )}
+                </div>
+
+                {/* Page text */}
+                {result.text !== null && (
+                  <div style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f0' }}>Page text</div>
+                      <button
+                        onClick={() => copyField(result.text || '', 'text')}
+                        style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: copiedField === 'text' ? '#00e87b' : '#888', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+                        aria-live="polite"
+                      >
+                        {copiedField === 'text' ? '✓ Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <pre
+                      data-lenis-prevent
+                      style={{
+                        fontFamily: 'var(--font-ibm-plex)',
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        color: '#c0c0c0',
+                        background: IDLE_BG,
+                        border: `1px solid ${IDLE_BORDER}`,
+                        borderRadius: 8,
+                        padding: 14,
+                        margin: 0,
+                        maxHeight: 300,
+                        overflow: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {result.text || '(no text extracted)'}
+                    </pre>
+                  </div>
+                )}
+
+                {/* AI structured extraction */}
+                {aiExtractEnabled && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f0f0' }}>AI extraction</div>
+                      {result.aiData && (
+                        <button
+                          onClick={() => copyField(JSON.stringify(result.aiData, null, 2), 'ai')}
+                          style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: copiedField === 'ai' ? '#00e87b' : '#888', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+                          aria-live="polite"
+                        >
+                          {copiedField === 'ai' ? '✓ Copied' : 'Copy JSON'}
+                        </button>
+                      )}
+                    </div>
+                    {result.aiData ? (
+                      <React.Fragment>
+                        {/* Human-readable rendering */}
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-ibm-plex)',
+                            fontSize: 12,
+                            color: '#c0c0c0',
+                            background: IDLE_BG,
+                            border: `1px solid ${IDLE_BORDER}`,
+                            borderRadius: 8,
+                            padding: 14,
+                            marginBottom: 10,
+                          }}
+                        >
+                          <AiDataView data={result.aiData} />
+                        </div>
+                        {/* Raw JSON */}
+                        <details>
+                          <summary style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#666', cursor: 'pointer', marginBottom: 6 }}>
+                            Raw JSON
+                          </summary>
+                          <pre
+                            data-lenis-prevent
+                            style={{
+                              fontFamily: 'var(--font-ibm-plex)',
+                              fontSize: 12,
+                              lineHeight: 1.6,
+                              color: '#c0c0c0',
+                              background: IDLE_BG,
+                              border: `1px solid ${IDLE_BORDER}`,
+                              borderRadius: 8,
+                              padding: 14,
+                              margin: 0,
+                              maxHeight: 300,
+                              overflow: 'auto',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {JSON.stringify(result.aiData, null, 2)}
+                          </pre>
+                        </details>
+                      </React.Fragment>
+                    ) : (
+                      // ai_data === null → soft, non-fatal notice. The capture /
+                      // page text still succeeded; only the AI facet is degraded.
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-ibm-plex)',
+                          fontSize: 12,
+                          color: '#ff9060',
+                          background: IDLE_BG,
+                          border: `1px solid rgba(255,144,96,0.3)`,
+                          borderRadius: 8,
+                          padding: 14,
+                        }}
+                      >
+                        {result.aiError || 'AI extraction temporarily unavailable'}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ flexShrink: 0, borderTop: `1px solid ${IDLE_BORDER}`, background: '#0a0a0a' }}>
@@ -1068,7 +1526,7 @@ function PlaygroundInner() {
       </div>
 
       {/* ---------- Lightbox: full-size scrollable view of the screenshot ---------- */}
-      {expanded && result && (
+      {expanded && result && result.kind === 'image' && (
         <div
           role="dialog"
           aria-modal="true"
@@ -1231,6 +1689,64 @@ function PlaygroundInner() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Recursively render an AI-extraction value (string / number / boolean / array
+// / nested object) as readable text. Kept generic so it survives whatever facet
+// shape the backend returns — we never assume specific keys.
+function renderAiValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined || value === '') return <span style={{ color: '#555' }}>—</span>
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span style={{ color: '#555' }}>(none)</span>
+    return (
+      <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+        {value.map((v, i) => (
+          <li key={i} style={{ marginBottom: 3 }}>
+            {renderAiValue(v)}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+  if (typeof value === 'object') {
+    return (
+      <div style={{ marginTop: 4 }}>
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <div key={k} style={{ marginBottom: 4 }}>
+            <span style={{ color: '#888' }}>{k}: </span>
+            {renderAiValue(v)}
+          </div>
+        ))}
+      </div>
+    )
+  }
+  return <span style={{ color: '#e0e0e0' }}>{String(value)}</span>
+}
+
+function AiDataView({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data)
+  if (entries.length === 0) return <span style={{ color: '#555' }}>No fields returned.</span>
+  return (
+    <div>
+      {entries.map(([key, value]) => (
+        <div key={key} style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              fontFamily: 'var(--font-ibm-plex)',
+              fontSize: 10,
+              color: '#00e87b',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginBottom: 4,
+            }}
+          >
+            {key.replace(/_/g, ' ')}
+          </div>
+          <div>{renderAiValue(value)}</div>
+        </div>
+      ))}
     </div>
   )
 }

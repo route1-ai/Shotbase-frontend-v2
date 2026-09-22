@@ -25,19 +25,32 @@ create index if not exists users_stripe_customer_id_idx on public.users(stripe_c
 -- Written by: Railway backend (logScreenshot in server.ts) after each request
 -- Read by:    /api/usage (count per month), /api/logs (recent 50)
 create table if not exists public.screenshots (
-  id          uuid primary key default uuid_generate_v4(),
-  user_id     text not null,
-  url         text,
-  format      text,
-  status      int,
-  time_ms     int,
-  size_kb     int,
-  cached      boolean,
-  created_at  timestamptz default now()
+  id            uuid primary key default uuid_generate_v4(),
+  user_id       text not null,
+  url           text,
+  format        text,
+  status        int,
+  time_ms       int,
+  size_kb       int,
+  cached        boolean,
+  ai_requested  boolean not null default false,
+  ai_succeeded  boolean not null default false,
+  created_at    timestamptz default now()
 );
+
+-- AI-extraction accounting columns. `create table if not exists` above will NOT
+-- add columns to an already-existing table, so add them explicitly + idempotently
+-- for existing production projects. Safe to re-run.
+alter table public.screenshots add column if not exists ai_requested boolean not null default false;
+alter table public.screenshots add column if not exists ai_succeeded boolean not null default false;
 
 create index if not exists screenshots_user_id_created_at_idx
   on public.screenshots(user_id, created_at desc);
+
+-- Supports the monthly AI-usage count (status = 200 AND ai_succeeded = true).
+create index if not exists screenshots_ai_succeeded_idx
+  on public.screenshots(user_id, created_at desc)
+  where ai_succeeded;
 
 -- ─── Row-Level Security ───────────────────────────────────────────────
 -- Service-role key (used server-side by the frontend + Railway backend) bypasses RLS,

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import { useUser } from "@clerk/nextjs"
+import { planConfig } from "@/lib/plans"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
@@ -89,9 +90,11 @@ function ThumbPlaceholder({ idx, label }: { idx: number; label: string }) {
 
 export default function OverviewPage() {
   const { user } = useUser()
-  const [usage, setUsage] = useState({ count: 0, plan: "Free", limit: 10000 })
+  // Pricing V2 usage shape: { available, plan, captures:{used,limit}, ai_extractions:{used,limit} } | { available:false }.
+  type Meter = { used: number; limit: number }
+  type Usage = { available: true; plan: string; captures: Meter; ai_extractions: Meter } | { available: false } | null
+  const [usage, setUsage] = useState<Usage>(null)
   const [logs, setLogs] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [showFirstCall, setShowFirstCall] = useState(true)
 
   useEffect(() => {
@@ -99,35 +102,52 @@ export default function OverviewPage() {
       fetch("/api/usage").then((r) => r.json()).catch(() => null),
       fetch("/api/logs").then((r) => r.json()).catch(() => null),
     ]).then(([u, l]) => {
-      if (u) setUsage({ count: u.count || 0, plan: u.plan || "Free", limit: u.limit || 10000 })
+      const cap = u?.captures
+      const ai = u?.ai_extractions
+      if (u && u.available === true && cap && typeof cap.used === "number" && ai && typeof ai.used === "number") {
+        setUsage({ available: true, plan: u.plan || "free", captures: cap, ai_extractions: ai })
+        // Collapse the getting-started card once the user has made calls.
+        if (cap.used > 0) setShowFirstCall(false)
+      } else {
+        setUsage({ available: false })
+      }
       if (l && l.logs) setLogs(l.logs)
-      setLoading(false)
-      // If the user has already made calls, collapse the getting-started card.
-      if (u && u.count > 0) setShowFirstCall(false)
     })
   }, [])
 
-  const pct = (usage.count / usage.limit) * 100
-  const hasData = logs.length > 0 || usage.count > 0
+  const available = usage?.available === true
+  const captures = available ? (usage as { captures: Meter }).captures : null
+  const aiUsage = available ? (usage as { ai_extractions: Meter }).ai_extractions : null
+  const planName = available ? planConfig((usage as { plan: string }).plan).name : "—"
+  const pct = captures && captures.limit > 0 ? (captures.used / captures.limit) * 100 : 0
+  const hasData = logs.length > 0 || (!!captures && captures.used > 0)
 
   const metrics = [
-    { label: "Screenshots this month", value: usage.count.toLocaleString(), sub: `${usage.plan} plan · ${usage.limit.toLocaleString()} included` },
-    { label: "Avg response time", value: hasData ? "241ms" : "—", sub: hasData ? "p50 across all renders" : "Once you make a call" },
-    { label: "Cache hit rate", value: hasData ? "64%" : "—", sub: hasData ? "Sub-200ms served from edge" : "Cached repeat URLs" },
-    { label: "Success rate", value: hasData ? "99.4%" : "—", sub: hasData ? "Last 30 days" : "Renders that returned 200" },
+    { label: "Captures this month", value: captures ? captures.used.toLocaleString() : "—", sub: captures ? `${planName} plan · ${captures.limit.toLocaleString()} included` : "Usage tracking unavailable" },
+    { label: "AI extractions", value: aiUsage ? aiUsage.used.toLocaleString() : "—", sub: aiUsage ? `of ${aiUsage.limit.toLocaleString()} included` : "Usage tracking unavailable" },
+    { label: "Success rate", value: hasData ? "—" : "—", sub: "Available once accounting is live" },
+    { label: "Recent renders", value: logs.length ? logs.length.toLocaleString() : "—", sub: logs.length ? "Shown below" : "Once you make a call" },
   ]
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 20 }}>
+    <div className="ov-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 20 }}>
+      {/* Mobile/tablet: stack the 320px rail under the main column and drop the
+          stats to 2-up; the recent-renders table scrolls inside its own box. */}
+      <style>{`
+        .ov-grid > * { min-width: 0; }
+        .ov-recent-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        @media (max-width: 900px) { .ov-grid { grid-template-columns: minmax(0, 1fr) !important; } }
+        @media (max-width: 767px) { .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+      `}</style>
       {/* ----- Main column ----- */}
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
-          <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12, marginBottom: 22 }}>
+          <div style={{ minWidth: 0 }}>
             <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 4 }}>
               Welcome{user?.firstName ? `, ${user.firstName}` : ""}
             </h1>
-            <p style={{ color: "#888", fontSize: 13 }}>
-              <span style={{ color: "#f0f0f0" }}>{usage.plan} plan</span> · {user?.emailAddresses?.[0]?.emailAddress}
+            <p style={{ color: "#888", fontSize: 13, overflowWrap: "anywhere" }}>
+              <span style={{ color: "#f0f0f0" }}>{planName} plan</span> · {user?.emailAddresses?.[0]?.emailAddress}
             </p>
           </div>
           <Link
@@ -138,9 +158,11 @@ export default function OverviewPage() {
               fontWeight: 600,
               color: "#000",
               background: "#00e87b",
-              padding: "8px 16px",
+              padding: "9px 16px",
               borderRadius: 7,
               textDecoration: "none",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             ▶ Open playground
@@ -148,7 +170,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Metric cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
+        <div className="ov-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12, marginBottom: 16 }}>
           {metrics.map((m) => (
             <div key={m.label} style={metricCard}>
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
@@ -173,28 +195,39 @@ export default function OverviewPage() {
               Upgrade →
             </Link>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <span style={{ fontSize: 18, fontWeight: 600 }}>{usage.count.toLocaleString()}</span>
-            <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>
-              of {usage.limit.toLocaleString()} · {Math.round(pct)}% used
-            </span>
-          </div>
-          <div style={{ height: 6, background: "#1a1a1a", borderRadius: 3, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 3, transition: "width 0.3s" }} />
-          </div>
+          {captures ? (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                <span style={{ fontSize: 18, fontWeight: 600 }}>{captures.used.toLocaleString()}</span>
+                <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666" }}>
+                  of {captures.limit.toLocaleString()} captures · {Math.round(pct)}% used
+                </span>
+              </div>
+              <div style={{ height: 6, background: "#1a1a1a", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${Math.min(100, pct)}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 3, transition: "width 0.3s" }} />
+              </div>
+              {aiUsage && (
+                <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#666", marginTop: 10 }}>
+                  AI extractions: <span style={{ color: "#f0f0f0" }}>{aiUsage.used.toLocaleString()}</span> / {aiUsage.limit.toLocaleString()}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>Usage tracking temporarily unavailable</div>
+          )}
         </div>
 
         {/* First-call card — collapsible after the first request */}
         {showFirstCall && (
           <div style={{ ...cardStyle, marginBottom: 16, border: `1px solid ${ACTIVE_BORDER}` }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flexWrap: "wrap" }}>
                 <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#00e87b", background: ACTIVE_BG, padding: "3px 8px", borderRadius: 4, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
                   Getting started
                 </span>
                 <span style={{ fontSize: 14, fontWeight: 500 }}>Make your first call</span>
               </div>
-              <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
                 <Link href="/dashboard/playground" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
                   Try in Playground →
                 </Link>
@@ -208,7 +241,7 @@ export default function OverviewPage() {
               </div>
             </div>
             <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 8, padding: 14, fontFamily: "var(--font-ibm-plex)", fontSize: 11.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6 }}>
-{`curl -X POST 'https://api.shotbase.dev/v1/screenshot' \\
+{`curl -X POST 'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer YOUR_API_KEY' \\
   -H 'Content-Type: application/json' \\
   -d '{"url": "https://stripe.com"}' \\
@@ -273,10 +306,10 @@ export default function OverviewPage() {
           </div>
           {logs.length === 0 ? (
             <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", padding: "20px 0", textAlign: "center" }}>
-              {loading ? "Loading…" : "No requests yet. Your renders will appear here in real time."}
+              {usage === null ? "Loading…" : "No requests yet. Your renders will appear here in real time."}
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table className="ov-recent-table" style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                   {["Request ID", "URL", "Status", "Time", "Format", "When"].map((h) => (
@@ -311,7 +344,7 @@ export default function OverviewPage() {
           </div>
           <pre style={{ background: "#050505", border: `1px solid ${BORDER}`, borderRadius: 6, padding: 12, fontFamily: "var(--font-ibm-plex)", fontSize: 10.5, color: "#888", overflow: "auto", margin: 0, lineHeight: 1.6, whiteSpace: "pre" }}>
 {`curl -X POST \\
-  'https://api.shotbase.dev/v1/screenshot' \\
+  'https://api.shotbase.dev/screenshot' \\
   -H 'Authorization: Bearer YOUR_KEY' \\
   -d '{"url":"https://stripe.com"}'`}
           </pre>

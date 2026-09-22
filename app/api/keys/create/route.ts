@@ -1,11 +1,16 @@
-import { auth } from '@clerk/nextjs/server'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
+import { ensureUserRow } from '@/lib/ensure-user'
 
 export async function POST() {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
+    // Self-heal a missing users row (pre-webhook signups) before reading plan.
+    const user = await currentUser()
+    await ensureUserRow(userId, user?.emailAddresses?.[0]?.emailAddress)
+
     // Fetch user's current plan from Supabase so Unkey key carries plan metadata
     let plan = 'free'
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL

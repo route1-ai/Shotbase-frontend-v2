@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import styles from "./docs.module.css"
 
@@ -13,21 +14,15 @@ const NAV = [
   ]},
   { section: 'API Reference', items: [
     { id: 'screenshot', label: 'POST /screenshot' },
-    { id: 'batch', label: 'POST /batch' },
-    { id: 'status', label: 'GET /status/:id' },
-    { id: 'webhooks', label: 'Webhooks' },
+    { id: 'health', label: 'GET /health' },
   ]},
-  { section: 'SDKs', items: [
-    { id: 'sdk-js', label: 'JavaScript / TypeScript' },
-    { id: 'sdk-python', label: 'Python' },
-    { id: 'sdk-go', label: 'Go' },
+  { section: 'MCP', items: [
     { id: 'mcp', label: 'MCP Server' },
   ]},
   { section: 'Guides', items: [
-    { id: 'popup-removal', label: 'Popup removal' },
-    { id: 'caching', label: 'Caching & TTL' },
+    { id: 'caching', label: 'Caching' },
     { id: 'rate-limits', label: 'Rate limits' },
-    { id: 'billing', label: 'Billing' },
+    { id: 'billing', label: 'Plans & billing' },
   ]},
 ]
 
@@ -70,19 +65,19 @@ const CONTENT: Record<string, () => React.ReactNode> = {
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Introduction</div>
       <h1>Shotbase API</h1>
-      <p style={{ fontSize: 17, color: '#f0f0f0', marginBottom: 24, lineHeight: 1.6 }}>The fastest way to capture screenshots programmatically. No browser, no DevOps, no cold starts.</p>
-      <p>Shotbase is a REST API that captures pixel-perfect screenshots of any URL. Pass a URL, get back a CDN-hosted image. Our infrastructure handles browser lifecycle, JS rendering, cookie banner removal, and caching — so you don't have to.</p>
-      <p>The API is designed around three principles: <strong>simplicity</strong> (one endpoint for 90% of use cases), <strong>reliability</strong> (you're only charged for successful captures), and <strong>speed</strong> (median response under 200ms with caching).</p>
+      <p style={{ fontSize: 17, color: '#f0f0f0', marginBottom: 24, lineHeight: 1.6 }}>Browser infrastructure for AI and automation developers. Render any webpage and get back a screenshot, its page content, and structured extracted data — over REST or MCP.</p>
+      <p>Shotbase runs real Chromium browsers (via Playwright) so you don't have to. A single call handles the browser lifecycle and JS rendering, then returns a screenshot and — when you ask for it — the page's text and structured data extracted from it.</p>
+      <p>There are two ways to call Shotbase: a <strong>REST</strong> endpoint (<code>POST /screenshot</code>) and a native <strong>MCP</strong> server (<code>POST /api/mcp</code>) exposing the <code>shotbase_capture</code> tool.</p>
       <h2>Base URL</h2>
-      <CodeBlock lang="text" code={`https://api.shotbase.io/v1`}/>
+      <CodeBlock lang="text" code={`https://api.shotbase.dev`}/>
       <h2>Quick example</h2>
-      <CodeBlock lang="bash" code={`curl -X POST \\
-  -H "Authorization: Bearer sk-live-YOUR_KEY" \\
+      <CodeBlock lang="bash" code={`curl -X POST https://api.shotbase.dev/screenshot \\
+  -H "Authorization: Bearer sk_YOUR_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"url":"https://example.com"}' \\
-  https://api.shotbase.io/v1/screenshot`}/>
-      <p>Returns a JSON object with a <code>screenshot_url</code> field pointing to a permanent CDN URL.</p>
-      <Callout type="tip">Start with the <Link href="/">Quickstart guide</Link> for a step-by-step walkthrough, or jump straight to the <Link href="/">API reference</Link>.</Callout>
+  --output shot.png`}/>
+      <p>By default the response body is the rendered image. Add <code>include_text</code> or <code>ai_extract</code> to get a JSON response with the page&apos;s text and extracted data instead.</p>
+      <Callout type="tip">Start with the <strong>Quickstart</strong> guide for a step-by-step walkthrough, or jump straight to the <strong>API reference</strong> — both are in the sidebar.</Callout>
     </div>
   ),
   quickstart: () => (
@@ -91,31 +86,23 @@ const CONTENT: Record<string, () => React.ReactNode> = {
       <h1>Quickstart</h1>
       <p>Get your first screenshot in under 5 minutes.</p>
       <h2>1. Get your API key</h2>
-      <p>Sign up at <Link href="/dashboard">shotbase.io/dashboard</Link>. Your first API key is created automatically. Copy it from the <strong>API Keys</strong> tab.</p>
+      <p>Sign up at the <Link href="/dashboard">dashboard</Link>. Create an API key and copy it from the <strong>API Keys</strong> tab.</p>
       <Callout type="warning">Never expose your API key in client-side code. Use it server-side only, or via environment variables.</Callout>
-      <h2>2. Install the SDK (optional)</h2>
-      <CodeBlock lang="bash" code={`# JavaScript / TypeScript\nnpm install @shotbase/sdk\n\n# Python\npip install shotbase\n\n# Go\ngo get github.com/route1ai/shotbase-go`}/>
-      <h2>3. Make your first request</h2>
-      <CodeBlock lang="javascript" code={`import { Shotbase } from '@shotbase/sdk';\n\nconst sb = new Shotbase({ apiKey: process.env.SHOTBASE_API_KEY });\n\nconst { url, tookMs } = await sb.screenshot({\n  url: 'https://stripe.com',\n  width: 1440,\n  format: 'png',\n  removePopups: true,\n});\n\nconsole.log(\`Done in \${tookMs}ms!\`);\nconsole.log(url); // https://cdn.shotbase.io/sc/k9xp2q8m...`}/>
-      <h2>4. Use the CDN URL</h2>
-      <p>The returned URL is permanent and globally cached. Use it anywhere — <code>&lt;img&gt;</code> tags, PDFs, AI inputs, email previews, etc.</p>
-      <Callout type="tip">URLs are immutable. The same URL will always return the same screenshot. To recapture, set <code>cache: false</code> or use <code>bust_cache: true</code>.</Callout>
+      <h2>2. Make your first request</h2>
+      <p>There is no SDK to install — Shotbase is a plain HTTP endpoint. Call it with your language&apos;s native HTTP client:</p>
+      <CodeBlock lang="javascript" code={`// Native fetch — no SDK required\nconst res = await fetch("https://api.shotbase.dev/screenshot", {\n  method: "POST",\n  headers: {\n    "Authorization": "Bearer sk_YOUR_KEY",\n    "Content-Type": "application/json",\n  },\n  body: JSON.stringify({ url: "https://stripe.com", format: "png" }),\n});\n\n// Default response is the binary image\nconst bytes = await res.arrayBuffer();`}/>
+      <h2>3. Ask for text and data</h2>
+      <p>Add <code>include_text</code> and/or <code>ai_extract</code> and the response comes back as JSON containing the page&apos;s text and extracted fields instead of a raw image.</p>
+      <CodeBlock lang="bash" code={`curl -X POST https://api.shotbase.dev/screenshot \\\n  -H "Authorization: Bearer sk_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "https://stripe.com",\n    "include_text": true,\n    "ai_extract": { "headings": true, "prices": true }\n  }'`}/>
     </div>
   ),
   auth: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Getting Started</div>
       <h1>Authentication</h1>
-      <p>All API requests require a valid API key sent in the <code>Authorization</code> header as a Bearer token.</p>
-      <CodeBlock lang="bash" code={`Authorization: Bearer sk-live-YOUR_API_KEY`}/>
-      <h2>Key types</h2>
-      <table>
-        <thead><tr><th>Prefix</th><th>Type</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td>sk-live-</td><td>Live</td><td>Production key. Charges apply after free tier.</td></tr>
-          <tr><td>sk-test-</td><td>Test</td><td>Test mode. Returns mock screenshots, never charges.</td></tr>
-        </tbody>
-      </table>
+      <p>All API requests require a valid API key sent in the <code>Authorization</code> header as a Bearer token. Keys are prefixed with <code>sk_</code> and created in the dashboard.</p>
+      <CodeBlock lang="bash" code={`Authorization: Bearer sk_YOUR_API_KEY`}/>
+      <p>The same key authenticates both the REST endpoint and the MCP server.</p>
       <h2>Security</h2>
       <ul>
         <li>Keys are shown only once at creation time</li>
@@ -131,123 +118,144 @@ const CONTENT: Record<string, () => React.ReactNode> = {
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>API Reference</div>
       <h1 style={{ display: 'flex', alignItems: 'center' }}><METHOD type="POST"/> /screenshot</h1>
       <p>Captures a screenshot of the specified URL. This is the primary endpoint for the Shotbase API.</p>
-      <CodeBlock lang="bash" code={`POST https://api.shotbase.io/v1/screenshot`}/>
+      <CodeBlock lang="bash" code={`POST https://api.shotbase.dev/screenshot`}/>
       <h2>Request body</h2>
       <table>
         <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
         <tbody>
           {[
-            ['url', 'string', 'required', 'The URL to screenshot. Must include protocol.'],
-            ['width', 'integer', '1440', 'Viewport width in pixels. Max: 3840.'],
-            ['height', 'integer', 'auto', 'Viewport height. If omitted, captures full viewport.'],
+            ['url', 'string', 'required', 'The URL to capture. Must include protocol (http/https).'],
             ['format', 'string', '"png"', 'Output format: png, jpeg, webp, or pdf.'],
-            ['quality', 'integer', '90', 'JPEG/WebP compression quality.'],
-            ['full_page', 'boolean', 'false', 'Capture entire scrollable page height.'],
-            ['remove_popups', 'boolean', 'true', 'AI-powered popup and cookie banner removal.'],
-            ['wait_for', 'string', '"networkidle"', 'Wait condition: networkidle, domloaded, or load.'],
-            ['delay_ms', 'integer', '0', 'Additional delay in ms after wait_for condition.'],
-            ['cache', 'boolean', 'true', 'Serve from cache if available.'],
-            ['cache_ttl', 'integer', '3600', 'Cache TTL in seconds.'],
-            ['bust_cache', 'boolean', 'false', 'Force a fresh capture, bypassing cache.'],
-            ['js_injection', 'string', 'null', 'JavaScript to inject before capture (Pro+).'],
-            ['clip', 'object', 'null', 'Clip region: { x, y, width, height }.'],
-            ['dark_mode', 'boolean', 'false', 'Emulate prefers-color-scheme: dark.'],
-            ['device_scale', 'number', '1', 'Device pixel ratio (1, 1.5, or 2).'],
+            ['full_page', 'boolean', 'false', 'Capture the entire scrollable page height.'],
+            ['width', 'integer', '1440', 'Viewport width in pixels (100–3840).'],
+            ['height', 'integer', '900', 'Viewport height in pixels (100–2160).'],
+            ['include_text', 'boolean', 'false', 'Return the page’s rendered text. Switches the response to JSON.'],
+            ['ai_extract', 'object', 'null', 'Request structured data, e.g. { "headings": true, "prices": true, "ctas": true, "page_type": true }. Switches the response to JSON.'],
           ].map(([p, t, d, desc]) => (
             <tr key={p}><td>{p}</td><td>{t}</td><td style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#444' }}>{d}</td><td style={{ fontSize: 13, color: '#888' }}>{desc}</td></tr>
           ))}
         </tbody>
       </table>
       <h2>Response</h2>
-      <CodeBlock lang="json" code={`{\n  "id": "req_9xkp2q8mnt3rLp",\n  "screenshot_url": "https://cdn.shotbase.io/sc/k9xp2q8m...",\n  "width": 1440,\n  "height": 900,\n  "format": "png",\n  "size_bytes": 291041,\n  "took_ms": 142,\n  "cached": true,\n  "popups_removed": 2,\n  "created_at": "2026-04-23T14:22:01Z"\n}`}/>
+      <p>By default the response body is the <strong>rendered image bytes</strong> with the matching <code>Content-Type</code> (e.g. <code>image/png</code>). An <code>X-Cache</code> header indicates <code>HIT</code> or <code>MISS</code>.</p>
+      <p>When you pass <code>include_text</code> or <code>ai_extract</code>, the response is <strong>JSON</strong> instead:</p>
+      <CodeBlock lang="json" code={`{\n  "screenshot_url": null,\n  "format": "png",\n  "width": 1440,\n  "height": 900,\n  "render_time_ms": 1840,\n  "cached": false,\n  "text": "Pricing — simple, transparent…",\n  "ai_data": {\n    "page_type": "pricing",\n    "headings": ["Pricing", "Enterprise"],\n    "ctas": ["Get Started", "Contact Sales"],\n    "prices": ["$29/mo", "$99/mo"]\n  }\n}`}/>
+      <Callout type="info">In JSON mode the image is not embedded (<code>screenshot_url</code> is <code>null</code>). Request without <code>include_text</code>/<code>ai_extract</code> to receive the binary image.</Callout>
+      <h2>Graceful AI degradation</h2>
+      <p>If you request <code>ai_extract</code> but the extraction provider is temporarily unavailable, the capture still succeeds with <code>200</code>. The response returns <code>ai_data: null</code> and a generic <code>ai_error</code> so your integration can proceed:</p>
+      <CodeBlock lang="json" code={`{\n  "format": "png",\n  "cached": false,\n  "render_time_ms": 1720,\n  "ai_data": null,\n  "ai_error": "AI extraction temporarily unavailable"\n}`}/>
+      <h2>Request size</h2>
+      <p>Request bodies are limited to <strong>1 MiB</strong> by default. Larger payloads are rejected before rendering.</p>
       <h2>Example</h2>
-      <CodeBlock lang="bash" code={`curl -X POST \\\n  -H "Authorization: Bearer sk-live-..." \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "https://stripe.com",\n    "width": 1440,\n    "format": "png",\n    "remove_popups": true,\n    "full_page": false\n  }' \\\n  https://api.shotbase.io/v1/screenshot`}/>
+      <CodeBlock lang="bash" code={`curl -X POST https://api.shotbase.dev/screenshot \\\n  -H "Authorization: Bearer sk_YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "url": "https://stripe.com",\n    "format": "png",\n    "full_page": false\n  }' \\\n  --output shot.png`}/>
     </div>
   ),
-  batch: () => (
+  health: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>API Reference</div>
-      <h1 style={{ display: 'flex', alignItems: 'center' }}><METHOD type="POST"/> /batch</h1>
-      <p>Submit up to 100 screenshot jobs in a single request. Jobs are processed asynchronously and results are delivered via webhook or polled via <code>GET /status/:id</code>.</p>
-      <CodeBlock lang="json" code={`{\n  "requests": [\n    { "url": "https://stripe.com", "format": "png" },\n    { "url": "https://vercel.com", "format": "jpeg" },\n    { "url": "https://linear.app", "width": 1280 }\n  ],\n  "webhook_url": "https://yourapp.com/webhooks/shots",\n  "idempotency_key": "batch-2026-04-23-001"\n}`}/>
+      <h1 style={{ display: 'flex', alignItems: 'center' }}><METHOD type="GET"/> /health</h1>
+      <p>Unauthenticated health check. Returns the service status and which subsystems are connected.</p>
+      <CodeBlock lang="bash" code={`curl https://api.shotbase.dev/health`}/>
       <h2>Response</h2>
-      <CodeBlock lang="json" code={`{\n  "batch_id": "bat_3mnb7qxp2k8r",\n  "status": "queued",\n  "total": 3,\n  "estimated_ms": 3200,\n  "created_at": "2026-04-23T14:22:01Z"\n}`}/>
-      <Callout type="tip">Use <code>idempotency_key</code> to safely retry failed batch submissions without duplicate captures.</Callout>
-    </div>
-  ),
-  'sdk-js': () => (
-    <div>
-      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>SDKs</div>
-      <h1>JavaScript / TypeScript SDK</h1>
-      <p>Full TypeScript support with type-safe responses and request builders.</p>
-      <h2>Installation</h2>
-      <CodeBlock lang="bash" code={`npm install @shotbase/sdk\n# or\npnpm add @shotbase/sdk\nyarn add @shotbase/sdk`}/>
-      <h2>Initialization</h2>
-      <CodeBlock lang="typescript" code={`import { Shotbase } from '@shotbase/sdk';\n\nconst sb = new Shotbase({\n  apiKey: process.env.SHOTBASE_API_KEY!, // sk-live-...\n  timeout: 30_000, // ms, default 30s\n  retries: 2,      // auto-retry on 5xx\n});`}/>
-      <h2>screenshot()</h2>
-      <CodeBlock lang="typescript" code={`const result = await sb.screenshot({\n  url: 'https://stripe.com',\n  width: 1440,\n  format: 'png',       // 'png' | 'jpeg' | 'webp' | 'pdf'\n  removePopups: true,\n  fullPage: false,\n  waitFor: 'networkidle',\n  delayMs: 0,\n  cacheTtl: 3600,\n  darkMode: false,\n  deviceScale: 1,\n});\n\n// result is fully typed:\nresult.url          // string — CDN URL\nresult.tookMs       // number\nresult.cached       // boolean\nresult.width        // number\nresult.height       // number\nresult.popupsRemoved // number`}/>
-      <h2>batch()</h2>
-      <CodeBlock lang="typescript" code={`const { batchId, status } = await sb.batch({\n  requests: [\n    { url: 'https://stripe.com' },\n    { url: 'https://vercel.com', format: 'jpeg' },\n  ],\n  webhookUrl: 'https://yourapp.com/hook',\n});`}/>
+      <CodeBlock lang="json" code={`{\n  "status": "ok",\n  "service": "shotbase"\n}`}/>
     </div>
   ),
   mcp: () => (
     <div>
-      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>SDKs</div>
+      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>MCP</div>
       <h1>MCP Server</h1>
-      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server. Give your AI agents the ability to browse and screenshot any URL with zero setup.</p>
-      <h2>Installation</h2>
-      <CodeBlock lang="bash" code={`npx @shotbase/mcp-server --api-key sk-live-...`}/>
-      <h2>Claude Desktop config</h2>
-      <CodeBlock lang="json" code={`{\n  "mcpServers": {\n    "shotbase": {\n      "command": "npx",\n      "args": ["@shotbase/mcp-server"],\n      "env": {\n        "SHOTBASE_API_KEY": "sk-live-... "\n      }\n    }\n  }\n}`}/>
-      <h2>Available tools</h2>
+      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server over streamable HTTP at <code>POST /api/mcp</code>. It gives MCP-compatible agents one tool, <code>shotbase_capture</code>, that renders a page and returns the screenshot plus structured intelligence. The endpoint is <strong>POST-only</strong> — a <code>GET /api/mcp</code> returns <code>405 Method Not Allowed</code>.</p>
+      <h2>Install (Claude Code / Claude Desktop / Cursor)</h2>
+      <CodeBlock lang="bash" code={`claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\\n  --header "Authorization: Bearer sk_your_key"`}/>
+      <h2>Available tool</h2>
       <table>
         <thead><tr><th>Tool</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td>screenshot_url</td><td style={{ fontSize: 13, color: '#888' }}>Capture a screenshot of any URL and return a CDN link</td></tr>
-          <tr><td>batch_screenshot</td><td style={{ fontSize: 13, color: '#888' }}>Capture multiple URLs in parallel</td></tr>
-          <tr><td>get_screenshot_status</td><td style={{ fontSize: 13, color: '#888' }}>Check the status of an async batch job</td></tr>
+          <tr><td>shotbase_capture</td><td style={{ fontSize: 13, color: '#888' }}>Render a URL and return the screenshot plus extracted JSON (page type, headings, CTAs, prices). Args: url (required), extract, format, full_page, viewport.</td></tr>
         </tbody>
       </table>
-      <Callout type="tip">Works with any MCP-compatible host: Claude Desktop, Cursor, Continue, and custom agent frameworks.</Callout>
+      <Callout type="tip">Works with any MCP-compatible host: Claude Code, Claude Desktop, Cursor, and custom agent frameworks.</Callout>
     </div>
   ),
   errors: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Getting Started</div>
       <h1>Error handling</h1>
-      <p>Shotbase uses standard HTTP status codes. Errors return a JSON body with <code>code</code> and <code>message</code> fields.</p>
+      <p>Shotbase uses standard HTTP status codes. Error responses return a JSON body with an <code>error</code> field (and sometimes a <code>detail</code> field).</p>
       <table>
-        <thead><tr><th>Status</th><th>Code</th><th>Description</th></tr></thead>
+        <thead><tr><th>Status</th><th>Meaning</th><th>Description</th></tr></thead>
         <tbody>
           {[
-            ['400', 'invalid_request', 'Missing or invalid parameters'],
-            ['401', 'unauthorized', 'Missing or invalid API key'],
-            ['402', 'payment_required', 'Quota exceeded, billing issue'],
-            ['422', 'capture_failed', 'Page load failed or timed out'],
-            ['429', 'rate_limited', 'Too many requests — back off and retry'],
-            ['500', 'internal_error', 'Server error — not charged'],
+            ['400', 'Bad request', 'Missing/invalid parameters, or a blocked (private/internal) URL'],
+            ['401', 'Unauthorized', 'Missing or invalid API key'],
+            ['413', 'Payload too large', 'Request body exceeds the 1 MiB limit'],
+            ['429', 'Rate limited / quota reached', 'Per-minute rate limit exceeded OR monthly quota reached'],
+            ['500', 'Capture failed', 'The page failed to render or an internal error occurred'],
+            ['503', 'Temporarily unavailable', 'Renderer overloaded (check Retry-After) or an accounting dependency is temporarily unavailable'],
           ].map(([s, c, d]) => (
             <tr key={s}><td>{s}</td><td>{c}</td><td style={{ fontSize: 13, color: '#888' }}>{d}</td></tr>
           ))}
         </tbody>
       </table>
       <h2>Retry logic</h2>
-      <p>Retry <code>429</code> and <code>5xx</code> errors with exponential backoff. The SDK handles this automatically with the <code>retries</code> option. You are never charged for <code>4xx</code> or <code>5xx</code> failures.</p>
-      <CodeBlock lang="javascript" code={`// SDK handles retries automatically\nconst sb = new Shotbase({ apiKey: '...', retries: 3 });\n\n// Or handle manually:\ntry {\n  const result = await sb.screenshot({ url: '...' });\n} catch (err) {\n  if (err.status === 429) {\n    // retry after err.retryAfter seconds\n  }\n  if (err.status >= 500) {\n    // server error, safe to retry\n  }\n}`}/>
+      <p>Retry <code>429</code> and <code>5xx</code> responses with exponential backoff. A <code>503 Server busy</code> includes a <code>Retry-After</code> header (in seconds) — wait that long before retrying. On a <code>429</code>, slow down to stay within your plan&apos;s per-minute rate limit.</p>
+      <CodeBlock lang="json" code={`// Example error body\n{ "error": "Server busy", "detail": "Renderer overloaded" }`}/>
     </div>
   ),
   caching: () => (
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
-      <h1>Caching & TTL</h1>
-      <p>Shotbase caches screenshots at the edge. Cached responses return in under 200ms from 30+ global PoPs.</p>
-      <h2>Cache keys</h2>
-      <p>The cache key is a hash of: <code>url</code> + <code>width</code> + <code>height</code> + <code>format</code> + <code>full_page</code> + <code>dark_mode</code> + <code>device_scale</code>. Changing any parameter produces a new cache key.</p>
-      <h2>TTL</h2>
-      <p>Default TTL is 3600 seconds (1 hour). Override per request:</p>
-      <CodeBlock lang="json" code={`{ "url": "...", "cache_ttl": 86400 }`}/>
-      <p>Set <code>cache_ttl: 0</code> to disable caching entirely, or <code>bust_cache: true</code> to force a fresh capture and update the cache.</p>
-      <Callout type="info">Cached screenshots are still billed as 1 request against your quota, but at the <strong>cached rate</strong> — which is 50% cheaper than a fresh capture on Starter and above.</Callout>
+      <h1>Caching</h1>
+      <p>Identical image requests are served from a short-lived cache, so repeated captures of the same page return faster.</p>
+      <h2>Cache key</h2>
+      <p>The cache key is derived from <code>url</code> + <code>format</code> + <code>full_page</code> + <code>width</code> × <code>height</code>. Changing any of these — including the viewport dimensions — produces a fresh capture. Requests that ask for <code>include_text</code> or <code>ai_extract</code> are not served from the image cache.</p>
+      <h2>Checking cache status</h2>
+      <p>Image responses include an <code>X-Cache</code> header set to <code>HIT</code> or <code>MISS</code>. JSON responses include a <code>cached</code> boolean.</p>
+      <CodeBlock lang="text" code={`X-Cache: HIT`}/>
+    </div>
+  ),
+  'rate-limits': () => (
+    <div>
+      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
+      <h1>Rate limits</h1>
+      <p>Requests are rate limited per API key, per minute, based on your plan. Exceeding the limit returns <code>429</code>.</p>
+      <table>
+        <thead><tr><th>Plan</th><th>Requests / minute</th></tr></thead>
+        <tbody>
+          {[['Free', '10'], ['Builder', '20'], ['Pro', '40'], ['Business', 'Custom']].map(([p, r]) => (
+            <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{r}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <Callout type="tip">A <code>429</code> means either the per-minute rate limit OR your monthly quota has been reached. Back off and retry rate-limit <code>429</code>s; if it&apos;s a monthly quota, upgrade or contact us. Monthly quotas are separate from the per-minute limit — see Plans &amp; billing.</Callout>
+    </div>
+  ),
+  billing: () => (
+    <div>
+      <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Guides</div>
+      <h1>Plans &amp; billing</h1>
+      <p>Each plan includes a monthly <strong>captures</strong> quota and a separate monthly <strong>AI extractions</strong> quota. Manage your plan and usage in the <Link href="/dashboard">dashboard</Link>.</p>
+      <table>
+        <thead><tr><th>Plan</th><th>Price</th><th>Captures / mo</th><th>AI extractions / mo</th><th>Req / min</th></tr></thead>
+        <tbody>
+          {[
+            ['Free', '$0', '250', '25', '10'],
+            ['Builder', '$9/mo', '1,500', '150', '20'],
+            ['Pro', '$29/mo', '7,500', '1,000', '40'],
+            ['Business', 'Custom', 'Custom', 'Custom', 'Custom'],
+          ].map(([p, price, cap, ai, rpm]) => (
+            <tr key={p}><td>{p}</td><td style={{ fontSize: 13, color: '#888' }}>{price}</td><td style={{ fontSize: 13, color: '#888' }}>{cap}</td><td style={{ fontSize: 13, color: '#888' }}>{ai}</td><td style={{ fontSize: 13, color: '#888' }}>{rpm}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <h2>How usage counts</h2>
+      <ul>
+        <li>Each successful capture uses <strong>1 capture</strong>.</li>
+        <li>A successful AI extraction (<code>ai_extract</code>) additionally uses <strong>1 AI extraction</strong>.</li>
+        <li><code>include_text</code> returns page text and does <strong>not</strong> use AI-extraction quota.</li>
+        <li>No overage billing during the paid beta — once a quota is reached, upgrade or contact us.</li>
+      </ul>
+      <Callout type="info">Business is custom volume and throughput — <a href="mailto:hello@shotbase.dev" style={{ color: '#00e87b', textDecoration: 'none' }}>talk to us</a>. See the <Link href="/#pricing">pricing section</Link> for details.</Callout>
     </div>
   ),
 }
@@ -264,12 +272,82 @@ export default function Docs() {
   const [active, setActive] = useState('intro')
   const [search, setSearch] = useState('')
 
+  // ----- Mobile docs drawer (≤767px) -----
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)")
+    const onC = () => { if (mq.matches) setMenuOpen(false) }
+    mq.addEventListener("change", onC)
+    return () => mq.removeEventListener("change", onC)
+  }, [])
+  useEffect(() => {
+    if (!menuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMenuOpen(false); return }
+      if (e.key === "Tab" && drawerRef.current) {
+        const f = Array.from(drawerRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])')).filter((el) => el.offsetParent !== null)
+        if (!f.length) return
+        const first = f[0], last = f[f.length - 1]
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    const t = window.setTimeout(() => drawerRef.current?.querySelector<HTMLElement>("button, a[href], input")?.focus(), 40)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener("keydown", onKey)
+      window.clearTimeout(t)
+      menuBtnRef.current?.focus?.()
+    }
+  }, [menuOpen])
+  const openSection = (id: string) => { setActive(id); setSearch(""); setMenuOpen(false) }
+
+  // Deep-link support: /docs?s=<section> lands directly on that section (used by
+  // the API Explorer and Integrations "Docs" buttons). Read once on mount.
+  useEffect(() => {
+    const s = new URLSearchParams(window.location.search).get('s')
+    if (s && CONTENT[s]) setActive(s)
+  }, [])
+
   const Content = CONTENT[active] || (() => DEFAULT_CONTENT(active))
 
   return (
     <div className={styles.container}>
-      <nav style={{ height: 56, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', flexShrink: 0, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      {/* Docs mobile shell (≤767px): hide the sidebar, expose it via a "Docs
+          menu" hamburger + off-canvas drawer; article uses full width. */}
+      <style>{`
+        .docs-hamburger { display: none; }
+        /* Long headings, inline code and tables must never force page-level
+           horizontal scroll; code/tables scroll inside their own box. */
+        .docs-article pre { max-width: 100%; overflow-x: auto; }
+        .docs-article table { display: block; width: 100%; overflow-x: auto; }
+        .docs-article h1, .docs-article h2, .docs-article h3, .docs-article p, .docs-article li, .docs-article code { overflow-wrap: anywhere; }
+        @media (max-width: 767px) {
+          .docs-sidebar { display: none !important; }
+          .docs-hamburger { display: inline-flex !important; }
+          .docs-topnav { padding: 0 14px !important; }
+          .docs-article { padding: 28px 18px !important; }
+        }
+        @media (max-width: 430px) { .docs-topnav-pg { display: none !important; } }
+      `}</style>
+      <nav className="docs-topnav" style={{ height: 56, borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', flexShrink: 0, background: 'rgba(5,5,5,0.85)', backdropFilter: 'blur(20px)', position: 'sticky', top: 0, zIndex: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <button
+            ref={menuBtnRef}
+            className="docs-hamburger"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open docs menu"
+            aria-expanded={menuOpen}
+            aria-controls="docs-mobile-nav"
+            style={{ alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 8, background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#f0f0f0', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <svg width="17" height="17" viewBox="0 0 18 18" fill="none"><path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </button>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
             <div style={{ width: 26, height: 26, background: '#00e87b', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="10" rx="2" stroke="#000" strokeWidth="1.5"/><path d="M4 14h8M8 11v3" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/></svg>
@@ -280,13 +358,13 @@ export default function Docs() {
           <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 13, color: '#888' }}>Docs</span>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/dashboard/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground</Link>
-          <Link href="/dashboard" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, fontWeight: 600, color: '#000', background: '#00e87b', padding: '6px 14px', borderRadius: 6, textDecoration: 'none' }}>Dashboard →</Link>
+          <Link className="docs-topnav-pg" href="/dashboard/playground" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, color: '#888', border: '1px solid rgba(255,255,255,0.07)', padding: '6px 12px', borderRadius: 6, textDecoration: 'none' }}>Playground</Link>
+          <Link href="/dashboard" style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 12, fontWeight: 600, color: '#000', background: '#00e87b', padding: '6px 14px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}>Dashboard →</Link>
         </div>
       </nav>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <div style={{ width: 260, borderRight: '1px solid rgba(255,255,255,0.07)', background: '#0a0a0a', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'auto', position: 'sticky', top: 56, height: 'calc(100vh - 56px)' }}>
+        <div className="docs-sidebar" style={{ width: 260, borderRight: '1px solid rgba(255,255,255,0.07)', background: '#0a0a0a', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'auto', position: 'sticky', top: 56, height: 'calc(100vh - 56px)' }}>
           <div style={{ padding: '16px 16px 8px' }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search docs…" style={{ width: '100%', fontFamily: 'var(--font-ibm-plex)', fontSize: 12, background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '8px 12px', color: '#f0f0f0', outline: 'none' }}/>
           </div>
@@ -311,7 +389,7 @@ export default function Docs() {
         </div>
 
         <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
-          <div style={{ maxWidth: 780, padding: '48px 60px', margin: '0 auto' }}>
+          <div className="docs-article" style={{ maxWidth: 780, padding: '48px 60px', margin: '0 auto' }}>
             <Content/>
             <div style={{ marginTop: 64, paddingTop: 32, borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444' }}>Last updated Apr 23, 2026</span>
@@ -322,6 +400,44 @@ export default function Docs() {
           </div>
         </div>
       </div>
+
+      {/* Mobile docs drawer — conditionally mounted so its links are NOT
+          keyboard-focusable when closed. Slides in via keyframes. */}
+      {menuOpen && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000 }}>
+          <style>{`@keyframes docsFade{from{opacity:0}to{opacity:1}}@keyframes docsSlide{from{transform:translateX(-100%)}to{transform:translateX(0)}}`}</style>
+          <div onClick={() => setMenuOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(2px)', animation: 'docsFade 0.2s ease' }} />
+          <div ref={drawerRef} id="docs-mobile-nav" role="dialog" aria-modal="true" aria-label="Docs navigation"
+            style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: 292, maxWidth: '86vw', background: '#0a0a0a', borderRight: '1px solid rgba(255,255,255,0.07)', display: 'flex', flexDirection: 'column', animation: 'docsSlide 0.24s cubic-bezier(0.16,1,0.3,1)', boxShadow: '0 0 40px rgba(0,0,0,0.6)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 12px 12px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <span style={{ fontFamily: 'var(--font-ibm-plex)', fontWeight: 600, fontSize: 15, color: '#f0f0f0' }}>Docs</span>
+              <button onClick={() => setMenuOpen(false)} aria-label="Close docs menu" style={{ width: 38, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#888', cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+            <div style={{ padding: '12px 12px 6px' }}>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search docs…" style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'var(--font-ibm-plex)', fontSize: 13, background: '#111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 7, padding: '10px 12px', color: '#f0f0f0', outline: 'none' }} />
+            </div>
+            <nav style={{ padding: '4px 10px 20px', overflowY: 'auto', flex: 1, overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
+              {NAV.map(group => {
+                const filtered = group.items.filter(item => !search || item.label.toLowerCase().includes(search.toLowerCase()))
+                if (!filtered.length) return null
+                return (
+                  <div key={group.section} style={{ marginBottom: 16 }}>
+                    <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#444', padding: '0 10px', marginBottom: 6 }}>{group.section}</div>
+                    {filtered.map(item => (
+                      <button key={item.id} onClick={() => openSection(item.id)} style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '11px 12px', background: active === item.id ? 'rgba(0,232,123,0.08)' : 'none', border: 'none', borderRadius: 7, cursor: 'pointer', color: active === item.id ? '#00e87b' : '#c8c8c8', fontFamily: 'var(--font-inter)', fontSize: 15, textAlign: 'left', marginBottom: 1 }}>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })}
+            </nav>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

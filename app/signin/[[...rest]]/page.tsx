@@ -285,7 +285,7 @@ export default function SignInPage() {
   const orangePos = calculatePosition(orangeRef);
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="min-h-screen grid lg:grid-cols-2 overflow-x-hidden">
       {/* Left Content Section */}
       <div className="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-[#0c0c12] to-[#111118] p-12 text-[#f0f0f8] overflow-hidden">
         <div className="relative z-20">
@@ -468,17 +468,8 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <div className="relative z-20 flex items-center gap-8 text-sm text-[#f0f0f8]/60">
-          <a href="#" className="hover:text-white transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#" className="hover:text-white transition-colors">
-            Terms of Service
-          </a>
-          <a href="#" className="hover:text-white transition-colors">
-            Contact
-          </a>
-        </div>
+        {/* Legal/contact links intentionally omitted until real pages exist —
+            no "#" placeholders. See CONTENT TRUTH REPORT (legal content TODO). */}
 
         {/* Decorative elements */}
         <div className="absolute inset-0" style={{ backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
@@ -487,7 +478,7 @@ export default function SignInPage() {
       </div>
 
       {/* Right Login Section */}
-      <div className="flex items-center justify-center p-8 bg-[#050505]">
+      <div className="flex items-center justify-center p-4 sm:p-8 bg-[#050505] min-w-0">
         <SignIn fallbackRedirectUrl="/dashboard" signUpUrl="/signup" />
       </div>
     </div>

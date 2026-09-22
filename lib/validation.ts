@@ -46,14 +46,29 @@ export const ScreenshotRequestSchema = z.object({
   // Wait conditions
   wait_until: z.enum(['load', 'domcontentloaded', 'networkidle', 'commit']).optional(),
   wait_for_selector: z.string().max(500).optional(),
-  delay_ms: z.number().int().min(0).max(30_000).optional(),
+  delay_ms: z.number().int().min(0).max(10_000).optional(),
 
   // Behavior toggles
   remove_popups: z.boolean().optional(),
   block_ads: z.boolean().optional(),
-  block_cookies_banners: z.boolean().optional(),
   dark_mode: z.boolean().optional(),
   reduced_motion: z.boolean().optional(),
+
+  // Data extraction. When `include_text` is set the backend returns the page's
+  // extracted text alongside (or instead of) the binary capture. `ai_extract`
+  // requests structured LLM extraction of the listed facets — every field is an
+  // optional boolean so an all-false object is possible to construct but the
+  // playground never sends one (see buildPayload). Presence of either switches
+  // the upstream response from binary to application/json.
+  include_text: z.boolean().optional().default(false),
+  ai_extract: z
+    .object({
+      page_type: z.boolean().optional(),
+      headings: z.boolean().optional(),
+      ctas: z.boolean().optional(),
+      prices: z.boolean().optional(),
+    })
+    .optional(),
 
   // Caching
   cache_ttl: z.number().int().min(0).max(86_400 * 7).optional(),

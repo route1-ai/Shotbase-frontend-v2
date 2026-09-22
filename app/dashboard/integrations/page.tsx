@@ -14,68 +14,20 @@ type Integration = {
 
 const INTEGRATIONS: Integration[] = [
   {
-    name: "LangChain",
-    blurb: "Drop Shotbase into any LangChain or LangGraph agent as a tool.",
-    install: "npm install @shotbase/langchain",
-    docs: "/docs/integrations/langchain",
-    status: "soon",
-    initial: "L",
-  },
-  {
-    name: "Vercel AI SDK",
-    blurb: "Provider package that plugs into the AI SDK v6+ tool system.",
-    install: "npm install @shotbase/ai-sdk",
-    docs: "/docs/integrations/vercel-ai-sdk",
-    status: "soon",
-    initial: "V",
-  },
-  {
-    name: "Claude Skill",
-    blurb: "Pre-installed in every Claude Code session via the Anthropic Skills registry.",
-    install: "Submitted to anthropic-skills",
-    docs: "/docs/integrations/claude-skill",
-    status: "soon",
-    initial: "C",
+    name: "REST API",
+    blurb: "Call the API directly from any language — curl, fetch, Python requests. Auth with your API key.",
+    install: "POST https://api.shotbase.dev/screenshot",
+    docs: "/docs?s=screenshot",
+    status: "available",
+    initial: "{}",
   },
   {
     name: "MCP Server",
-    blurb: "Connect any MCP-compatible agent (Claude Code, Cursor, Continue).",
-    install: "npx -y @shotbase/mcp",
-    docs: "/docs/integrations/mcp",
-    status: "soon",
+    blurb: "Connect any MCP-compatible agent (Claude Code, Cursor, Continue). Exposes the shotbase_capture tool.",
+    install: 'claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp --header "Authorization: Bearer sk_..."',
+    docs: "/docs?s=mcp",
+    status: "available",
     initial: "M",
-  },
-  {
-    name: "Stagehand / Browser Use",
-    blurb: "Action plugin for AI browser-automation frameworks.",
-    install: "npm install @shotbase/stagehand",
-    docs: "/docs/integrations/stagehand",
-    status: "soon",
-    initial: "S",
-  },
-  {
-    name: "n8n",
-    blurb: "Community node for no-code workflow builders.",
-    install: "n8n-nodes-shotbase",
-    docs: "/docs/integrations/n8n",
-    status: "soon",
-    initial: "N",
-  },
-  {
-    name: "Python SDK",
-    blurb: "Idiomatic Python client with async support.",
-    install: "pip install shotbase",
-    docs: "/docs/sdks/python",
-    status: "soon",
-    initial: "Py",
-  },
-  {
-    name: "TypeScript SDK",
-    blurb: "Type-safe client for Node, Bun, and the edge.",
-    install: "npm install @shotbase/sdk",
-    docs: "/docs/sdks/typescript",
-    status: "soon",
-    initial: "Ts",
   },
 ]
 
@@ -157,7 +109,7 @@ export default function IntegrationsPage() {
     <div>
       <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>Integrations</h1>
       <p style={{ color: "#888", fontSize: 13, marginBottom: 24 }}>
-        Native plugins for every AI agent framework + first-class SDKs. Pick your stack — Shotbase fits.
+        Use Shotbase over the REST API or MCP — from any language or agent framework. No SDK required.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>

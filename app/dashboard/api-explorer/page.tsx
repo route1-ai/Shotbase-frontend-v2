@@ -16,117 +16,94 @@ const cardStyle: React.CSSProperties = {
 
 type Endpoint = {
   id: string
-  method: "POST" | "GET" | "DELETE"
+  method: "POST"
   path: string
+  kind: "REST" | "MCP"
+  docs: string
   summary: string
-  status: "live" | "beta" | "soon"
-  request?: string
-  response?: string
+  request: string
+  response: string
 }
+
+// Only endpoints a customer can genuinely call against the public API
+// (api.shotbase.dev), verified against backend main route1-ai/shotbase.
+// Key management, usage, and logs are INTERNAL dashboard routes, not a public
+// API, so they are intentionally not listed here.
+const BASE = "https://api.shotbase.dev"
 
 const ENDPOINTS: Endpoint[] = [
   {
     id: "screenshot",
     method: "POST",
-    path: "/v1/screenshot",
-    summary: "Render a URL to PNG/JPEG/WebP/PDF. The core endpoint.",
-    status: "live",
+    path: "/screenshot",
+    kind: "REST",
+    docs: "/docs?s=screenshot",
+    summary: "Render a URL to PNG/JPEG/WebP/PDF, with optional page text and structured (AI) extraction. The core endpoint.",
     request: `{
   "url": "https://stripe.com",
-  "format": "png",
+  "format": "png",          // png | jpeg | webp | pdf
   "width": 1440,
+  "height": 900,
   "full_page": false,
-  "remove_popups": true,
-  "block_ads": false,
-  "dark_mode": false,
-  "device_scale_factor": 1
+  "include_text": false,     // set true to also return page text
+  "ai_extract": {            // optional structured extraction
+    "headings": true,
+    "prices": true
+  }
 }`,
-    response: `// Binary image stream — Content-Type: image/png
-// Headers:
-//   X-Render-Time: 241ms
-//   X-Cache: MISS
-//   X-Request-Id: req_2HNz3yKp`,
+    response: `// Default: the binary image
+//   Content-Type: image/png
+//   X-Cache: HIT | MISS
+//
+// With include_text or ai_extract, the response is JSON:
+{
+  "format": "png",
+  "cached": false,
+  "render_time_ms": <number>,
+  "text": "…extracted page text…",
+  "ai_data": { "headings": [...], "prices": [...] }
+}
+// If only AI extraction fails, render + text still succeed:
+//   "ai_data": null,
+//   "ai_error": "AI extraction temporarily unavailable"`,
   },
   {
-    id: "extract",
+    id: "mcp",
     method: "POST",
-    path: "/v1/extract",
-    summary: "Capture a URL AND extract structured data via LLM in one call. The wedge.",
-    status: "beta",
-    request: `{
-  "url": "https://stripe.com/pricing",
-  "schema": {
-    "plans": [{
-      "name": "string",
-      "price_monthly": "number",
-      "features": ["string"]
-    }]
+    path: "/api/mcp",
+    kind: "MCP",
+    docs: "/docs?s=mcp",
+    summary: "Model Context Protocol server (JSON-RPC 2.0) exposing the shotbase_capture tool to AI agents. Same API key as REST.",
+    request: `POST ${BASE}/api/mcp
+Authorization: Bearer sk_YOUR_KEY
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "shotbase_capture",
+    "arguments": {
+      "url": "https://stripe.com",
+      "format": "png"
+    }
   }
 }`,
     response: `{
-  "screenshot_url": "https://shotbase-cdn.../req_...png",
-  "data": { "plans": [...] },
-  "took_ms": 1840
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      { "type": "image", "mimeType": "image/png", "data": "<base64>" }
+    ]
+  }
 }`,
-  },
-  {
-    id: "markdown",
-    method: "POST",
-    path: "/v1/markdown",
-    summary: "Convert a URL to clean Markdown — ideal for RAG pipelines.",
-    status: "soon",
-    request: `{ "url": "https://stripe.com/blog/post" }`,
-    response: `{ "markdown": "# Title\\n\\n...", "title": "...", "took_ms": 920 }`,
-  },
-  {
-    id: "keys-create",
-    method: "POST",
-    path: "/v1/keys",
-    summary: "Mint a new API key. Returns the secret once.",
-    status: "live",
-    request: `{ "name": "Production", "scopes": ["screenshot:write"] }`,
-    response: `{ "id": "key_...", "key": "sk_prod_...", "created_at": "..." }`,
-  },
-  {
-    id: "keys-list",
-    method: "GET",
-    path: "/v1/keys",
-    summary: "List your keys (secrets masked).",
-    status: "live",
-  },
-  {
-    id: "keys-revoke",
-    method: "DELETE",
-    path: "/v1/keys/{id}",
-    summary: "Permanently revoke a key.",
-    status: "live",
-  },
-  {
-    id: "usage",
-    method: "GET",
-    path: "/v1/usage",
-    summary: "Current period: requests, plan, limit.",
-    status: "live",
-  },
-  {
-    id: "logs",
-    method: "GET",
-    path: "/v1/logs",
-    summary: "Paginated request history with filtering.",
-    status: "live",
   },
 ]
 
-const STATUS_STYLE: Record<Endpoint["status"], React.CSSProperties> = {
-  live: { background: "rgba(0,232,123,0.1)", color: "#00e87b", border: "1px solid rgba(0,232,123,0.25)" },
-  beta: { background: "rgba(120,140,255,0.08)", color: "#8a9eff", border: "1px solid rgba(120,140,255,0.25)" },
-  soon: { background: "#1a1a24", color: "#666", border: `1px solid ${BORDER}` },
-}
-
-const METHOD_COLOR: Record<Endpoint["method"], string> = {
-  POST: "#00e87b",
-  GET: "#8a9eff",
-  DELETE: "#ff6060",
+const KIND_STYLE: Record<Endpoint["kind"], React.CSSProperties> = {
+  REST: { background: "rgba(0,232,123,0.1)", color: "#00e87b", border: "1px solid rgba(0,232,123,0.25)" },
+  MCP: { background: "rgba(120,140,255,0.08)", color: "#8a9eff", border: "1px solid rgba(120,140,255,0.25)" },
 }
 
 export default function ApiExplorerPage() {
@@ -139,12 +116,22 @@ export default function ApiExplorerPage() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>API Explorer</h1>
           <p style={{ color: "#888", fontSize: 13 }}>
-            Browse and try every Shotbase endpoint in-product. Full reference at <Link href="/docs" style={{ color: "#00e87b", textDecoration: "none" }}>/docs</Link>.
+            The public Shotbase API on <code style={{ fontFamily: "var(--font-ibm-plex)", color: "#aaa" }}>{BASE}</code>. Full reference in the <Link href="/docs" style={{ color: "#00e87b", textDecoration: "none" }}>docs</Link>.
           </p>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
+      {/* ≤820px (covers tablet 768, where the sidebar still occupies 240px):
+          stack the endpoint list above the detail panel and let code blocks
+          scroll internally instead of forcing horizontal overflow. */}
+      <style>{`
+        .apix-grid > * { min-width: 0; }
+        .apix-grid pre { max-width: 100%; }
+        @media (max-width: 820px) {
+          .apix-grid { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+      `}</style>
+      <div className="apix-grid" style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
         {/* Endpoint list */}
         <div style={cardStyle}>
           <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>
@@ -157,90 +144,48 @@ export default function ApiExplorerPage() {
                 <button
                   key={e.id}
                   onClick={() => setSelectedId(e.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    width: "100%",
-                    background: active ? ACTIVE_BG : "transparent",
-                    border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`,
-                    borderRadius: 6,
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    color: "inherit",
-                    textAlign: "left",
-                  }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", background: active ? ACTIVE_BG : "transparent", border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`, borderRadius: 6, padding: "8px 10px", cursor: "pointer", color: "inherit", textAlign: "left" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 9, fontWeight: 700, color: METHOD_COLOR[e.method], minWidth: 38 }}>
-                      {e.method}
-                    </span>
-                    <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: active ? "#f0f0f0" : "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {e.path}
-                    </code>
+                    <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 9, fontWeight: 700, color: "#00e87b", minWidth: 38 }}>{e.method}</span>
+                    <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: active ? "#f0f0f0" : "#888", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.path}</code>
                   </div>
-                  {e.status !== "live" && (
-                    <span style={{ ...STATUS_STYLE[e.status], fontFamily: "var(--font-ibm-plex)", fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>
-                      {e.status}
-                    </span>
-                  )}
+                  <span style={{ ...KIND_STYLE[e.kind], fontFamily: "var(--font-ibm-plex)", fontSize: 8, padding: "1px 5px", borderRadius: 3, fontWeight: 600, letterSpacing: "0.05em", flexShrink: 0 }}>{e.kind}</span>
                 </button>
               )
             })}
+          </div>
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${BORDER}`, fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#555", lineHeight: 1.6 }}>
+            Managing keys, usage and logs happens in the dashboard — they are not part of the public API.
           </div>
         </div>
 
         {/* Detail panel */}
         <div style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, fontWeight: 700, color: METHOD_COLOR[selected.method], padding: "3px 10px", background: "#111", borderRadius: 5 }}>
-              {selected.method}
-            </span>
-            <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 14, color: "#f0f0f0", fontWeight: 500 }}>
-              {selected.path}
-            </code>
-            <span style={{ ...STATUS_STYLE[selected.status], fontFamily: "var(--font-ibm-plex)", fontSize: 9, padding: "2px 7px", borderRadius: 3, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              {selected.status}
-            </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, fontWeight: 700, color: "#00e87b", padding: "3px 10px", background: "#111", borderRadius: 5 }}>{selected.method}</span>
+            <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 14, color: "#f0f0f0", fontWeight: 500 }}>{selected.path}</code>
+            <span style={{ ...KIND_STYLE[selected.kind], fontFamily: "var(--font-ibm-plex)", fontSize: 9, padding: "2px 7px", borderRadius: 3, fontWeight: 600, letterSpacing: "0.05em" }}>{selected.kind}</span>
           </div>
           <p style={{ fontSize: 13, color: "#888", marginBottom: 18 }}>{selected.summary}</p>
 
-          {selected.request && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Request body
-              </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.request}
-              </pre>
-            </div>
-          )}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Request</div>
+            <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.request}</pre>
+          </div>
 
-          {selected.response && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
-                Response
-              </div>
-              <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
-                {selected.response}
-              </pre>
-            </div>
-          )}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Response</div>
+            <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.response}</pre>
+          </div>
 
           <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
             {selected.id === "screenshot" && (
-              <Link
-                href="/dashboard/playground"
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "8px 16px", borderRadius: 7, textDecoration: "none" }}
-              >
+              <Link href="/dashboard/playground" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "8px 16px", borderRadius: 7, textDecoration: "none" }}>
                 ▶ Try in Playground
               </Link>
             )}
-            <Link
-              href="/docs"
-              style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", background: "transparent", border: `1px solid ${BORDER}`, padding: "8px 16px", borderRadius: 7, textDecoration: "none" }}
-            >
+            <Link href={selected.docs} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", background: "transparent", border: `1px solid ${BORDER}`, padding: "8px 16px", borderRadius: 7, textDecoration: "none" }}>
               Full reference →
             </Link>
           </div>
