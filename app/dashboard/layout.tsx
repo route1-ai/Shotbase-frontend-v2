@@ -406,16 +406,14 @@ function OperationalBadge() {
 
   const dot = ok === null ? "#666" : ok ? "#00e87b" : "#ff9060"
   const label = ok === null ? "Checking…" : ok ? "Operational" : "Degraded"
-  const title = ok === false
-    ? "Backend health check failed — opens status page"
-    : "System status — opens status page"
+  const title = ok === false ? "Backend health check failed" : "System status"
 
+  // Plain, non-interactive badge — no link. There is no public status page to
+  // point at (status.shotbase.dev doesn't exist), so this just reflects the live
+  // /api/health check.
   return (
-    <a
+    <span
       className="dash-operational"
-      href="https://status.shotbase.dev"
-      target="_blank"
-      rel="noopener noreferrer"
       title={title}
       style={{
         display: "inline-flex",
@@ -427,12 +425,11 @@ function OperationalBadge() {
         padding: "5px 10px",
         border: `1px solid ${BORDER}`,
         borderRadius: 6,
-        textDecoration: "none",
       }}
     >
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot }} />
       {label}
-    </a>
+    </span>
   )
 }
 
