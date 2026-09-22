@@ -265,7 +265,9 @@ function buildPayload(c: Config) {
     const h = typeof c.height === 'string' ? parseInt(c.height) : c.height
     if (h && !Number.isNaN(h)) payload.height = h
   }
-  if (c.waitFor) payload.wait_until = c.waitFor
+  // 'auto' means "let the backend decide" — omit wait_until entirely so the
+  // backend applies its default (load + up to 2s for the network to go quiet).
+  if (c.waitFor && c.waitFor !== 'auto') payload.wait_until = c.waitFor
   const d = typeof c.delay === 'string' ? parseInt(c.delay) : c.delay
   if (d && !Number.isNaN(d) && d > 0) payload.delay_ms = d
   if (c.blockAds) payload.block_ads = true
@@ -409,7 +411,7 @@ function PlaygroundInner() {
   const [format, setFormat] = useState(() => getInitial('format', 'png'))
   const [removePopups, setRemovePopups] = useState(() => getInitial('popups', true, (v) => v !== '0'))
   const [fullPage, setFullPage] = useState(() => getInitial('full', false, (v) => v === '1'))
-  const [waitFor, setWaitFor] = useState(() => getInitial('wait', 'networkidle'))
+  const [waitFor, setWaitFor] = useState(() => getInitial('wait', 'auto'))
   const [delay, setDelay] = useState<string | number>(() => getInitial('delay', 0 as number | string))
   const [blockAds, setBlockAds] = useState(() => getInitial('ads', false, (v) => v === '1'))
   const [darkMode, setDarkMode] = useState(() => getInitial('dark', false, (v) => v === '1'))
@@ -866,9 +868,10 @@ function PlaygroundInner() {
               value={waitFor}
               onChange={setWaitFor}
               options={[
-                { label: 'networkidle', value: 'networkidle' },
-                { label: 'domcontentloaded', value: 'domcontentloaded' },
+                { label: 'auto', value: 'auto' },
                 { label: 'load', value: 'load' },
+                { label: 'domcontentloaded', value: 'domcontentloaded' },
+                { label: 'networkidle', value: 'networkidle' },
               ]}
             />
 
@@ -891,7 +894,7 @@ function PlaygroundInner() {
                 id={delayId}
                 type="number"
                 min={0}
-                max={30000}
+                max={10000}
                 value={delay}
                 onChange={(e) => setDelay(e.target.value)}
                 style={{
@@ -908,8 +911,8 @@ function PlaygroundInner() {
               />
             </div>
 
-            <Toggle label="Remove popups" sub="AI popup removal" value={removePopups} onChange={setRemovePopups} />
-            <Toggle label="Block ads & trackers" sub="20K+ rules applied" value={blockAds} onChange={setBlockAds} />
+            <Toggle label="Remove popups" sub="Hides cookie banners and popups" value={removePopups} onChange={setRemovePopups} />
+            <Toggle label="Block ads & trackers" sub="Blocks known ad and tracker requests" value={blockAds} onChange={setBlockAds} />
             <Toggle label="Dark mode" sub="prefers-color-scheme: dark" value={darkMode} onChange={setDarkMode} />
             <Toggle
               label="Full page"
@@ -979,7 +982,7 @@ function PlaygroundInner() {
                   })}
                 </div>
                 <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', marginTop: 10 }}>
-                  Counts toward your monthly AI extraction quota.
+                  Counts toward your monthly capture quota.
                 </div>
               </div>
             )}
@@ -1123,7 +1126,7 @@ function PlaygroundInner() {
                   {isDataMode(config) ? 'Extracting data…' : 'Capturing screenshot…'}
                 </div>
                 <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#444', marginTop: 4 }}>
-                  Loading page, waiting for {waitFor}
+                  {waitFor === 'auto' ? 'Loading page' : `Loading page, waiting for ${waitFor}`}
                 </div>
               </div>
             )}
@@ -1314,9 +1317,20 @@ function PlaygroundInner() {
                   >
                     200 OK
                   </span>
-                  <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}>
-                    {result.renderTimeMs ?? result.tookMs}ms
+                  <span
+                    style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}
+                    title="Total round-trip time"
+                  >
+                    {result.tookMs}ms
                   </span>
+                  {typeof result.renderTimeMs === 'number' && (
+                    <span
+                      style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}
+                      title="Backend render time"
+                    >
+                      render {result.renderTimeMs}ms
+                    </span>
+                  )}
                   {result.cached && (
                     <span style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, background: IDLE_BG, border: `1px solid ${IDLE_BORDER}`, color: '#888', padding: '4px 10px', borderRadius: 6 }}>
                       cached

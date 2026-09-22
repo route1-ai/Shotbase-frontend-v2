@@ -11,6 +11,30 @@ import { ensureUserRow } from '@/lib/ensure-user'
 // Bound the upstream call so a hung render can't tie up a Vercel function slot.
 const RENDER_TIMEOUT_MS = 60_000
 
+// Per-instance memo of Clerk user IDs whose Supabase `users` row has already
+// been ensured by THIS function instance. ensureUserRow is a self-heal for
+// pre-webhook users — once a row exists it never needs re-inserting, so after
+// the first successful upsert we skip both currentUser() AND ensureUserRow() on
+// every subsequent request in this instance. This is a cache, not a security
+// boundary: a cold start just re-ensures, which is harmless (insert-if-missing).
+const ensuredUserIds = new Set<string>()
+
+// Round a performance.now() delta to a Server-Timing `dur` value (ms).
+function ms(delta: number): string {
+  return delta.toFixed(1)
+}
+
+// Combine the backend's Server-Timing header (if any) with our own entries.
+function buildServerTiming(
+  backend: string | null,
+  entries: { name: string; dur: number; desc?: string }[],
+): string {
+  const ours = entries.map((e) =>
+    e.desc ? `${e.name};desc="${e.desc}";dur=${ms(e.dur)}` : `${e.name};dur=${ms(e.dur)}`,
+  )
+  return [backend, ...ours].filter(Boolean).join(', ')
+}
+
 export async function POST(req: Request) {
   const { userId } = await auth()
   if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,9 +52,24 @@ export async function POST(req: Request) {
 
   // Self-heal: the render backend resolves plan/quota by clerk_id. A user who
   // predates the Clerk webhook has no Supabase row, which makes the backend fail
-  // closed with 503. Ensure the row exists (insert-if-missing) before forwarding.
-  const user = await currentUser()
-  await ensureUserRow(userId, user?.emailAddresses?.[0]?.emailAddress)
+  // closed with 503. Ensure the row exists (insert-if-missing) before forwarding
+  // — but only the FIRST time we see a given user in this instance (see
+  // ensuredUserIds above). currentUser() is only needed to supply the email for
+  // that first insert, so it's skipped too on the fast path.
+  let clerkMs = 0
+  let ensureMs = 0
+  if (!ensuredUserIds.has(userId)) {
+    const tClerk = performance.now()
+    const user = await currentUser()
+    clerkMs = performance.now() - tClerk
+
+    const tEnsure = performance.now()
+    const ensured = await ensureUserRow(userId, user?.emailAddresses?.[0]?.emailAddress)
+    ensureMs = performance.now() - tEnsure
+
+    // Only memoize after a confirmed upsert; a transient failure must retry.
+    if (ensured) ensuredUserIds.add(userId)
+  }
 
   // 1. Parse + validate the request body shape with Zod.
   let rawBody: unknown
@@ -54,6 +93,7 @@ export async function POST(req: Request) {
   try {
     // 3. Forward the validated body to the renderer with a bounded timeout.
     //    The backend enforces quotas/rate limits authoritatively.
+    const tFetch = performance.now()
     const res = await fetch('https://api.shotbase.dev/screenshot', {
       method: 'POST',
       headers: {
@@ -72,6 +112,15 @@ export async function POST(req: Request) {
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(RENDER_TIMEOUT_MS),
     })
+    const upstreamMs = performance.now() - tFetch
+
+    // Server-Timing: forward the backend's own header (render-phase breakdown)
+    // and append the three latencies we own so the browser sees the full chain.
+    const serverTiming = buildServerTiming(res.headers.get('Server-Timing'), [
+      { name: 'clerk_current_user', dur: clerkMs, desc: 'Clerk currentUser()' },
+      { name: 'ensure_user_row', dur: ensureMs, desc: 'Supabase upsert' },
+      { name: 'upstream_fetch', dur: upstreamMs, desc: 'Render backend' },
+    ])
 
     const upstreamType = res.headers.get('Content-Type') || ''
 
@@ -92,7 +141,7 @@ export async function POST(req: Request) {
             limit: typeof j?.limit === 'number' ? j.limit : undefined,
             used: typeof j?.used === 'number' ? j.used : undefined,
           },
-          { status: 429 }
+          { status: 429, headers: { 'Server-Timing': serverTiming } },
         )
       }
       // Log the upstream details server-side but DO NOT echo them back.
@@ -100,35 +149,37 @@ export async function POST(req: Request) {
       console.error('Render upstream error:', res.status, errorText.slice(0, 500))
       return Response.json(
         { error: 'Render failed', status: res.status },
-        { status: res.status >= 400 && res.status < 600 ? res.status : 502 }
+        {
+          status: res.status >= 400 && res.status < 600 ? res.status : 502,
+          headers: { 'Server-Timing': serverTiming },
+        },
       )
     }
 
     // 5. Return the upstream result. Screenshot/PDF mode is binary (image/* or
-    //    application/pdf) and is streamed straight through. Page-text / AI mode
-    //    responds with application/json (page text + structured ai_data), which
-    //    we parse and re-emit as JSON — the old code assumed every 200 was
-    //    binary and called res.blob(), which corrupted JSON responses. Whitelist
-    //    the headers we copy either way (never forward X-Shotbase-User-Id back).
+    //    application/pdf) and is streamed straight through (no res.blob() buffer
+    //    — pass res.body so bytes flow to the browser as they arrive). Page-text
+    //    / AI mode responds with application/json (page text + structured
+    //    ai_data). Whitelist the headers we copy either way — Content-Type,
+    //    x-cache, Server-Timing — and NEVER forward X-Shotbase-User-Id back.
+    const headers = new Headers()
+    headers.set('x-cache', res.headers.get('x-cache') || 'MISS')
+    headers.set('Server-Timing', serverTiming)
+
     if (upstreamType.includes('application/json')) {
       const data = await res.json().catch(() => null)
-      const headers = new Headers()
       headers.set('Content-Type', 'application/json')
-      headers.set('x-cache', res.headers.get('x-cache') || 'MISS')
       return new Response(JSON.stringify(data), { status: 200, headers })
     }
 
-    const blob = await res.blob()
-    const headers = new Headers()
     headers.set('Content-Type', upstreamType || 'image/png')
-    headers.set('x-cache', res.headers.get('x-cache') || 'MISS')
-    return new Response(blob, { status: 200, headers })
+    return new Response(res.body, { status: 200, headers })
   } catch (err) {
     const isAbort = err instanceof Error && err.name === 'AbortError'
     console.error('Playground proxy error:', isAbort ? 'upstream timeout' : err)
     return Response.json(
       { error: isAbort ? 'Render timed out' : 'Render failed' },
-      { status: isAbort ? 504 : 500 }
+      { status: isAbort ? 504 : 500 },
     )
   }
 }
