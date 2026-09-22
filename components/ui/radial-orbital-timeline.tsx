@@ -30,7 +30,7 @@ export default function RadialOrbitalTimeline({
   const [radius, setRadius] = useState<number>(250);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const nodeRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     const el = containerRef.current;
@@ -93,6 +93,16 @@ export default function RadialOrbitalTimeline({
       }
     };
   }, [autoRotate]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeItem();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const centerViewOnNode = (nodeId: number) => {
     const nodeIndex = timelineData.findIndex((item) => item.id === nodeId);
@@ -179,7 +189,7 @@ export default function RadialOrbitalTimeline({
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
@@ -189,6 +199,16 @@ export default function RadialOrbitalTimeline({
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onClick={() => {
+                  openItem(item.id);
+                  centerViewOnNode(item.id);
+                }}
+                onFocus={() => {
+                  openItem(item.id);
+                  centerViewOnNode(item.id);
+                }}
+                aria-label={`View details for ${item.title}`}
+                aria-expanded={activeNodeId === item.id}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -231,7 +251,7 @@ export default function RadialOrbitalTimeline({
                 </div>
 
                 {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
