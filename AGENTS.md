@@ -26,61 +26,58 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### Non-negotiable rules (never break these)
 
-1. **Never call Railway directly from client components.**
-   All backend calls go through `/api/playground/screenshot`. That route handles auth, SSRF guard, and quota enforcement. Direct `fetch('https://shotbase-production.up.railway.app/...')` in a `'use client'` component is a security hole.
+1. **Never call the backend directly from client components.**
+   All backend calls go through `/api/playground/screenshot`. That route handles auth, the SSRF guard, and forwards the trusted user identity; the backend is the single authority for quota/rate enforcement. A direct `fetch('https://api.shotbase.dev/...')` from a `'use client'` component is a security hole.
 
 2. **Never use `SUPABASE_SERVICE_ROLE_KEY` in client components or with `NEXT_PUBLIC_` prefix.**
    Service role key bypasses Row Level Security. It must only appear in server-side route handlers.
 
 3. **Never expose these keys with `NEXT_PUBLIC_` prefix:**
-   `CLERK_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `UNKEY_ROOT_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+   `CLERK_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `UNKEY_ROOT_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SHOTBASE_BACKEND_BYPASS_KEY`
 
 4. **Never import `@clerk/nextjs/server` in a `'use client'` component.**
    `auth()`, `currentUser()` are server-only. For client components use `useUser()`, `useAuth()` from `@clerk/nextjs`.
 
 5. **Never write to the `screenshots` table from frontend.**
-   Only the Railway backend writes screenshots rows. Frontend reads them for logs/usage display only.
+   Only the backend writes screenshots rows. Frontend reads them for logs/usage display only.
 
-6. **`playground_bypass` must stay as-is in `app/api/playground/screenshot/route.ts`.**
-   It's the fixed token the backend expects. Do not rotate it without coordinating with backend.
+6. **The playground proxy authenticates with a server-only env secret.**
+   `app/api/playground/screenshot/route.ts` reads `SHOTBASE_BACKEND_BYPASS_KEY` from the environment, sends it as `Authorization: Bearer …` to the backend, and fails closed (500) if it's absent. Never hardcode this value, never prefix it with `NEXT_PUBLIC_`, and never log it.
 
-7. **Plan name casing is load-bearing:**
-   - Supabase default value: `'Free'` (capital F)
-   - Paid plans lowercase: `'starter'`, `'pro'`, `'scale'`
-   - `PLAN_LIMITS` object keys must match exactly: `{ Free: 500, starter: 5000, pro: 25000, scale: Infinity }`
-   - Mismatch here silently gives wrong quota to users
-
-8. **`metadata.clerk_id` must always be in Stripe checkout sessions.**
+7. **`metadata.clerk_id` must always be in Stripe checkout sessions.**
    Without it, `webhooks/stripe/route.ts` cannot match the payment to the user. Subscription goes into limbo.
 
-9. **Always call `validateSafeUrl(url)` before any outbound fetch in API routes.**
+8. **Always call `validateSafeUrl(url)` before any outbound fetch in API routes.**
    The helper is in `lib/safe-url.ts`. Bypassing it enables SSRF attacks.
 
-10. **`stripe_customer_id` may not exist for new users** — always fetch it from Supabase first, create it in Stripe if null, then write it back. Never assume it's set.
+9. **`stripe_customer_id` may not exist for new users** — always fetch it from Supabase first, create it in Stripe if null, then write it back. Never assume it's set.
 
 ---
 
-### Known issues — do not silently work around
+### Plans & quota (backend-authoritative)
 
-- **F1/F2/F3**: `keys/list`, `keys/revoke`, `webhooks/clerk` use Unkey **v1** (`api.unkey.dev/v1`). When migrating to v2 (`api.unkey.com/v2`), the response shapes differ — verify field names against v2 docs before touching these files.
-- **F4**: `playground_bypass` is hardcoded in `app/api/playground/screenshot/route.ts` line ~65. The backlog item is to move it to env var — do not change it unless explicitly implementing that task.
-- **F5**: The 24h chart in `dashboard/page.tsx` uses hardcoded data. Do not treat it as real — it's a placeholder.
-- **F7**: `lib/sentry-redact.ts` exists but is not wired. `instrumentation.ts` is a stub. Do not delete sentry-redact.ts — it will be needed when Sentry is configured.
-- **F9**: CSP header is intentionally missing from `next.config.ts` — noted as pending audit. Do not add a permissive CSP "to unblock" something — leave it absent until properly audited.
+Plans live in `lib/plans.ts` as the single source of truth: **free / builder / pro** (plus **Business**, contact-sales only). Legacy names normalize (`starter` → `builder`, `scale` → `pro`).
+
+| Plan    | Captures / mo | AI extractions / mo | Rate limit (rpm) |
+|---------|---------------|---------------------|------------------|
+| Free    | 250           | 25                  | 10               |
+| Builder | 1,500         | 150                 | 20               |
+| Pro     | 7,500         | 1,000               | 40               |
+
+The **backend enforces all quotas and rate limits** (keyed off the trusted `X-Shotbase-User-Id` the proxy forwards). The frontend does NOT re-implement a limit table — do not add one.
 
 ---
 
 ### Before writing a new API route
 1. Check: does this route need auth? If yes, call `const { userId } = await auth()` at the top and return 401 if null.
 2. Check: does this route call Supabase with write operations? Use `SUPABASE_SERVICE_ROLE_KEY`, not anon key.
-3. Check: does this route call Unkey? Use v2 (`api.unkey.com/v2`) — not v1.
-4. Check: does this route proxy to Railway? Use `validateSafeUrl()` first, then `playground_bypass` auth.
+3. Check: does this route call Unkey? Use the v2 API (`api.unkey.com/v2`).
+4. Check: does this route proxy to the backend? Call `validateSafeUrl()` first, then authenticate with `SHOTBASE_BACKEND_BYPASS_KEY` (server-only env secret) to `https://api.shotbase.dev`.
 5. Check: does this route handle Stripe webhooks? Use `stripe.webhooks.constructEvent()` — never trust raw body.
 
 ### Before writing a new dashboard page
 - Put it under `app/dashboard/[name]/page.tsx`
 - It inherits `app/dashboard/layout.tsx` (sidebar + auth guard) — no need to add auth check again
-- Mark it in CLAUDE.md status table as real vs stub
 - Use Tailwind classes, not inline styles
 - Use `lucide-react` or `@tabler/icons-react` for icons — don't add new icon libraries
 
@@ -122,7 +119,7 @@ When researching Unkey/Clerk/Stripe/Supabase API changes, always check current d
 - Any client component importing from `@clerk/nextjs/server`
 - Any Stripe webhook handler missing `constructEvent()` signature verification
 - Any Unkey key creation that omits `meta: { plan }` — breaks backend rate limiting
-- Any hardcoded plan name that doesn't match the exact casing contract (`Free`/`starter`/`pro`/`scale`)
+- Any hardcoded plan name outside the current model (`free`/`builder`/`pro`) or a re-implemented quota table in the frontend
 - Any new API route that doesn't guard against missing `userId` from Clerk
 
 ---
@@ -134,16 +131,18 @@ When researching Unkey/Clerk/Stripe/Supabase API changes, always check current d
 Clerk userId  =  Supabase users.clerk_id  =  Unkey key.ownerId
 ```
 
-**Plan casing contract:**
+**Plan model:**
 | Tier | Stored as | Source |
 |------|-----------|--------|
-| Default | `'Free'` | Supabase `users.plan` default value |
-| Paid | `'starter'` `'pro'` `'scale'` | Stripe webhook → `getPlanFromPriceId()` |
-| Unkey meta | `'free'` `'starter'` `'pro'` `'scale'` | Set at key creation from `plan.toLowerCase()` |
+| Default | `'free'` | Supabase `users.plan` default value |
+| Paid | `'builder'` `'pro'` | Stripe webhook → `getPlanFromPriceId()` |
+| Unkey meta | `'free'` `'builder'` `'pro'` | Set at key creation from the plan |
+
+Legacy `'starter'`/`'scale'` values normalize to `'builder'`/`'pro'` via `normalizePlan()` in `lib/plans.ts` — never introduce new casings.
 
 **`screenshots` table ownership:**
-- **Reads**: Frontend (`/api/logs`, `/api/usage`, `/api/playground/screenshot` quota check)
-- **Writes**: Backend only (`logScreenshot()` in `src/server.ts`)
+- **Reads**: Frontend (`/api/logs`, `/api/usage`, `/api/insights`)
+- **Writes**: Backend only
 
 **Webhook security:**
 - Clerk webhooks: verified via `svix` + `CLERK_WEBHOOK_SECRET`
