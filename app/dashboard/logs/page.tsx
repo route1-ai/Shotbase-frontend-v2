@@ -44,6 +44,15 @@ function tag(status: number): React.CSSProperties {
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!row) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [row, onClose])
+
   const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -97,6 +106,7 @@ X-Request-Id: ${row.id || "—"}`
       {/* drawer */}
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Request details"
         style={{
           position: "fixed",
@@ -127,8 +137,9 @@ X-Request-Id: ${row.id || "—"}`
             <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b" }}>{row.id || "—"}</div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close details"
             style={{ fontSize: 20, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
           >
             ×
@@ -172,6 +183,7 @@ X-Request-Id: ${row.id || "—"}`
                 Request payload
               </div>
               <button
+                type="button"
                 onClick={() => copy("req", reqJson)}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "req" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
@@ -188,6 +200,7 @@ X-Request-Id: ${row.id || "—"}`
                 Response headers
               </div>
               <button
+                type="button"
                 onClick={() => copy("res", resHeaders)}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "res" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
@@ -204,6 +217,7 @@ X-Request-Id: ${row.id || "—"}`
                 Reproduce
               </div>
               <button
+                type="button"
                 onClick={() => copy("curl", curlCmd)}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "curl" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
               >
@@ -217,6 +231,7 @@ X-Request-Id: ${row.id || "—"}`
         {/* Footer actions */}
         <div style={{ display: "flex", gap: 8, padding: "14px 22px", borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
           <button
+            type="button"
             onClick={() => copy("curl", curlCmd)}
             style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#000", background: "#00e87b", border: "none", padding: "9px 14px", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}
           >
@@ -379,10 +394,20 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      tabIndex={0}
+                      aria-label={`View details for request ${r.id || ""}`}
                       onClick={() => setSelected(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
                       style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onFocus={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                      onBlur={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 14px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 14px 11px 0", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
