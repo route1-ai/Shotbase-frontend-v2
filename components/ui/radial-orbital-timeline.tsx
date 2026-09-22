@@ -30,7 +30,7 @@ export default function RadialOrbitalTimeline({
   const [radius, setRadius] = useState<number>(250);
   const containerRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const nodeRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const nodeRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     const el = containerRef.current;
@@ -61,7 +61,10 @@ export default function RadialOrbitalTimeline({
     setPulseEffect({});
   };
 
-  const openItem = (id: number) => {
+  const openItem = (id: number, shouldRotate = false) => {
+    if (shouldRotate) {
+      centerViewOnNode(id);
+    }
     if (activeNodeId === id) return;
     setExpandedItems({ [id]: true });
     setActiveNodeId(id);
@@ -74,6 +77,16 @@ export default function RadialOrbitalTimeline({
     });
     setPulseEffect(newPulseEffect);
   };
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && activeNodeId !== null) {
+        closeItem();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [activeNodeId]);
 
   useEffect(() => {
     let rotationTimer: ReturnType<typeof setInterval>;
@@ -173,14 +186,17 @@ export default function RadialOrbitalTimeline({
           {/* Nodes */}
           {timelineData.map((item, index) => {
             const position = calculateNodePosition(index, timelineData.length);
-            const isExpanded = expandedItems[item.id];
+            const isExpanded = !!expandedItems[item.id];
             const isRelated = isRelatedToActive(item.id);
             const isPulsing = pulseEffect[item.id];
             const Icon = item.icon;
 
             return (
-              <div
+              <button
                 key={item.id}
+                type="button"
+                aria-label={`View details for ${item.title}`}
+                aria-expanded={isExpanded ? "true" : "false"}
                 ref={(el) => { nodeRefs.current[item.id] = el; }}
                 className="orbital-node"
                 style={{
@@ -189,6 +205,8 @@ export default function RadialOrbitalTimeline({
                   opacity: isExpanded ? 1 : position.opacity,
                 }}
                 onMouseEnter={() => openItem(item.id)}
+                onFocus={() => openItem(item.id, false)}
+                onClick={() => openItem(item.id, true)}
               >
                 {/* Energy glow */}
                 {(isPulsing || isExpanded) && (
@@ -231,7 +249,7 @@ export default function RadialOrbitalTimeline({
                 </div>
 
                 {/* Removed Expanded card from node */}
-              </div>
+              </button>
             );
           })}
           {/* Centered Expanded Card */}
@@ -290,7 +308,7 @@ export default function RadialOrbitalTimeline({
                               className="orbital-card-related-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openItem(relatedId);
+                                openItem(relatedId, true);
                               }}
                             >
                               {relatedItem?.title} →
