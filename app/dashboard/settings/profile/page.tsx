@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useUser } from "@clerk/nextjs"
 
 export default function ProfilePage() {
@@ -9,13 +9,15 @@ export default function ProfilePage() {
   const [company, setCompany] = useState("")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [syncedUser, setSyncedUser] = useState<typeof user>(null)
 
-  useEffect(() => {
+  if (user !== syncedUser) {
+    setSyncedUser(user)
     if (user) {
       setName(user.fullName || "")
       setCompany((user.unsafeMetadata?.company as string) || "")
     }
-  }, [user])
+  }
 
   const userEmail = user?.emailAddresses?.[0]?.emailAddress ?? "Loading..."
 
@@ -48,21 +50,25 @@ export default function ProfilePage() {
 
       <div style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 28, maxWidth: 560 }}>
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Email address</label>
+          <label htmlFor="email-address" style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Email address</label>
           <input
+            id="email-address"
             type="email"
             value={userEmail}
             readOnly
+            aria-readonly="true"
+            aria-describedby="email-help"
             style={{ width: "100%", background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: "10px 14px", color: "#888", fontSize: 13, outline: "none", cursor: "not-allowed" }}
           />
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444", marginTop: 6 }}>
+          <div id="email-help" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", marginTop: 6 }}>
             Managed by your authentication provider.
           </div>
         </div>
 
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Full name</label>
+          <label htmlFor="full-name" style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Full name</label>
           <input
+            id="full-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -72,8 +78,9 @@ export default function ProfilePage() {
         </div>
 
         <div style={{ marginBottom: 28 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Company</label>
+          <label htmlFor="company-name" style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Company</label>
           <input
+            id="company-name"
             type="text"
             value={company}
             onChange={(e) => setCompany(e.target.value)}
@@ -82,13 +89,17 @@ export default function ProfilePage() {
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, transition: "background 0.15s" }}
-        >
-          {saving ? "Saving…" : saved ? "✓ Saved" : "Save changes"}
-        </button>
+        <div aria-live="polite">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            aria-label={saving ? "Saving profile changes" : saved ? "Profile changes saved" : "Save profile changes"}
+            style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, transition: "background 0.15s" }}
+          >
+            {saving ? "Saving…" : saved ? "✓ Saved" : "Save changes"}
+          </button>
+        </div>
       </div>
     </div>
   )
