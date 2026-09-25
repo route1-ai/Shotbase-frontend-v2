@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
-const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -43,6 +42,14 @@ function tag(status: number): React.CSSProperties {
 // ---------- Side drawer ----------
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [onClose])
 
   const copy = async (key: string, text: string) => {
     try {
@@ -127,8 +134,9 @@ X-Request-Id: ${row.id || "—"}`
             <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b" }}>{row.id || "—"}</div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close details"
             style={{ fontSize: 20, color: "#666", background: "transparent", border: "none", cursor: "pointer", padding: 4 }}
           >
             ×
@@ -171,12 +179,16 @@ X-Request-Id: ${row.id || "—"}`
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Request payload
               </div>
-              <button
-                onClick={() => copy("req", reqJson)}
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "req" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                {copied === "req" ? "✓ Copied" : "Copy"}
-              </button>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => copy("req", reqJson)}
+                  aria-label={copied === "req" ? "Request payload copied to clipboard" : "Copy request payload"}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "req" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  {copied === "req" ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
             </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#111", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{reqJson}</pre>
           </div>
@@ -187,12 +199,16 @@ X-Request-Id: ${row.id || "—"}`
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Response headers
               </div>
-              <button
-                onClick={() => copy("res", resHeaders)}
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "res" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                {copied === "res" ? "✓ Copied" : "Copy"}
-              </button>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => copy("res", resHeaders)}
+                  aria-label={copied === "res" ? "Response headers copied to clipboard" : "Copy response headers"}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "res" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  {copied === "res" ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
             </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#111", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{resHeaders}</pre>
           </div>
@@ -203,12 +219,16 @@ X-Request-Id: ${row.id || "—"}`
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Reproduce
               </div>
-              <button
-                onClick={() => copy("curl", curlCmd)}
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "curl" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
-              >
-                {copied === "curl" ? "✓ Copied" : "Copy as cURL"}
-              </button>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => copy("curl", curlCmd)}
+                  aria-label={copied === "curl" ? "cURL command copied to clipboard" : "Copy as cURL"}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: copied === "curl" ? "#00e87b" : "#666", background: "transparent", border: "none", cursor: "pointer", padding: 0 }}
+                >
+                  {copied === "curl" ? "✓ Copied" : "Copy as cURL"}
+                </button>
+              </div>
             </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, background: "#111", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 6, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6, whiteSpace: "pre" }}>{curlCmd}</pre>
           </div>
@@ -217,7 +237,9 @@ X-Request-Id: ${row.id || "—"}`
         {/* Footer actions */}
         <div style={{ display: "flex", gap: 8, padding: "14px 22px", borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
           <button
+            type="button"
             onClick={() => copy("curl", curlCmd)}
+            aria-label="Replay request as cURL"
             style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#000", background: "#00e87b", border: "none", padding: "9px 14px", borderRadius: 7, cursor: "pointer", fontWeight: 600 }}
           >
             ↻ Replay request
@@ -353,6 +375,9 @@ export default function LogsPage() {
 
           {/* Table */}
           <div style={cardStyle}>
+            <style>{`
+              .log-row:focus-visible { outline: 2px solid #00e87b; outline-offset: -2px; }
+            `}</style>
             {loading ? (
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", padding: "32px 0", textAlign: "center" }}>Loading logs…</div>
             ) : filtered.length === 0 ? (
@@ -379,7 +404,17 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      className="log-row"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`View details for request ${r.id || "entry"}`}
                       onClick={() => setSelected(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
                       style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
