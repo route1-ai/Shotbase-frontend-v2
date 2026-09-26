@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -20,6 +20,16 @@ export default function KeysPage() {
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [confirmingRevokeId, setConfirmingRevokeId] = useState<string | null>(null)
+  const revokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (revokeTimerRef.current) {
+        clearTimeout(revokeTimerRef.current)
+      }
+    }
+  }, [])
 
   // Transient plaintext for the "key created" modal ONLY. Cleared on close and
   // never written into `keys` or anywhere persisted.
@@ -79,6 +89,26 @@ export default function KeysPage() {
     // Discard the plaintext from client state — it can never be shown again.
     setCreatedKey(null)
     setCopied(false)
+  }
+
+  const handleRevokeClick = (id: string) => {
+    if (confirmingRevokeId === id) {
+      if (revokeTimerRef.current) {
+        clearTimeout(revokeTimerRef.current)
+        revokeTimerRef.current = null
+      }
+      setConfirmingRevokeId(null)
+      revokeKey(id)
+    } else {
+      if (revokeTimerRef.current) {
+        clearTimeout(revokeTimerRef.current)
+      }
+      setConfirmingRevokeId(id)
+      revokeTimerRef.current = setTimeout(() => {
+        setConfirmingRevokeId(null)
+        revokeTimerRef.current = null
+      }, 3000)
+    }
   }
 
   const revokeKey = async (id: string) => {
@@ -188,14 +218,38 @@ export default function KeysPage() {
                     {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString() : "—"}
                   </td>
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0" }}>—</td>
-                  <td style={{ padding: "14px 0", textAlign: "right" }}>
+                  <td style={{ padding: "14px 0", textAlign: "right" }} aria-live="polite">
                     {k.active !== false && (
                       <button
-                        onClick={() => revokeKey(k.id)}
+                        type="button"
+                        onClick={() => handleRevokeClick(k.id)}
                         disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
+                        aria-label={
+                          revoking === k.id
+                            ? `Revoking ${k.name} key`
+                            : confirmingRevokeId === k.id
+                            ? `Confirm revocation of ${k.name} key`
+                            : `Revoke ${k.name} key`
+                        }
+                        style={{
+                          fontFamily: "var(--font-ibm-plex)",
+                          fontSize: 11,
+                          color: revoking === k.id ? "#888" : confirmingRevokeId === k.id ? "#ff4d4d" : "#ff6060",
+                          background: confirmingRevokeId === k.id ? "rgba(255,60,60,0.12)" : "none",
+                          border: "1px solid",
+                          borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : confirmingRevokeId === k.id ? "rgba(255,60,60,0.5)" : "rgba(255,60,60,0.2)",
+                          padding: "5px 12px",
+                          borderRadius: 6,
+                          cursor: revoking === k.id ? "not-allowed" : "pointer",
+                          fontWeight: confirmingRevokeId === k.id ? 600 : 400,
+                          transition: "all 0.15s ease",
+                        }}
                       >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
+                        {revoking === k.id
+                          ? "Revoking…"
+                          : confirmingRevokeId === k.id
+                          ? "Confirm revoke?"
+                          : "Revoke"}
                       </button>
                     )}
                   </td>
