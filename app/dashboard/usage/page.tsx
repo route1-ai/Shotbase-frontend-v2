@@ -1,23 +1,15 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import Link from "next/link"
 import { planConfig } from "@/lib/plans"
+import { useUsage } from "../usage-provider"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
   border: "1px solid rgba(255,255,255,0.07)",
   borderRadius: 12,
   padding: 28,
-}
-
-type Meter = { used: number; limit: number }
-type Usage =
-  | { available: true; plan: string; captures: Meter; ai_extractions: Meter }
-  | { available: false }
-
-function isMeter(m: unknown): m is Meter {
-  return !!m && typeof (m as Meter).used === "number" && typeof (m as Meter).limit === "number"
 }
 
 function MeterRow({ label, used, limit }: { label: string; used: number; limit: number }) {
@@ -40,27 +32,9 @@ function MeterRow({ label, used, limit }: { label: string; used: number; limit: 
 }
 
 export default function UsagePage() {
-  const [usage, setUsage] = useState<Usage | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((u) => {
-        // Accounting is available only when the API explicitly says so AND
-        // returns the V2 meters. Anything else → unavailable (never fabricate).
-        if (u && u.available === true && isMeter(u.captures) && isMeter(u.ai_extractions)) {
-          setUsage({ available: true, plan: u.plan || "free", captures: u.captures, ai_extractions: u.ai_extractions })
-        } else {
-          setUsage({ available: false })
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        setUsage({ available: false })
-        setLoading(false)
-      })
-  }, [])
+  // Same shared source the sidebar QuotaWidget reads — the two can't disagree.
+  const usage = useUsage()
+  const loading = usage === null
 
   return (
     <div>

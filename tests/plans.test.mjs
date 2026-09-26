@@ -120,16 +120,33 @@ test('supabase schema has ai_requested + ai_succeeded columns', () => {
 
 // ── Dashboard usage consumers use the Pricing V2 /api/usage shape ──
 const usagePage = src('../app/dashboard/usage/page.tsx')
+const usageProvider = src('../app/dashboard/usage-provider.tsx')
 const overview = src('../app/dashboard/page.tsx')
 const quotaLayout = src('../app/dashboard/layout.tsx')
 const billing = src('../app/dashboard/settings/billing/page.tsx')
 
-test('A: usage page consumes V2 shape (captures + ai_extractions), not old count/limit', () => {
-  assert.ok(/u\.captures/.test(usagePage) && /u\.ai_extractions/.test(usagePage), 'reads captures + ai_extractions from API')
+test('A: usage page consumes V2 shape (captures + ai_extractions) via the shared source', () => {
+  // The V2 shape is parsed once in the shared provider…
+  assert.ok(/u\.captures/.test(usageProvider) && /u\.ai_extractions/.test(usageProvider), 'provider reads captures + ai_extractions from API')
+  // …and the page renders it through the shared hook, not its own fetch.
+  assert.ok(/useUsage/.test(usagePage), 'usage page reads the shared usage source')
   assert.ok(/captures\.used/.test(usagePage) && /captures\.limit/.test(usagePage), 'renders captures used/limit')
   assert.ok(/ai_extractions\.used/.test(usagePage) && /ai_extractions\.limit/.test(usagePage), 'renders AI used/limit')
   assert.ok(!/\bu\.count\b/.test(usagePage) && !/\bu\.limit\b/.test(usagePage), 'no old flat u.count/u.limit')
   assert.ok(/Captures/.test(usagePage) && /AI extractions/.test(usagePage), 'shows both meters')
+})
+
+test('sidebar widget and usage page share ONE usage source (cannot drift)', () => {
+  // Both consumers read the shared hook…
+  assert.ok(/useUsage/.test(quotaLayout), 'sidebar QuotaWidget uses the shared useUsage hook')
+  assert.ok(/useUsage/.test(usagePage), 'usage page uses the shared useUsage hook')
+  // …and neither fetches /api/usage independently — only the provider does, so
+  // the sidebar can never show a stale number that disagrees with the page.
+  assert.ok(!/fetch\(\s*["'`]\/api\/usage/.test(quotaLayout), 'sidebar does not fetch /api/usage directly')
+  assert.ok(!/fetch\(\s*["'`]\/api\/usage/.test(usagePage), 'usage page does not fetch /api/usage directly')
+  assert.ok(/fetch\(\s*["'`]\/api\/usage/.test(usageProvider), 'the shared provider is the single fetch site')
+  // The provider revalidates (not a fetch-once-and-go-stale widget).
+  assert.ok(/usePathname/.test(usageProvider) && /visibilitychange|focus/.test(usageProvider), 'provider revalidates on navigation + focus')
 })
 
 test('B/C: plan limits come from the central config (Builder 1500/150, Pro 7500/1000)', () => {
