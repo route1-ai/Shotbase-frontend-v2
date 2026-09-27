@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useEffect, useState, useId } from "react"
 import { useClerk, useSession, useUser } from "@clerk/nextjs"
 
 // Structural subset of Clerk's SessionWithActivitiesResource (fields we use).
@@ -63,6 +63,7 @@ export default function SecurityPage() {
   const currentId = currentSession?.id
 
   const email = user?.primaryEmailAddress?.emailAddress ?? ""
+  const deleteConfirmId = useId()
 
   // ----- Sessions -----
   const [sessions, setSessions] = useState<ActiveSession[] | null>(null)
@@ -186,7 +187,7 @@ export default function SecurityPage() {
             </button>
           </>
         ) : (
-          <p style={{ color: "#888", fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+          <div style={{ color: "#888", fontSize: 13, lineHeight: 1.6, margin: 0 }}>
             {externalMethods.length > 0
               ? `You sign in with ${externalMethods.join(", ")} — there's no password on this account. Manage your sign-in method in your account portal.`
               : "You sign in without a password (email code / link). There's nothing to change here."}
@@ -197,7 +198,7 @@ export default function SecurityPage() {
             >
               Manage sign-in
             </button>
-          </p>
+          </div>
         )}
       </div>
 
@@ -280,10 +281,12 @@ export default function SecurityPage() {
             </p>
             {deleting ? (
               <div>
-                <label style={{ display: "block", fontSize: 12, color: "#888", marginBottom: 8 }}>
+                <label htmlFor={deleteConfirmId} style={{ display: "block", fontSize: 12, color: "#888", marginBottom: 8 }}>
                   Type your email <code style={{ fontFamily: "var(--font-ibm-plex)", color: "#ff8f8f" }}>{email || "(unknown)"}</code> to confirm:
                 </label>
                 <input
+                  id={deleteConfirmId}
+                  autoFocus
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
                   placeholder={email}
@@ -307,7 +310,7 @@ export default function SecurityPage() {
                   </button>
                 </div>
                 {error && (
-                  <div style={{ marginTop: 14, fontSize: 12, color: "#ff8f8f", background: "rgba(255,96,96,0.08)", border: "1px solid rgba(255,96,96,0.25)", borderRadius: 7, padding: "10px 14px", lineHeight: 1.5 }}>
+                  <div aria-live="polite" style={{ marginTop: 14, fontSize: 12, color: "#ff8f8f", background: "rgba(255,96,96,0.08)", border: "1px solid rgba(255,96,96,0.25)", borderRadius: 7, padding: "10px 14px", lineHeight: 1.5 }}>
                     {error}
                   </div>
                 )}
