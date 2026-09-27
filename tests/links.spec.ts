@@ -15,7 +15,7 @@ test('WEB-01 inventory all links and fail on dead/placeholder hrefs', async ({ r
   const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
   expect(hrefs.length, 'homepage should contain links').toBeGreaterThan(0);
 
-  const dead = hrefs.filter((h) => h === '' || h === '#' || h.startsWith('javascript:'));
+  const dead = hrefs.filter((h) => h === '' || h === '#' || /^\s*(javascript|data|vbscript):/i.test(h));
   expect(dead, `placeholder/broken hrefs: ${dead.join(', ')}`).toHaveLength(0);
 
   const internal = [...new Set(hrefs.filter((h) => h.startsWith('/')))];

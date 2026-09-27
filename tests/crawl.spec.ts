@@ -47,7 +47,7 @@ for (const viewport of ['desktop', 'mobile']) {
           const href = await link.getAttribute('href');
           const ctx = (await link.textContent()) ?? '';
           if (!href) { report.placeholders.push(`${seed}: <a> without href`); continue; }
-          if (href === '#' || href.startsWith('javascript:')) {
+          if (href === '#' || /^\s*(javascript|data|vbscript):/i.test(href)) {
             report.placeholders.push(`${seed}: placeholder href "${href}"`);
             continue;
           }
