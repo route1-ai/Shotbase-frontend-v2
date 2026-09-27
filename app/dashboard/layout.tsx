@@ -9,6 +9,7 @@ import Lenis from "lenis"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ShotbaseMark } from "@/components/shotbase-mark"
 import { planConfig } from "@/lib/plans"
+import { UsageProvider, useUsage } from "./usage-provider"
 
 // ----- Shell tokens -----
 const SIDEBAR_W = 240
@@ -323,25 +324,13 @@ function UserMenu() {
 }
 
 function QuotaWidget() {
-  // null = still loading; false = accounting unavailable (show honest state).
-  const [usage, setUsage] = useState<{ plan: string; used: number; limit: number } | false | null>(null)
-  useEffect(() => {
-    fetch("/api/usage")
-      .then((r) => r.json())
-      .then((u) => {
-        // V2 shape: { available, plan, captures:{used,limit}, ai_extractions:{…} }.
-        const cap = u?.captures
-        if (u && u.available === true && cap && typeof cap.used === "number" && typeof cap.limit === "number") {
-          setUsage({ plan: u.plan || "free", used: cap.used, limit: cap.limit })
-        } else {
-          setUsage(false)
-        }
-      })
-      .catch(() => setUsage(false))
-  }, [])
+  // Reads the shared usage source (see UsageProvider) — same value the
+  // /dashboard/usage page renders, so the two can never disagree. null = first
+  // fetch in flight.
+  const usage = useUsage()
 
   // Unavailable / loading → no fabricated bar or numbers.
-  if (usage === null || usage === false) {
+  if (usage === null || usage.available !== true) {
     return (
       <Link
         href="/dashboard/usage"
@@ -354,8 +343,9 @@ function QuotaWidget() {
     )
   }
 
-  const pct = Math.min(100, (usage.used / Math.max(1, usage.limit)) * 100)
-  const overHalf = pct > 50
+  const used = usage.captures.used
+  const limit = usage.captures.limit
+  const pct = Math.min(100, (used / Math.max(1, limit)) * 100)
   return (
     <Link
       href="/dashboard/usage"
@@ -369,15 +359,17 @@ function QuotaWidget() {
         textDecoration: "none",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", marginBottom: 6 }}>
-        <span>{planConfig(usage.plan).name} plan</span>
-        <span style={{ color: pct > 80 ? "#ff9060" : "#00e87b" }}>{Math.round(pct)}%</span>
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#888", marginBottom: 6, gap: 8 }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{planConfig(usage.plan).name} plan</span>
+        <span style={{ color: pct > 80 ? "#ff9060" : "#00e87b", flexShrink: 0 }}>{Math.round(pct)}%</span>
       </div>
       <div style={{ height: 4, background: "#1a1a1a", borderRadius: 2, overflow: "hidden", marginBottom: 6 }}>
         <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? "#ff9060" : "#00e87b", borderRadius: 2 }} />
       </div>
-      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: overHalf ? "#888" : "#444" }}>
-        {usage.used.toLocaleString()} / {usage.limit.toLocaleString()} captures
+      {/* Legible at any usage level (was #444 under 50%, near-invisible on #111).
+          The number stays on one line and never clips the leading digits. */}
+      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#c0c0c0", whiteSpace: "nowrap" }}>
+        <span style={{ color: "#f0f0f0", fontWeight: 500 }}>{used.toLocaleString()}</span> / {limit.toLocaleString()} captures
       </div>
     </Link>
   )
@@ -700,6 +692,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // sidebar's <nav> are both proper scroll containers and respond to wheel
   // events natively.
   return (
+    <UsageProvider>
     <div style={{ display: "flex", width: "100%", height: "100vh", overflow: "hidden", background: "#050505", color: "#f0f0f0" }}>
       {/* Responsive shell rules (inline styles can't express media queries).
           ≤767px: the desktop sidebar leaves the flow and a hamburger + off-canvas
@@ -874,5 +867,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
     </div>
+    </UsageProvider>
   )
 }
