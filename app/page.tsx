@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@clerk/nextjs"
 import { PLANS, BUSINESS, salesContactHref } from "@/lib/plans"
+import proofTimings from "@/lib/proof-timings.json"
 import { useLenis } from "lenis/react"
 import gsap from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
@@ -16,6 +17,12 @@ import { MacbookScroll } from "@/components/ui/macbook-scroll"
 import RadialOrbitalTimeline from "@/components/ui/radial-orbital-timeline"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { ShotbaseMark } from "@/components/shotbase-mark"
+
+// Real per-capture times from the last proof-shot run (scripts/generate-proof-shots.mjs).
+// Captions read from here so they can never drift from what the API returned.
+const PROOF_MS: Record<string, number> = Object.fromEntries(
+  proofTimings.results.map((r) => [r.name, r.ms]),
+)
 
 const CODE_SNIPPETS: Record<string, string> = {
   js: `// Native fetch — no SDK required
@@ -440,19 +447,12 @@ export default function Home() {
               <div className="dot" style={{ background: "#ff5f57" }} />
               <div className="dot" style={{ background: "#febc2e" }} />
               <div className="dot" style={{ background: "#28c840" }} />
-              <div className="url-bar">https://stripe.com/pricing</div>
+              <div className="url-bar">https://stripe.com</div>
             </div>
-            <div className="mockup-viewport">
-              <div className="mv-header" />
-              <div className="mv-text" />
-              <div className="mv-text short" />
-              <div className="mv-block" />
-              <div className="mv-cols">
-                <div className="mv-col" />
-                <div className="mv-col" />
-                <div className="mv-col" />
-              </div>
-              <div className="mv-text" />
+            {/* Real Shotbase capture (public/proof/stripe.png), not a mockup. */}
+            <div className="mockup-viewport shot">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/proof/stripe.png" alt="Shotbase viewport capture of stripe.com" width={1440} height={900} loading="lazy" />
             </div>
           </div>
         </section>
@@ -568,6 +568,90 @@ export default function Home() {
               <h3>SaaS Monitoring</h3>
               <p>Capture pricing pages, dashboards, and partner portals on demand and diff the rendered output in your own monitoring pipeline.</p>
             </div>
+          </div>
+        </section>
+
+        {/* ── PART A · Proof: real captures made by Shotbase itself ──
+            Images are STATIC files in /public/proof, generated out-of-band by
+            scripts/generate-proof-shots.mjs. The page never calls the API at
+            build or request time. */}
+        <section className="proof-section" id="proof">
+          <div className="section-head">
+            <div className="s-label">Proof</div>
+            <h2>Shotbase captured these itself</h2>
+            <p>No mockups. Every image below is a real 1440×900 PNG our own API returned for a live URL.</p>
+          </div>
+          <div className="proof-grid">
+            {[
+              { name: "stripe", src: "/proof/stripe.png", label: "stripe.com" },
+              { name: "linear", src: "/proof/linear.png", label: "linear.app" },
+              { name: "hackernews", src: "/proof/hackernews.png", label: "news.ycombinator.com" },
+            ].map((s) => (
+              <figure className="proof-card" key={s.name}>
+                <div className="proof-frame">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={s.src} alt={`Screenshot of ${s.label} captured by Shotbase`} width={1440} height={900} loading="lazy" />
+                </div>
+                <figcaption>
+                  <span className="proof-domain">{s.label}</span>
+                  {typeof PROOF_MS[s.name] === "number" && (
+                    <span className="proof-time">captured in {(PROOF_MS[s.name] / 1000).toFixed(2)}s</span>
+                  )}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+
+        {/* ── PART B · Speed: the measured spread.
+            Copy is APPROVED VERBATIM — do not strengthen. No %, no p95, no
+            competitor-cache comparison, competitors unnamed. Numbers (4.4s /
+            12.6s / 36 captures / four page types) are the owner's measured
+            reference; do not recompute or swap. */}
+        <section className="speed-section" id="speed">
+          <div className="section-head">
+            <div className="s-label">Speed</div>
+            <h2>We measured the spread.</h2>
+          </div>
+          <div className="speed-body">
+            <p className="speed-claim">
+              Fast is easy to claim. We measured the spread. Across 36 captures of four different page types, Shotbase never took longer than 4.4 seconds. One competitor&apos;s median looked close to ours — until the same page took 12.6 seconds on the very next call.
+            </p>
+            <div className="speed-stats">
+              <div className="speed-stat">
+                <div className="ss-num">4.4s</div>
+                <div className="ss-cap">Shotbase — never slower than this, across 36 captures</div>
+              </div>
+              <div className="speed-stat alt">
+                <div className="ss-num">12.6s</div>
+                <div className="ss-cap">A competitor — same page, the very next call</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── PART C · Demo video slot.
+            The video does not exist yet — this is an intentional placeholder
+            (no fake play button, no GIF). When ready, drop the file at
+            public/demo/shotbase-demo.mp4 (H.264/AAC MP4, 16:9 e.g. 1920×1080,
+            60–90s) plus a poster at public/demo/poster.jpg, then replace the
+            .demo-ph block with the commented <video> below. */}
+        <section className="demo-section" id="demo">
+          <div className="section-head">
+            <div className="s-label">Watch</div>
+            <h2>See a capture end to end</h2>
+          </div>
+          <div className="demo-frame">
+            <div className="demo-ph" role="img" aria-label="Demo video coming soon">
+              <div className="demo-ph-badge">Demo video</div>
+              <div className="demo-ph-text">Coming soon · 16:9 · 60–90s</div>
+            </div>
+            {/*
+            When public/demo/shotbase-demo.mp4 exists, swap the .demo-ph div for:
+            <video className="demo-video" controls preload="none" poster="/demo/poster.jpg" width={1920} height={1080}>
+              <source src="/demo/shotbase-demo.mp4" type="video/mp4" />
+            </video>
+            */}
           </div>
         </section>
 

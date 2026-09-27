@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-09-27T00:56:38.771Z",
+  "apiUrl": "https://api.shotbase.dev/screenshot",
+  "width": 1440,
+  "height": 900,
+  "results": [
+    { "name": "stripe", "url": "https://stripe.com", "ms": 3748, "bytes": 339341, "cached": "MISS" },
+    { "name": "linear", "url": "https://linear.app", "ms": 2434, "bytes": 145265, "cached": "MISS" },
+    { "name": "hackernews", "url": "https://news.ycombinator.com", "ms": 1060, "bytes": 195936, "cached": "MISS" }
+  ]
+}
