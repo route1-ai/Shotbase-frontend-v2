@@ -164,17 +164,173 @@ const CONTENT: Record<string, () => React.ReactNode> = {
     <div>
       <div style={{ fontFamily: 'var(--font-ibm-plex)', fontSize: 11, color: '#00e87b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>MCP</div>
       <h1>MCP Server</h1>
-      <p>Shotbase ships a native <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> (MCP) server over streamable HTTP at <code>POST /api/mcp</code>. It gives MCP-compatible agents one tool, <code>shotbase_capture</code>, that renders a page and returns the screenshot plus structured intelligence. The endpoint is <strong>POST-only</strong> — a <code>GET /api/mcp</code> returns <code>405 Method Not Allowed</code>.</p>
-      <h2>Install (Claude Code / Claude Desktop / Cursor)</h2>
-      <CodeBlock lang="bash" code={`claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\\n  --header "Authorization: Bearer sk_your_key"`}/>
-      <h2>Available tool</h2>
+      <p><strong>Shotbase&apos;s MCP server works with any MCP-compatible client — not just Claude.</strong> <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a> is an open standard, and Shotbase implements it over the current <strong>streamable HTTP</strong> transport. Any client that speaks MCP can connect.</p>
+      <p>The connection details are the same everywhere:</p>
       <table>
-        <thead><tr><th>Tool</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td>shotbase_capture</td><td style={{ fontSize: 13, color: '#888' }}>Render a URL and return the screenshot plus extracted JSON (page type, headings, CTAs, prices). Args: url (required), extract, format, full_page, viewport.</td></tr>
+          <tr><td><strong>Endpoint</strong></td><td style={{ fontSize: 13, color: '#888' }}><code>POST https://api.shotbase.dev/api/mcp</code> — POST-only; <code>GET</code> returns <code>405</code>.</td></tr>
+          <tr><td><strong>Transport</strong></td><td style={{ fontSize: 13, color: '#888' }}>Streamable HTTP, stateless JSON (no SSE, no session id).</td></tr>
+          <tr><td><strong>Auth</strong></td><td style={{ fontSize: 13, color: '#888' }}>Header <code>Authorization: Bearer sk_live_...</code> — the same key as the REST API (create one under <a href="/dashboard/keys">API keys</a>). Header only; there is no query-param or <code>x-api-key</code> alternative.</td></tr>
+          <tr><td><strong>Tool</strong></td><td style={{ fontSize: 13, color: '#888' }}>One tool, <code>shotbase_capture</code> (see below).</td></tr>
         </tbody>
       </table>
-      <Callout type="tip">Works with any MCP-compatible host: Claude Code, Claude Desktop, Cursor, and custom agent frameworks.</Callout>
+      <Callout type="info">Most clients connect to the URL directly with an <code>Authorization</code> header. <strong>Claude Desktop</strong> is the exception — it runs local <code>stdio</code> servers only, so it uses the <a href="https://github.com/geelen/mcp-remote" target="_blank" rel="noreferrer">mcp-remote</a> bridge (see its section). Clients still on the legacy 2024 HTTP+SSE transport can use that same bridge.</Callout>
+      <p style={{ fontSize: 13, color: '#888' }}>Each block is verified against that client&apos;s own docs (linked). Client schemas change — if a config stops working, check the linked source.</p>
+
+      <h2>Claude Code</h2>
+      <p>Run this once — <a href="https://code.claude.com/docs/en/mcp" target="_blank" rel="noreferrer">docs</a>:</p>
+      <CodeBlock lang="bash" code={`claude mcp add --transport http shotbase https://api.shotbase.dev/api/mcp \\\n  --header "Authorization: Bearer sk_live_your_key"`}/>
+
+      <h2>Claude Desktop</h2>
+      <p>Edit <code>claude_desktop_config.json</code> (Settings → Developer → Edit Config; on macOS <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>). Desktop runs <code>stdio</code> servers only, so bridge to the HTTP endpoint with <a href="https://github.com/geelen/mcp-remote" target="_blank" rel="noreferrer">mcp-remote</a> — config schema per the <a href="https://modelcontextprotocol.io/quickstart/user" target="_blank" rel="noreferrer">MCP quickstart</a>:</p>
+      <CodeBlock lang="json" code={`{
+  "mcpServers": {
+    "shotbase": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://api.shotbase.dev/api/mcp",
+        "--header", "Authorization:\${AUTH_HEADER}"
+      ],
+      "env": { "AUTH_HEADER": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+      <Callout type="tip"><code>mcp-remote</code> splits <code>--header</code> on spaces, so put the whole <code>{'Bearer sk_live_...'}</code> value in the env var and reference it with no space in the flag (<code>{'Authorization:${AUTH_HEADER}'}</code>). Inlining <code>{'"Authorization: Bearer sk_..."'}</code> breaks the token.</Callout>
+
+      <h2>Cursor</h2>
+      <p>Create <code>.cursor/mcp.json</code> (project) or <code>~/.cursor/mcp.json</code> (global) — <a href="https://cursor.com/docs/mcp" target="_blank" rel="noreferrer">docs</a>. Cursor treats a <code>url</code> entry as a remote server (no <code>type</code> needed):</p>
+      <CodeBlock lang="json" code={`{
+  "mcpServers": {
+    "shotbase": {
+      "url": "https://api.shotbase.dev/api/mcp",
+      "headers": { "Authorization": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+
+      <h2>Windsurf</h2>
+      <p>Open Windsurf → Cascade → <strong>Manage MCPs → View raw config</strong> and add the server — <a href="https://docs.windsurf.com/plugins/cascade/mcp" target="_blank" rel="noreferrer">docs</a>. Use the in-app button rather than a hardcoded path (the file moved from <code>~/.codeium/windsurf/mcp_config.json</code> to <code>~/.config/devin/mcp_config.json</code> across the Devin rebrand). Note the key is <code>serverUrl</code>, not <code>url</code>:</p>
+      <CodeBlock lang="json" code={`{
+  "mcpServers": {
+    "shotbase": {
+      "serverUrl": "https://api.shotbase.dev/api/mcp",
+      "headers": { "Authorization": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+
+      <h2>Cline</h2>
+      <p>In Cline, open <strong>MCP Servers → Configure MCP Servers</strong> (<code>cline_mcp_settings.json</code>) — <a href="https://docs.cline.bot/mcp/mcp-overview" target="_blank" rel="noreferrer">docs</a>. Set <code>type</code> explicitly (omitting it defaults to the legacy SSE transport):</p>
+      <CodeBlock lang="json" code={`{
+  "mcpServers": {
+    "shotbase": {
+      "type": "streamableHttp",
+      "url": "https://api.shotbase.dev/api/mcp",
+      "headers": { "Authorization": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+
+      <h2>VS Code (GitHub Copilot)</h2>
+      <p>Create <code>.vscode/mcp.json</code> in your workspace — <a href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers" target="_blank" rel="noreferrer">docs</a>. Note the top-level key is <code>servers</code> (not <code>mcpServers</code>) and the type is <code>http</code>:</p>
+      <CodeBlock lang="json" code={`{
+  "servers": {
+    "shotbase": {
+      "type": "http",
+      "url": "https://api.shotbase.dev/api/mcp",
+      "headers": { "Authorization": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+
+      <h2>Zed</h2>
+      <p>Add to Zed <code>settings.json</code> (<code>cmd-,</code>) under <code>context_servers</code> — <a href="https://zed.dev/docs/ai/mcp" target="_blank" rel="noreferrer">docs</a>. A remote server is just a <code>url</code> + <code>headers</code>:</p>
+      <CodeBlock lang="json" code={`{
+  "context_servers": {
+    "shotbase": {
+      "url": "https://api.shotbase.dev/api/mcp",
+      "headers": { "Authorization": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+
+      <h2>OpenCode</h2>
+      <p>Add to <code>opencode.json</code> (project root or <code>~/.config/opencode/opencode.json</code>) — <a href="https://opencode.ai/docs/mcp-servers/" target="_blank" rel="noreferrer">docs</a>:</p>
+      <CodeBlock lang="json" code={`{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "shotbase": {
+      "type": "remote",
+      "url": "https://api.shotbase.dev/api/mcp",
+      "enabled": true,
+      "headers": { "Authorization": "Bearer sk_live_your_key" }
+    }
+  }
+}`}/>
+      <p style={{ fontSize: 13, color: '#888' }}>If OpenCode tries an OAuth flow instead of using the header, add <code>{'"oauth": false'}</code> to the server.</p>
+
+      <h2>Codex (OpenAI CLI)</h2>
+      <p>Add to <code>~/.codex/config.toml</code> — <a href="https://github.com/openai/codex/blob/main/docs/config.md" target="_blank" rel="noreferrer">docs</a>. Codex reads the key from an env var and prepends <code>Bearer</code>:</p>
+      <CodeBlock lang="toml" code={`[mcp_servers.shotbase]
+url = "https://api.shotbase.dev/api/mcp"
+bearer_token_env_var = "SHOTBASE_API_KEY"`}/>
+      <p style={{ fontSize: 13, color: '#888' }}>Then export <code>SHOTBASE_API_KEY=sk_live_your_key</code> in your shell. To inline the header instead, use <code>{'http_headers = { "Authorization" = "Bearer sk_live_your_key" }'}</code>.</p>
+
+      <h2>Continue</h2>
+      <p>Add to <code>~/.continue/config.yaml</code> (or a per-project <code>.continue/mcpServers/shotbase.yaml</code>) — <a href="https://docs.continue.dev/customize/deep-dives/mcp" target="_blank" rel="noreferrer">docs</a>:</p>
+      <CodeBlock lang="yaml" code={`mcpServers:
+  - name: shotbase
+    type: streamable-http
+    url: https://api.shotbase.dev/api/mcp
+    requestOptions:
+      headers:
+        Authorization: Bearer sk_live_your_key`}/>
+
+      <h2>Hermes Agent</h2>
+      <p>Add to <code>~/.hermes/config.yaml</code> under <code>mcp_servers</code> — <a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp" target="_blank" rel="noreferrer">docs</a>:</p>
+      <CodeBlock lang="yaml" code={`mcp_servers:
+  shotbase:
+    url: "https://api.shotbase.dev/api/mcp"
+    headers:
+      Authorization: "Bearer sk_live_your_key"
+    enabled: true`}/>
+
+      <h2>Any other MCP client</h2>
+      <p>Point any streamable-HTTP-capable client at the endpoint with the Bearer header — the raw config most clients accept:</p>
+      <CodeBlock lang="json" code={`{
+  "url": "https://api.shotbase.dev/api/mcp",
+  "headers": { "Authorization": "Bearer sk_live_your_key" }
+}`}/>
+      <p>Or connect programmatically with the MCP TypeScript SDK:</p>
+      <CodeBlock lang="ts" code={`import { Client } from "@modelcontextprotocol/sdk/client/index.js"
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js"
+
+const client = new Client({ name: "my-app", version: "1.0.0" })
+await client.connect(
+  new StreamableHTTPClientTransport(new URL("https://api.shotbase.dev/api/mcp"), {
+    requestInit: { headers: { Authorization: "Bearer sk_live_your_key" } },
+  }),
+)
+const { tools } = await client.listTools()`}/>
+
+      <h2>Verify your setup</h2>
+      <p>The official <a href="https://github.com/modelcontextprotocol/inspector" target="_blank" rel="noreferrer">MCP Inspector</a> confirms the server, auth, and tool independently of any client:</p>
+      <CodeBlock lang="bash" code={`npx @modelcontextprotocol/inspector --cli https://api.shotbase.dev/api/mcp \\\n  --transport http \\\n  --header "Authorization: Bearer sk_live_your_key" \\\n  --method tools/list`}/>
+      <p><code>shotbase_capture</code> should appear in the output. Drop the <code>--cli …</code> flags to open the Inspector web UI instead, then pick <strong>Streamable HTTP</strong>, enter the URL, and add the <code>Authorization</code> header.</p>
+
+      <h2>Available tool</h2>
+      <table>
+        <thead><tr><th>Arg</th><th>Type</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>url</code></td><td style={{ fontSize: 13, color: '#888' }}>string</td><td style={{ fontSize: 13, color: '#888' }}><strong>required</strong></td></tr>
+          <tr><td><code>extract</code></td><td style={{ fontSize: 13, color: '#888' }}>boolean</td><td style={{ fontSize: 13, color: '#888' }}>true</td></tr>
+          <tr><td><code>format</code></td><td style={{ fontSize: 13, color: '#888' }}>png · jpeg · webp · pdf</td><td style={{ fontSize: 13, color: '#888' }}>png</td></tr>
+          <tr><td><code>full_page</code></td><td style={{ fontSize: 13, color: '#888' }}>boolean</td><td style={{ fontSize: 13, color: '#888' }}>false</td></tr>
+          <tr><td><code>viewport</code></td><td style={{ fontSize: 13, color: '#888' }}>{'{ width, height }'}</td><td style={{ fontSize: 13, color: '#888' }}>1440 × 900</td></tr>
+        </tbody>
+      </table>
+      <p><code>shotbase_capture</code> renders the URL and returns the screenshot plus extracted JSON (page type, headings, CTAs, prices).</p>
     </div>
   ),
   errors: () => (
