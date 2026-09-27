@@ -287,6 +287,15 @@ bearer_token_env_var = "SHOTBASE_API_KEY"`}/>
       headers:
         Authorization: Bearer sk_live_your_key`}/>
 
+      <h2>Hermes Agent</h2>
+      <p>Add to <code>~/.hermes/config.yaml</code> under <code>mcp_servers</code> — <a href="https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp" target="_blank" rel="noreferrer">docs</a>:</p>
+      <CodeBlock lang="yaml" code={`mcp_servers:
+  shotbase:
+    url: "https://api.shotbase.dev/api/mcp"
+    headers:
+      Authorization: "Bearer sk_live_your_key"
+    enabled: true`}/>
+
       <h2>Any other MCP client</h2>
       <p>Point any streamable-HTTP-capable client at the endpoint with the Bearer header — the raw config most clients accept:</p>
       <CodeBlock lang="json" code={`{
