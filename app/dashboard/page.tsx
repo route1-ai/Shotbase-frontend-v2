@@ -64,30 +64,6 @@ function tag(status: number): React.CSSProperties {
   }
 }
 
-function ThumbPlaceholder({ idx, label }: { idx: number; label: string }) {
-  // Subtle gradient placeholders so the gallery never looks empty.
-  const hues = ["#00e87b", "#5b8dff", "#ff7ac5", "#ffb000", "#a07cff", "#00bcd4"]
-  const c = hues[idx % hues.length]
-  return (
-    <div
-      style={{
-        position: "relative",
-        aspectRatio: "16 / 10",
-        background: `linear-gradient(135deg, ${c}11 0%, #050505 60%)`,
-        border: `1px solid ${BORDER}`,
-        borderRadius: 8,
-        overflow: "hidden",
-        display: "flex",
-        alignItems: "flex-end",
-        padding: 10,
-      }}
-    >
-      <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666" }}>{label}</div>
-      <div style={{ position: "absolute", top: 8, right: 8, width: 6, height: 6, borderRadius: "50%", background: c, opacity: 0.5 }} />
-    </div>
-  )
-}
-
 export default function OverviewPage() {
   const { user } = useUser()
   // Pricing V2 usage shape: { available, plan, captures:{used,limit}, ai_extractions:{used,limit} } | { available:false }.
@@ -250,29 +226,6 @@ export default function OverviewPage() {
           </div>
         )}
 
-        {/* Recent renders gallery */}
-        <div style={{ ...cardStyle, marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontWeight: 500, fontSize: 14 }}>Recent renders</div>
-            <Link href="/dashboard/logs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
-              View all →
-            </Link>
-          </div>
-          {hasData ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ThumbPlaceholder key={i} idx={i} label={`render ${i + 1}`} />
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10, opacity: 0.5 }}>
-              {["stripe.com", "vercel.com", "linear.app", "github.com"].map((host, i) => (
-                <ThumbPlaceholder key={host} idx={i} label={host} />
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Request volume chart */}
         <div style={{ ...cardStyle, marginBottom: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -299,7 +252,7 @@ export default function OverviewPage() {
         {/* Recent activity table */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontWeight: 500, fontSize: 14 }}>Recent activity</div>
+            <div style={{ fontWeight: 500, fontSize: 14 }}>Recent renders</div>
             <Link href="/dashboard/logs" style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#00e87b", textDecoration: "none" }}>
               View all logs →
             </Link>
