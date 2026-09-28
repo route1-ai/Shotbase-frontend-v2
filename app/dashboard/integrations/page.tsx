@@ -34,12 +34,23 @@ const INTEGRATIONS: Integration[] = [
 function Card({ i }: { i: Integration }) {
   const [copied, setCopied] = React.useState(false)
   const [hover, setHover] = React.useState(false)
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(i.install)
       setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {}
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // Handle missing clipboard permission gracefully
+    }
   }
 
   return (
@@ -71,28 +82,34 @@ function Card({ i }: { i: Integration }) {
         </div>
       </div>
       <p style={{ fontSize: 12, color: "#888", lineHeight: 1.5, margin: 0 }}>{i.blurb}</p>
-      <div style={{ display: "flex", gap: 8 }}>
-        <code
-          onClick={copy}
-          title="Click to copy"
-          style={{
-            flex: 1,
-            fontFamily: "var(--font-ibm-plex)",
-            fontSize: 11,
-            background: "#050505",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 6,
-            padding: "8px 12px",
-            color: copied ? "#00e87b" : "#888",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            cursor: "pointer",
-            transition: "color 0.15s",
-          }}
-        >
-          {copied ? "✓ Copied" : i.install}
-        </code>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ flex: 1, minWidth: 0 }} aria-live="polite">
+          <button
+            type="button"
+            onClick={copy}
+            aria-label={`Copy ${i.name} command: ${i.install}`}
+            className="hover:border-white/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              fontFamily: "var(--font-ibm-plex)",
+              fontSize: 11,
+              background: "#050505",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderRadius: 6,
+              padding: "8px 12px",
+              color: copied ? "#00e87b" : "#888",
+              cursor: "pointer",
+              transition: "color 0.15s, border-color 0.15s",
+              textAlign: "left",
+            }}
+          >
+            <code style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+              {copied ? "✓ Copied to clipboard" : i.install}
+            </code>
+          </button>
+        </div>
         <a
           href={i.docs}
           style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", background: "transparent", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, padding: "8px 12px", textDecoration: "none", whiteSpace: "nowrap" }}
