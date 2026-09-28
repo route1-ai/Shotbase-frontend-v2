@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react"
 
 const BORDER = "rgba(255,255,255,0.07)"
 const ACTIVE_BG = "rgba(0,232,123,0.1)"
-const ACTIVE_BORDER = "rgba(0,232,123,0.25)"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -43,6 +42,17 @@ function tag(status: number): React.CSSProperties {
 // ---------- Side drawer ----------
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!row) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [row, onClose])
 
   const copy = async (key: string, text: string) => {
     try {
@@ -97,6 +107,7 @@ X-Request-Id: ${row.id || "—"}`
       {/* drawer */}
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Request details"
         style={{
           position: "fixed",
@@ -379,10 +390,20 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      tabIndex={0}
+                      aria-label={`View details for request ${r.id || ""}`}
                       onClick={() => setSelected(r)}
-                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
+                      style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s", outline: "none" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      onFocus={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                      onBlur={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#00e87b", padding: "11px 14px 11px 0", whiteSpace: "nowrap" }}>{r.id}</td>
                       <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", padding: "11px 14px 11px 0", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.url}</td>
