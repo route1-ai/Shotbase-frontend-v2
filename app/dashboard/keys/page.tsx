@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -25,6 +25,10 @@ export default function KeysPage() {
   // never written into `keys` or anywhere persisted.
   const [createdKey, setCreatedKey] = useState<{ key: string; name: string } | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // 2-step revocation state and timer tracking
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null)
+  const revokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -75,10 +79,43 @@ export default function KeysPage() {
     } catch {}
   }
 
-  const closeCreatedModal = () => {
+  const closeCreatedModal = useCallback(() => {
     // Discard the plaintext from client state — it can never be shown again.
     setCreatedKey(null)
     setCopied(false)
+  }, [])
+
+  // Escape key handler to close the modal
+  useEffect(() => {
+    if (!createdKey) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeCreatedModal()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [createdKey, closeCreatedModal])
+
+  // Cleanup revocation confirmation timer on unmount
+  useEffect(() => {
+    return () => {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current)
+    }
+  }, [])
+
+  const handleRevokeClick = (id: string) => {
+    if (confirmRevokeId === id) {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current)
+      setConfirmRevokeId(null)
+      revokeKey(id)
+    } else {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current)
+      setConfirmRevokeId(id)
+      revokeTimerRef.current = setTimeout(() => {
+        setConfirmRevokeId(null)
+      }, 3000)
+    }
   }
 
   const revokeKey = async (id: string) => {
@@ -191,11 +228,29 @@ export default function KeysPage() {
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
                       <button
-                        onClick={() => revokeKey(k.id)}
+                        onClick={() => handleRevokeClick(k.id)}
                         disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
+                        aria-label={
+                          revoking === k.id
+                            ? `Revoking key ${k.name}`
+                            : confirmRevokeId === k.id
+                            ? `Confirm revocation for key ${k.name}`
+                            : `Revoke key ${k.name}`
+                        }
+                        style={{
+                          fontFamily: "var(--font-ibm-plex)",
+                          fontSize: 11,
+                          color: revoking === k.id ? "#444" : confirmRevokeId === k.id ? "#ffffff" : "#ff6060",
+                          background: confirmRevokeId === k.id ? "#d93838" : "none",
+                          border: "1px solid",
+                          borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : confirmRevokeId === k.id ? "#d93838" : "rgba(255,60,60,0.2)",
+                          padding: "5px 12px",
+                          borderRadius: 6,
+                          cursor: revoking === k.id ? "not-allowed" : "pointer",
+                          transition: "all 0.15s ease",
+                        }}
                       >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
+                        {revoking === k.id ? "Revoking…" : confirmRevokeId === k.id ? "Confirm revoke?" : "Revoke"}
                       </button>
                     )}
                   </td>
@@ -234,12 +289,15 @@ export default function KeysPage() {
               <code style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 13, color: "#f0f0f0", background: "#050505", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 7, padding: "11px 14px", overflowX: "auto", whiteSpace: "nowrap" }}>
                 {createdKey.key}
               </code>
-              <button
-                onClick={copyCreatedKey}
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: copied ? "#00e87b" : "#000", background: copied ? "transparent" : "#00e87b", border: copied ? "1px solid rgba(0,232,123,0.35)" : "none", padding: "11px 16px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {copied ? "✓ Copied" : "Copy key"}
-              </button>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  onClick={copyCreatedKey}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: copied ? "#00e87b" : "#000", background: copied ? "transparent" : "#00e87b", border: copied ? "1px solid rgba(0,232,123,0.35)" : "none", padding: "11px 16px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  {copied ? "✓ Copied" : "Copy key"}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
