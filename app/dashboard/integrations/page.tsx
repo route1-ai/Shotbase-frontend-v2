@@ -72,11 +72,14 @@ function Card({ i }: { i: Integration }) {
       </div>
       <p style={{ fontSize: 12, color: "#888", lineHeight: 1.5, margin: 0 }}>{i.blurb}</p>
       <div style={{ display: "flex", gap: 8 }}>
-        <code
+        <button
+          type="button"
           onClick={copy}
-          title="Click to copy"
+          aria-label={copied ? `Copied install command for ${i.name}` : `Copy install command for ${i.name}`}
+          className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b] hover:border-white/20"
           style={{
             flex: 1,
+            minWidth: 0,
             fontFamily: "var(--font-ibm-plex)",
             fontSize: 11,
             background: "#050505",
@@ -84,15 +87,23 @@ function Card({ i }: { i: Integration }) {
             borderRadius: 6,
             padding: "8px 12px",
             color: copied ? "#00e87b" : "#888",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
             cursor: "pointer",
-            transition: "color 0.15s",
+            textAlign: "left",
+            transition: "color 0.15s, border-color 0.15s",
           }}
         >
-          {copied ? "✓ Copied" : i.install}
-        </code>
+          <span
+            aria-live="polite"
+            style={{
+              display: "block",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {copied ? "✓ Copied" : i.install}
+          </span>
+        </button>
         <a
           href={i.docs}
           style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", background: "transparent", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 6, padding: "8px 12px", textDecoration: "none", whiteSpace: "nowrap" }}
