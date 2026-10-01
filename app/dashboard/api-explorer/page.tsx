@@ -108,7 +108,16 @@ const KIND_STYLE: Record<Endpoint["kind"], React.CSSProperties> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [copiedType, setCopiedType] = useState<"request" | "response" | null>(null)
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  const handleCopy = (type: "request" | "response", text: string) => {
+    if (!text) return
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedType(type)
+      setTimeout(() => setCopiedType((prev) => (prev === type ? null : prev)), 2000)
+    }).catch(() => {})
+  }
 
   return (
     <div>
@@ -143,7 +152,7 @@ export default function ApiExplorerPage() {
               return (
                 <button
                   key={e.id}
-                  onClick={() => setSelectedId(e.id)}
+                  onClick={() => { setSelectedId(e.id); setCopiedType(null) }}
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", background: active ? ACTIVE_BG : "transparent", border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`, borderRadius: 6, padding: "8px 10px", cursor: "pointer", color: "inherit", textAlign: "left" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -170,12 +179,32 @@ export default function ApiExplorerPage() {
           <p style={{ fontSize: 13, color: "#888", marginBottom: 18 }}>{selected.summary}</p>
 
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Request</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }} aria-live="polite">
+              <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Request</span>
+              <button
+                type="button"
+                onClick={() => handleCopy("request", selected.request)}
+                aria-label="Copy request payload"
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: copiedType === "request" ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}
+              >
+                {copiedType === "request" ? "✓ Copied!" : "Copy"}
+              </button>
+            </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.request}</pre>
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Response</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }} aria-live="polite">
+              <span style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Response</span>
+              <button
+                type="button"
+                onClick={() => handleCopy("response", selected.response)}
+                aria-label="Copy response payload"
+                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: copiedType === "response" ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}
+              >
+                {copiedType === "response" ? "✓ Copied!" : "Copy"}
+              </button>
+            </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.response}</pre>
           </div>
 
