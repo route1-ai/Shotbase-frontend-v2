@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -25,6 +25,31 @@ export default function KeysPage() {
   // never written into `keys` or anywhere persisted.
   const [createdKey, setCreatedKey] = useState<{ key: string; name: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+    }
+  }, [])
+
+  const closeCreatedModal = () => {
+    // Discard the plaintext from client state — it can never be shown again.
+    setCreatedKey(null)
+    setCopied(false)
+  }
+
+  useEffect(() => {
+    if (!createdKey) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeCreatedModal()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [createdKey])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -75,10 +100,18 @@ export default function KeysPage() {
     } catch {}
   }
 
-  const closeCreatedModal = () => {
-    // Discard the plaintext from client state — it can never be shown again.
-    setCreatedKey(null)
-    setCopied(false)
+  const handleRevokeClick = (id: string) => {
+    if (confirmingId === id) {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirmingId(null)
+      revokeKey(id)
+    } else {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirmingId(id)
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmingId(null)
+      }, 3000)
+    }
   }
 
   const revokeKey = async (id: string) => {
@@ -190,13 +223,33 @@ export default function KeysPage() {
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0" }}>—</td>
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
-                      <button
-                        onClick={() => revokeKey(k.id)}
-                        disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
-                      >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
-                      </button>
+                      <div aria-live="polite" style={{ display: "inline-block" }}>
+                        <button
+                          onClick={() => handleRevokeClick(k.id)}
+                          disabled={revoking === k.id}
+                          aria-label={
+                            revoking === k.id
+                              ? `Revoking API key ${k.name}`
+                              : confirmingId === k.id
+                              ? `Confirm revoking API key ${k.name}`
+                              : `Revoke API key ${k.name}`
+                          }
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 11,
+                            color: revoking === k.id ? "#444" : "#ff6060",
+                            background: confirmingId === k.id ? "rgba(255,60,60,0.15)" : "none",
+                            border: "1px solid",
+                            borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : confirmingId === k.id ? "rgba(255,60,60,0.5)" : "rgba(255,60,60,0.2)",
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            cursor: revoking === k.id ? "not-allowed" : "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {revoking === k.id ? "Revoking…" : confirmingId === k.id ? "Confirm revoke?" : "Revoke"}
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -217,9 +270,10 @@ export default function KeysPage() {
           role="dialog"
           aria-modal="true"
           aria-label="API key created"
+          onClick={closeCreatedModal}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 100 }}
         >
-          <div style={{ ...cardStyle, width: "100%", maxWidth: 520, border: "1px solid rgba(0,232,123,0.35)", padding: 28 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 520, border: "1px solid rgba(0,232,123,0.35)", padding: 28 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
               <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(0,232,123,0.12)", border: "1px solid rgba(0,232,123,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00e87b" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
