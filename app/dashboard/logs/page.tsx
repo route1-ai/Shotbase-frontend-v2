@@ -44,6 +44,17 @@ function tag(status: number): React.CSSProperties {
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!row) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [row, onClose])
+
   const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -97,6 +108,7 @@ X-Request-Id: ${row.id || "—"}`
       {/* drawer */}
       <div
         role="dialog"
+        aria-modal="true"
         aria-label="Request details"
         style={{
           position: "fixed",
@@ -244,6 +256,10 @@ export default function LogsPage() {
   const [activeTab, setActiveTab] = useState<"requests" | "webhooks" | "audit">("requests")
   const [selected, setSelected] = useState<LogRow | null>(null)
 
+  const handleCloseDrawer = React.useCallback(() => {
+    setSelected(null)
+  }, [])
+
   useEffect(() => {
     fetch("/api/logs")
       .then((r) => r.json())
@@ -353,6 +369,12 @@ export default function LogsPage() {
 
           {/* Table */}
           <div style={cardStyle}>
+            <style>{`
+              .log-row:focus-visible {
+                outline: 1px solid #00e87b;
+                outline-offset: -1px;
+              }
+            `}</style>
             {loading ? (
               <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", padding: "32px 0", textAlign: "center" }}>Loading logs…</div>
             ) : filtered.length === 0 ? (
@@ -379,7 +401,17 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      tabIndex={0}
+                      role="row"
+                      aria-label={`Request ${r.id || ""}, status ${r.status || 200}`}
+                      className="log-row"
                       onClick={() => setSelected(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
                       style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -427,7 +459,7 @@ export default function LogsPage() {
         </div>
       )}
 
-      <Drawer row={selected} onClose={() => setSelected(null)} />
+      <Drawer row={selected} onClose={handleCloseDrawer} />
     </div>
   )
 }
