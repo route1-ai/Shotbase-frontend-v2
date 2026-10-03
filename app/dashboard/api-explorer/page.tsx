@@ -108,7 +108,21 @@ const KIND_STYLE: Record<Endpoint["kind"], React.CSSProperties> = {
 
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
+  const [copiedSection, setCopiedSection] = useState<"request" | "response" | null>(null)
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
+
+  const selectEndpoint = (id: string) => {
+    setCopiedSection(null)
+    setSelectedId(id)
+  }
+
+  const copyCode = async (text: string, section: "request" | "response") => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedSection(section)
+      setTimeout(() => setCopiedSection(null), 1500)
+    } catch {}
+  }
 
   return (
     <div>
@@ -143,7 +157,7 @@ export default function ApiExplorerPage() {
               return (
                 <button
                   key={e.id}
-                  onClick={() => setSelectedId(e.id)}
+                  onClick={() => selectEndpoint(e.id)}
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", background: active ? ACTIVE_BG : "transparent", border: `1px solid ${active ? ACTIVE_BORDER : "transparent"}`, borderRadius: 6, padding: "8px 10px", cursor: "pointer", color: "inherit", textAlign: "left" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
@@ -170,12 +184,36 @@ export default function ApiExplorerPage() {
           <p style={{ fontSize: 13, color: "#888", marginBottom: 18 }}>{selected.summary}</p>
 
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Request</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Request</div>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => copyCode(selected.request, "request")}
+                  aria-label={copiedSection === "request" ? "Copied request to clipboard" : "Copy request code"}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: copiedSection === "request" ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 4 }}
+                >
+                  {copiedSection === "request" ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.request}</pre>
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Response</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>Response</div>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  onClick={() => copyCode(selected.response, "response")}
+                  aria-label={copiedSection === "response" ? "Copied response to clipboard" : "Copy response code"}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: copiedSection === "response" ? "#00e87b" : "#888", background: "none", border: "none", cursor: "pointer", padding: "2px 6px", borderRadius: 4 }}
+                >
+                  {copiedSection === "response" ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
             <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.response}</pre>
           </div>
 
