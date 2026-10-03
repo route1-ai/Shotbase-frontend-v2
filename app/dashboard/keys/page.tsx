@@ -20,11 +20,34 @@ export default function KeysPage() {
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null)
+  const confirmTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Transient plaintext for the "key created" modal ONLY. Cleared on close and
   // never written into `keys` or anywhere persisted.
   const [createdKey, setCreatedKey] = useState<{ key: string; name: string } | null>(null)
   const [copied, setCopied] = useState(false)
+
+  const closeCreatedModal = () => {
+    // Discard the plaintext from client state — it can never be shown again.
+    setCreatedKey(null)
+    setCopied(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!createdKey) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeCreatedModal()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [createdKey])
 
   useEffect(() => {
     fetch("/api/keys/list")
@@ -75,10 +98,18 @@ export default function KeysPage() {
     } catch {}
   }
 
-  const closeCreatedModal = () => {
-    // Discard the plaintext from client state — it can never be shown again.
-    setCreatedKey(null)
-    setCopied(false)
+  const handleRevokeClick = (id: string) => {
+    if (confirmRevokeId === id) {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirmRevokeId(null)
+      revokeKey(id)
+    } else {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+      setConfirmRevokeId(id)
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmRevokeId(null)
+      }, 3000)
+    }
   }
 
   const revokeKey = async (id: string) => {
@@ -149,18 +180,18 @@ export default function KeysPage() {
 
       <div style={cardStyle}>
         {loading ? (
-          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444", padding: "32px 0", textAlign: "center" }}>Loading keys…</div>
+          <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "32px 0", textAlign: "center" }}>Loading keys…</div>
         ) : keys.length === 0 ? (
           <div style={{ textAlign: "center", padding: "32px 0" }}>
             <div style={{ fontSize: 14, color: "#888", marginBottom: 6 }}>No keys yet</div>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#444" }}>Create one to start making requests.</div>
+            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>Create one to start making requests.</div>
           </div>
         ) : (
           <table className="keys-table" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {["Name", "Key", "Created", "Last used", "Requests", ""].map((h) => (
-                  <th key={h} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#444", fontWeight: 500, textAlign: "left", padding: "0 16px 12px 0" }}>
+                  <th key={h} style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.08em", color: "#888", fontWeight: 500, textAlign: "left", padding: "0 16px 12px 0" }}>
                     {h}
                   </th>
                 ))}
@@ -191,11 +222,23 @@ export default function KeysPage() {
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
                       <button
-                        onClick={() => revokeKey(k.id)}
+                        onClick={() => handleRevokeClick(k.id)}
                         disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
+                        aria-label={confirmRevokeId === k.id ? `Confirm revoking key ${k.name}` : `Revoke key ${k.name}`}
+                        style={{
+                          fontFamily: "var(--font-ibm-plex)",
+                          fontSize: 11,
+                          color: revoking === k.id ? "#888" : confirmRevokeId === k.id ? "#ff4d4d" : "#ff6060",
+                          background: confirmRevokeId === k.id ? "rgba(255,60,60,0.15)" : "none",
+                          border: "1px solid",
+                          borderColor: revoking === k.id ? "rgba(255,255,255,0.1)" : confirmRevokeId === k.id ? "rgba(255,60,60,0.5)" : "rgba(255,60,60,0.2)",
+                          padding: "5px 12px",
+                          borderRadius: 6,
+                          cursor: revoking === k.id ? "not-allowed" : "pointer",
+                          transition: "all 0.15s ease"
+                        }}
                       >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
+                        {revoking === k.id ? "Revoking…" : confirmRevokeId === k.id ? "Confirm revoke?" : "Revoke"}
                       </button>
                     )}
                   </td>
@@ -206,7 +249,7 @@ export default function KeysPage() {
         )}
       </div>
 
-      <div style={{ marginTop: 16, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#444", lineHeight: 1.7 }}>
+      <div style={{ marginTop: 16, fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: "#888", lineHeight: 1.7 }}>
         <span style={{ color: "#00e87b" }}>→</span> Secret keys are shown once at creation. Store them securely — we cannot recover or re-display them.<br />
         <span style={{ color: "#00e87b" }}>→</span> Revoking a key immediately invalidates all requests using it.
       </div>
