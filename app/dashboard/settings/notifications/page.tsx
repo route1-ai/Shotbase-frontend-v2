@@ -2,55 +2,24 @@
 
 import React, { useState, useEffect } from "react"
 
-export default function NotificationsPage() {
-  const [format, setFormat] = useState("png")
-  const [width, setWidth] = useState("1280")
-  const [emailUsage, setEmailUsage] = useState(true)
-  const [emailBilling, setEmailBilling] = useState(true)
-  const [emailIncidents, setEmailIncidents] = useState(true)
-  const [emailProduct, setEmailProduct] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  useEffect(() => {
-    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
-    if (prefs) {
-      try {
-        const p = JSON.parse(prefs)
-        if (p.format) setFormat(p.format)
-        if (p.width) setWidth(p.width)
-        if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
-        if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
-        if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
-        if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
-      } catch {}
-    }
-  }, [])
-
-  const save = () => {
-    localStorage.setItem(
-      "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
-    )
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+function Toggle({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) {
+  return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
+      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b] rounded-md"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         width: "100%",
-        padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        padding: "14px 8px",
         background: "none",
         border: "none",
-        borderBottomWidth: 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: "rgba(255,255,255,0.07)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
         cursor: "pointer",
         textAlign: "left",
         color: "inherit",
@@ -65,6 +34,41 @@ export default function NotificationsPage() {
       </div>
     </button>
   )
+}
+
+export default function NotificationsPage() {
+  const [format, setFormat] = useState("png")
+  const [width, setWidth] = useState("1280")
+  const [emailUsage, setEmailUsage] = useState(true)
+  const [emailBilling, setEmailBilling] = useState(true)
+  const [emailIncidents, setEmailIncidents] = useState(true)
+  const [emailProduct, setEmailProduct] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
+    if (!prefs) return
+    try {
+      const p = JSON.parse(prefs)
+      /* eslint-disable react-hooks/set-state-in-effect */
+      if (p.format) setFormat(p.format)
+      if (p.width) setWidth(p.width)
+      if (typeof p.emailUsage === "boolean") setEmailUsage(p.emailUsage)
+      if (typeof p.emailBilling === "boolean") setEmailBilling(p.emailBilling)
+      if (typeof p.emailIncidents === "boolean") setEmailIncidents(p.emailIncidents)
+      if (typeof p.emailProduct === "boolean") setEmailProduct(p.emailProduct)
+      /* eslint-enable react-hooks/set-state-in-effect */
+    } catch {}
+  }, [])
+
+  const save = () => {
+    localStorage.setItem(
+      "shotbase_prefs",
+      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
+    )
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   return (
     <div>
@@ -80,7 +84,10 @@ export default function NotificationsPage() {
             {["png", "jpeg", "webp"].map((f) => (
               <button
                 key={f}
+                type="button"
+                aria-pressed={format === f}
                 onClick={() => setFormat(f)}
+                className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
                 style={{
                   flex: 1,
                   padding: "10px",
@@ -104,12 +111,15 @@ export default function NotificationsPage() {
         </div>
 
         <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Default viewport width</label>
+          <label htmlFor="default-viewport-width" style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Default viewport width</label>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <input
+              id="default-viewport-width"
               type="number"
+              aria-label="Default viewport width in pixels"
               value={width}
               onChange={(e) => setWidth(e.target.value)}
+              className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
               style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", fontSize: 13, outline: "none", width: 140 }}
             />
             <span style={{ fontFamily: "var(--font-ibm-plex)", color: "#888", fontSize: 12 }}>pixels</span>
@@ -128,7 +138,9 @@ export default function NotificationsPage() {
       </div>
 
       <button
+        type="button"
         onClick={save}
+        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e87b]"
         style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}
       >
         {saved ? "✓ Saved" : "Save preferences"}
