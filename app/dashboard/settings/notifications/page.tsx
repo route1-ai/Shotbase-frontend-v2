@@ -2,55 +2,24 @@
 
 import React, { useState, useEffect } from "react"
 
-export default function NotificationsPage() {
-  const [format, setFormat] = useState("png")
-  const [width, setWidth] = useState("1280")
-  const [emailUsage, setEmailUsage] = useState(true)
-  const [emailBilling, setEmailBilling] = useState(true)
-  const [emailIncidents, setEmailIncidents] = useState(true)
-  const [emailProduct, setEmailProduct] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  useEffect(() => {
-    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
-    if (prefs) {
-      try {
-        const p = JSON.parse(prefs)
-        if (p.format) setFormat(p.format)
-        if (p.width) setWidth(p.width)
-        if (p.emailUsage !== undefined) setEmailUsage(p.emailUsage)
-        if (p.emailBilling !== undefined) setEmailBilling(p.emailBilling)
-        if (p.emailIncidents !== undefined) setEmailIncidents(p.emailIncidents)
-        if (p.emailProduct !== undefined) setEmailProduct(p.emailProduct)
-      } catch {}
-    }
-  }, [])
-
-  const save = () => {
-    localStorage.setItem(
-      "shotbase_prefs",
-      JSON.stringify({ format, width, emailUsage, emailBilling, emailIncidents, emailProduct })
-    )
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const Toggle = ({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) => (
+function Toggle({ value, onChange, label, sub }: { value: boolean; onChange: (v: boolean) => void; label: string; sub: string }) {
+  return (
     <button
       type="button"
+      role="switch"
+      aria-checked={value}
+      aria-label={label}
       onClick={() => onChange(!value)}
+      className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b] rounded-md"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         width: "100%",
-        padding: "14px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        padding: "14px 8px",
         background: "none",
         border: "none",
-        borderBottomWidth: 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: "rgba(255,255,255,0.07)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
         cursor: "pointer",
         textAlign: "left",
         color: "inherit",
@@ -65,6 +34,41 @@ export default function NotificationsPage() {
       </div>
     </button>
   )
+}
+
+export default function NotificationsPage() {
+  const [format, setFormat] = useState("png")
+  const [width, setWidth] = useState("1280")
+  const [optUsage, setOptUsage] = useState(true)
+  const [optAlerts, setOptAlerts] = useState(true)
+  const [optStatus, setOptStatus] = useState(true)
+  const [optUpdates, setOptUpdates] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    const prefs = typeof window !== "undefined" ? localStorage.getItem("shotbase_prefs") : null
+    if (!prefs) return
+    try {
+      const p = JSON.parse(prefs)
+      /* eslint-disable react-hooks/set-state-in-effect */
+      if (p.format) setFormat(p.format)
+      if (p.width) setWidth(p.width)
+      if (typeof p.optUsage === "boolean") setOptUsage(p.optUsage)
+      if (typeof p.optAlerts === "boolean") setOptAlerts(p.optAlerts)
+      if (typeof p.optStatus === "boolean") setOptStatus(p.optStatus)
+      if (typeof p.optUpdates === "boolean") setOptUpdates(p.optUpdates)
+      /* eslint-enable react-hooks/set-state-in-effect */
+    } catch {}
+  }, [])
+
+  const save = () => {
+    localStorage.setItem(
+      "shotbase_prefs",
+      JSON.stringify({ format, width, optUsage, optAlerts, optStatus, optUpdates })
+    )
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
 
   return (
     <div>
@@ -80,7 +84,10 @@ export default function NotificationsPage() {
             {["png", "jpeg", "webp"].map((f) => (
               <button
                 key={f}
+                type="button"
+                aria-pressed={format === f}
                 onClick={() => setFormat(f)}
+                className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
                 style={{
                   flex: 1,
                   padding: "10px",
@@ -104,12 +111,15 @@ export default function NotificationsPage() {
         </div>
 
         <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Default viewport width</label>
+          <label htmlFor="default-viewport-width" style={{ display: "block", fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Default viewport width</label>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <input
+              id="default-viewport-width"
               type="number"
+              aria-label="Default viewport width in pixels"
               value={width}
               onChange={(e) => setWidth(e.target.value)}
+              className="focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
               style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", fontSize: 13, outline: "none", width: 140 }}
             />
             <span style={{ fontFamily: "var(--font-ibm-plex)", color: "#888", fontSize: 12 }}>pixels</span>
@@ -121,14 +131,16 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#666", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={emailUsage} onChange={setEmailUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={emailBilling} onChange={setEmailBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={emailIncidents} onChange={setEmailIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={emailProduct} onChange={setEmailProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={optUsage} onChange={setOptUsage} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={optAlerts} onChange={setOptAlerts} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={optStatus} onChange={setOptStatus} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={optUpdates} onChange={setOptUpdates} />
       </div>
 
       <button
+        type="button"
         onClick={save}
+        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00e87b]"
         style={{ background: saved ? "#009950" : "#00e87b", color: "#000", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}
       >
         {saved ? "✓ Saved" : "Save preferences"}
