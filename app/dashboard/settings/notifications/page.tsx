@@ -39,10 +39,10 @@ function Toggle({ value, onChange, label, sub }: { value: boolean; onChange: (v:
 export default function NotificationsPage() {
   const [format, setFormat] = useState("png")
   const [width, setWidth] = useState("1280")
-  const [notifyUsage, setNotifyUsage] = useState(true)
-  const [notifyBilling, setNotifyBilling] = useState(true)
-  const [notifyIncidents, setNotifyIncidents] = useState(true)
-  const [notifyProduct, setNotifyProduct] = useState(false)
+  const [optUsage, setOptUsage] = useState(true)
+  const [optAlerts, setOptAlerts] = useState(true)
+  const [optStatus, setOptStatus] = useState(true)
+  const [optUpdates, setOptUpdates] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
@@ -53,14 +53,14 @@ export default function NotificationsPage() {
       /* eslint-disable react-hooks/set-state-in-effect */
       if (p.format) setFormat(p.format)
       if (p.width) setWidth(p.width)
-      const u = p.notifyUsage ?? p.emailUsage
-      if (typeof u === "boolean") setNotifyUsage(u)
-      const b = p.notifyBilling ?? p.emailBilling
-      if (typeof b === "boolean") setNotifyBilling(b)
-      const i = p.notifyIncidents ?? p.emailIncidents
-      if (typeof i === "boolean") setNotifyIncidents(i)
-      const pr = p.notifyProduct ?? p.emailProduct
-      if (typeof pr === "boolean") setNotifyProduct(pr)
+      const u = p.optUsage ?? p.notifyUsage ?? p.emailUsage
+      if (typeof u === "boolean") setOptUsage(u)
+      const a = p.optAlerts ?? p.notifyBilling ?? p.emailBilling
+      if (typeof a === "boolean") setOptAlerts(a)
+      const s = p.optStatus ?? p.notifyIncidents ?? p.emailIncidents
+      if (typeof s === "boolean") setOptStatus(s)
+      const up = p.optUpdates ?? p.notifyProduct ?? p.emailProduct
+      if (typeof up === "boolean") setOptUpdates(up)
       /* eslint-enable react-hooks/set-state-in-effect */
     } catch {}
   }, [])
@@ -68,7 +68,7 @@ export default function NotificationsPage() {
   const save = () => {
     localStorage.setItem(
       "shotbase_prefs",
-      JSON.stringify({ format, width, notifyUsage, notifyBilling, notifyIncidents, notifyProduct })
+      JSON.stringify({ format, width, optUsage, optAlerts, optStatus, optUpdates })
     )
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -135,10 +135,10 @@ export default function NotificationsPage() {
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: "16px 0 4px" }}>Email preferences</h2>
         <p style={{ color: "#666", fontFamily: "var(--font-ibm-plex)", fontSize: 12, marginBottom: 8 }}>What we email you about.</p>
 
-        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={notifyUsage} onChange={setNotifyUsage} />
-        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={notifyBilling} onChange={setNotifyBilling} />
-        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={notifyIncidents} onChange={setNotifyIncidents} />
-        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={notifyProduct} onChange={setNotifyProduct} />
+        <Toggle label="Usage limits" sub="When you cross 80% / 100% of your monthly quota" value={optUsage} onChange={setOptUsage} />
+        <Toggle label="Billing events" sub="Charge receipts, plan changes, failed payments" value={optAlerts} onChange={setOptAlerts} />
+        <Toggle label="Incidents" sub="Live alerts when shotbase.dev experiences degraded service" value={optStatus} onChange={setOptStatus} />
+        <Toggle label="Product updates" sub="New features, integrations, and changelog (~1×/month)" value={optUpdates} onChange={setOptUpdates} />
       </div>
 
       <button
