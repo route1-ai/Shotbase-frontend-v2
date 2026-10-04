@@ -53,14 +53,10 @@ export default function NotificationsPage() {
       /* eslint-disable react-hooks/set-state-in-effect */
       if (p.format) setFormat(p.format)
       if (p.width) setWidth(p.width)
-      const u = p.optUsage ?? p.notifyUsage ?? p.emailUsage
-      if (typeof u === "boolean") setOptUsage(u)
-      const a = p.optAlerts ?? p.notifyBilling ?? p.emailBilling
-      if (typeof a === "boolean") setOptAlerts(a)
-      const s = p.optStatus ?? p.notifyIncidents ?? p.emailIncidents
-      if (typeof s === "boolean") setOptStatus(s)
-      const up = p.optUpdates ?? p.notifyProduct ?? p.emailProduct
-      if (typeof up === "boolean") setOptUpdates(up)
+      if (typeof p.optUsage === "boolean") setOptUsage(p.optUsage)
+      if (typeof p.optAlerts === "boolean") setOptAlerts(p.optAlerts)
+      if (typeof p.optStatus === "boolean") setOptStatus(p.optStatus)
+      if (typeof p.optUpdates === "boolean") setOptUpdates(p.optUpdates)
       /* eslint-enable react-hooks/set-state-in-effect */
     } catch {}
   }, [])
