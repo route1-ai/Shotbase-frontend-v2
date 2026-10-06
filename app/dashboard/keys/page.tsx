@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -20,6 +20,14 @@ export default function KeysPage() {
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+    }
+  }, [])
 
   // Transient plaintext for the "key created" modal ONLY. Cleared on close and
   // never written into `keys` or anywhere persisted.
@@ -92,6 +100,20 @@ export default function KeysPage() {
       if (res.ok) setKeys((ks) => ks.filter((k) => k.id !== id))
     } finally {
       setRevoking(null)
+    }
+  }
+
+  const handleRevokeClick = (id: string) => {
+    if (confirmingId === id) {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+      setConfirmingId(null)
+      revokeKey(id)
+    } else {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current)
+      setConfirmingId(id)
+      resetTimerRef.current = setTimeout(() => {
+        setConfirmingId(null)
+      }, 3000)
     }
   }
 
@@ -190,13 +212,37 @@ export default function KeysPage() {
                   <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0" }}>—</td>
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
-                      <button
-                        onClick={() => revokeKey(k.id)}
-                        disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
-                      >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
-                      </button>
+                      <span aria-live="polite">
+                        <button
+                          type="button"
+                          onClick={() => handleRevokeClick(k.id)}
+                          disabled={revoking === k.id}
+                          aria-label={
+                            confirmingId === k.id
+                              ? `Confirm revoking key ${k.name}`
+                              : `Revoke key ${k.name}`
+                          }
+                          style={{
+                            fontFamily: "var(--font-ibm-plex)",
+                            fontSize: 11,
+                            fontWeight: confirmingId === k.id ? 600 : 400,
+                            color: revoking === k.id ? "#444" : confirmingId === k.id ? "#ff9060" : "#ff6060",
+                            background: confirmingId === k.id ? "rgba(255,144,96,0.12)" : "none",
+                            border: "1px solid",
+                            borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : confirmingId === k.id ? "rgba(255,144,96,0.4)" : "rgba(255,60,60,0.2)",
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            cursor: revoking === k.id ? "not-allowed" : "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {revoking === k.id
+                            ? "Revoking…"
+                            : confirmingId === k.id
+                            ? "Confirm revoke?"
+                            : "Revoke"}
+                        </button>
+                      </span>
                     )}
                   </td>
                 </tr>
