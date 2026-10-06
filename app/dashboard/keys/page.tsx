@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -20,6 +20,9 @@ export default function KeysPage() {
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null)
+
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Transient plaintext for the "key created" modal ONLY. Cleared on close and
   // never written into `keys` or anywhere persisted.
@@ -34,6 +37,14 @@ export default function KeysPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) {
+        clearTimeout(confirmTimerRef.current)
+      }
+    }
   }, [])
 
   const createKey = async () => {
@@ -81,6 +92,26 @@ export default function KeysPage() {
     setCopied(false)
   }
 
+  const handleRevokeClick = (id: string) => {
+    if (confirmRevokeId === id) {
+      if (confirmTimerRef.current) {
+        clearTimeout(confirmTimerRef.current)
+        confirmTimerRef.current = null
+      }
+      setConfirmRevokeId(null)
+      revokeKey(id)
+    } else {
+      if (confirmTimerRef.current) {
+        clearTimeout(confirmTimerRef.current)
+      }
+      setConfirmRevokeId(id)
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmRevokeId(null)
+        confirmTimerRef.current = null
+      }, 3000)
+    }
+  }
+
   const revokeKey = async (id: string) => {
     setRevoking(id)
     try {
@@ -110,6 +141,8 @@ export default function KeysPage() {
           <p style={{ color: "#888", fontSize: 13 }}>Manage your API keys. Treat them like passwords — anyone with one can hit the API as you.</p>
         </div>
         <button
+          type="button"
+          aria-label="Create new API key"
           className="keys-create-btn"
           onClick={() => setShowNew(true)}
           style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: "#00e87b", border: "none", padding: "10px 18px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0, minHeight: 40 }}
@@ -131,6 +164,8 @@ export default function KeysPage() {
               style={{ flex: "1 1 200px", minWidth: 0, fontFamily: "var(--font-ibm-plex)", fontSize: 13, background: "#111", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "9px 14px", color: "#f0f0f0", outline: "none" }}
             />
             <button
+              type="button"
+              aria-label="Submit new API key"
               onClick={createKey}
               disabled={creating || !newName.trim()}
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: "#000", background: creating || !newName.trim() ? "#333" : "#00e87b", border: "none", padding: "9px 18px", borderRadius: 7, cursor: creating || !newName.trim() ? "not-allowed" : "pointer" }}
@@ -138,6 +173,8 @@ export default function KeysPage() {
               {creating ? "Creating…" : "Create"}
             </button>
             <button
+              type="button"
+              aria-label="Cancel API key creation"
               onClick={() => { setShowNew(false); setNewName("") }}
               style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", background: "none", border: "1px solid rgba(255,255,255,0.07)", padding: "9px 14px", borderRadius: 7, cursor: "pointer" }}
             >
@@ -167,40 +204,64 @@ export default function KeysPage() {
               </tr>
             </thead>
             <tbody>
-              {keys.map((k, i) => (
-                <tr key={k.id} style={{ borderBottom: i < keys.length - 1 ? "1px solid rgba(255,255,255,0.07)" : "none", opacity: k.active === false ? 0.4 : 1 }}>
-                  <td style={{ padding: "14px 16px 14px 0" }}>
-                    <div style={{ fontWeight: 500, fontSize: 13 }}>{k.name}</div>
-                  </td>
-                  <td style={{ padding: "14px 16px 14px 0" }}>
-                    {/* Only the non-secret prefix is ever shown. The full key is
-                        unrecoverable after creation — no reveal control. */}
-                    <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
-                      {(k.start || "sk_live") + "••••••••••••"}
-                    </code>
-                  </td>
-                  <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
-                    {k.createdAt ? new Date(k.createdAt).toLocaleDateString() : "—"}
-                  </td>
-                  {/* Last used: real Unkey lastUsedAt (approx). Requests: not
-                      provided per-key by Unkey → honest em-dash, never fake 0. */}
-                  <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
-                    {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString() : "—"}
-                  </td>
-                  <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0" }}>—</td>
-                  <td style={{ padding: "14px 0", textAlign: "right" }}>
-                    {k.active !== false && (
-                      <button
-                        onClick={() => revokeKey(k.id)}
-                        disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
-                      >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {keys.map((k, i) => {
+                const isConfirming = confirmRevokeId === k.id
+                const isRevoking = revoking === k.id
+                return (
+                  <tr key={k.id} style={{ borderBottom: i < keys.length - 1 ? "1px solid rgba(255,255,255,0.07)" : "none", opacity: k.active === false ? 0.4 : 1 }}>
+                    <td style={{ padding: "14px 16px 14px 0" }}>
+                      <div style={{ fontWeight: 500, fontSize: 13 }}>{k.name}</div>
+                    </td>
+                    <td style={{ padding: "14px 16px 14px 0" }}>
+                      {/* Only the non-secret prefix is ever shown. The full key is
+                          unrecoverable after creation — no reveal control. */}
+                      <code style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888" }}>
+                        {(k.start || "sk_live") + "••••••••••••"}
+                      </code>
+                    </td>
+                    <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
+                      {k.createdAt ? new Date(k.createdAt).toLocaleDateString() : "—"}
+                    </td>
+                    {/* Last used: real Unkey lastUsedAt (approx). Requests: not
+                        provided per-key by Unkey → honest em-dash, never fake 0. */}
+                    <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0", whiteSpace: "nowrap" }}>
+                      {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleDateString() : "—"}
+                    </td>
+                    <td style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, color: "#888", padding: "14px 16px 14px 0" }}>—</td>
+                    <td style={{ padding: "14px 0", textAlign: "right" }}>
+                      {k.active !== false && (
+                        <div aria-live="polite" style={{ display: "inline-block" }}>
+                          <button
+                            type="button"
+                            aria-label={isConfirming ? `Confirm revocation of API key ${k.name}` : `Revoke API key ${k.name}`}
+                            onClick={() => handleRevokeClick(k.id)}
+                            disabled={isRevoking}
+                            style={{
+                              fontFamily: "var(--font-ibm-plex)",
+                              fontSize: 11,
+                              fontWeight: isConfirming ? 600 : 400,
+                              color: isRevoking ? "#444" : isConfirming ? "#ffffff" : "#ff6060",
+                              background: isConfirming ? "rgba(255, 60, 60, 0.25)" : "none",
+                              border: "1px solid",
+                              borderColor: isRevoking
+                                ? "rgba(255,255,255,0.07)"
+                                : isConfirming
+                                ? "rgba(255,60,60,0.6)"
+                                : "rgba(255,60,60,0.2)",
+                              padding: "5px 12px",
+                              borderRadius: 6,
+                              cursor: isRevoking ? "not-allowed" : "pointer",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            {isRevoking ? "Revoking…" : isConfirming ? "Confirm revoke?" : "Revoke"}
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
@@ -234,16 +295,22 @@ export default function KeysPage() {
               <code style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 13, color: "#f0f0f0", background: "#050505", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 7, padding: "11px 14px", overflowX: "auto", whiteSpace: "nowrap" }}>
                 {createdKey.key}
               </code>
-              <button
-                onClick={copyCreatedKey}
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: copied ? "#00e87b" : "#000", background: copied ? "transparent" : "#00e87b", border: copied ? "1px solid rgba(0,232,123,0.35)" : "none", padding: "11px 16px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {copied ? "✓ Copied" : "Copy key"}
-              </button>
+              <div aria-live="polite">
+                <button
+                  type="button"
+                  aria-label="Copy created API key to clipboard"
+                  onClick={copyCreatedKey}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: copied ? "#00e87b" : "#000", background: copied ? "transparent" : "#00e87b", border: copied ? "1px solid rgba(0,232,123,0.35)" : "none", padding: "11px 16px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  {copied ? "✓ Copied" : "Copy key"}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button
+                type="button"
+                aria-label="Close key created dialog"
                 onClick={closeCreatedModal}
                 style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 13, fontWeight: 600, color: "#f0f0f0", background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.12)", padding: "10px 22px", borderRadius: 7, cursor: "pointer" }}
               >
