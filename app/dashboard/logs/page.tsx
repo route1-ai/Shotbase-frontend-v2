@@ -44,6 +44,15 @@ function tag(status: number): React.CSSProperties {
 function Drawer({ row, onClose }: { row: LogRow | null; onClose: () => void }) {
   const [copied, setCopied] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!row) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [row, onClose])
+
   const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -379,7 +388,17 @@ export default function LogsPage() {
                   {filtered.map((r, i) => (
                     <tr
                       key={r.id || i}
+                      tabIndex={0}
+                      role="row"
+                      aria-label={`View details for request ${r.id || ""}`}
                       onClick={() => setSelected(r)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          setSelected(r)
+                        }
+                      }}
+                      className="focus-visible:outline-none focus-visible:bg-white/[0.04]"
                       style={{ borderBottom: i < filtered.length - 1 ? `1px solid ${BORDER}` : "none", cursor: "pointer", transition: "background 0.15s" }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
