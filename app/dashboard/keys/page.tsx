@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -20,6 +20,8 @@ export default function KeysPage() {
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [confirmingRevoke, setConfirmingRevoke] = useState<string | null>(null)
+  const revokeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Transient plaintext for the "key created" modal ONLY. Cleared on close and
   // never written into `keys` or anywhere persisted.
@@ -34,7 +36,26 @@ export default function KeysPage() {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+
+    return () => {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current)
+    }
   }, [])
+
+  const closeCreatedModal = () => {
+    // Discard the plaintext from client state — it can never be shown again.
+    setCreatedKey(null)
+    setCopied(false)
+  }
+
+  useEffect(() => {
+    if (!createdKey) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeCreatedModal()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [createdKey])
 
   const createKey = async () => {
     if (!newName.trim()) return
@@ -75,10 +96,18 @@ export default function KeysPage() {
     } catch {}
   }
 
-  const closeCreatedModal = () => {
-    // Discard the plaintext from client state — it can never be shown again.
-    setCreatedKey(null)
-    setCopied(false)
+  const handleRevokeClick = (id: string) => {
+    if (confirmingRevoke === id) {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current)
+      setConfirmingRevoke(null)
+      revokeKey(id)
+    } else {
+      if (revokeTimerRef.current) clearTimeout(revokeTimerRef.current)
+      setConfirmingRevoke(id)
+      revokeTimerRef.current = setTimeout(() => {
+        setConfirmingRevoke(null)
+      }, 3000)
+    }
   }
 
   const revokeKey = async (id: string) => {
@@ -125,6 +154,7 @@ export default function KeysPage() {
             <input
               autoFocus
               value={newName}
+              aria-label="New API key name"
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Key name (e.g. Production)"
               onKeyDown={(e) => e.key === "Enter" && createKey()}
@@ -191,11 +221,30 @@ export default function KeysPage() {
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
                       <button
-                        onClick={() => revokeKey(k.id)}
+                        onClick={() => handleRevokeClick(k.id)}
                         disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
+                        aria-label={
+                          revoking === k.id
+                            ? `Revoking API key ${k.name}`
+                            : confirmingRevoke === k.id
+                            ? `Confirm revoking API key ${k.name}`
+                            : `Revoke API key ${k.name}`
+                        }
+                        style={{
+                          fontFamily: "var(--font-ibm-plex)",
+                          fontSize: 11,
+                          fontWeight: confirmingRevoke === k.id ? 600 : 400,
+                          color: revoking === k.id ? "#444" : confirmingRevoke === k.id ? "#fff" : "#ff6060",
+                          background: confirmingRevoke === k.id ? "#dc2626" : "none",
+                          border: "1px solid",
+                          borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : confirmingRevoke === k.id ? "#dc2626" : "rgba(255,60,60,0.2)",
+                          padding: "5px 12px",
+                          borderRadius: 6,
+                          cursor: revoking === k.id ? "not-allowed" : "pointer",
+                          transition: "all 0.15s ease",
+                        }}
                       >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
+                        {revoking === k.id ? "Revoking…" : confirmingRevoke === k.id ? "Confirm revoke?" : "Revoke"}
                       </button>
                     )}
                   </td>
@@ -234,12 +283,14 @@ export default function KeysPage() {
               <code style={{ flex: 1, fontFamily: "var(--font-ibm-plex)", fontSize: 13, color: "#f0f0f0", background: "#050505", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 7, padding: "11px 14px", overflowX: "auto", whiteSpace: "nowrap" }}>
                 {createdKey.key}
               </code>
-              <button
-                onClick={copyCreatedKey}
-                style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: copied ? "#00e87b" : "#000", background: copied ? "transparent" : "#00e87b", border: copied ? "1px solid rgba(0,232,123,0.35)" : "none", padding: "11px 16px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap" }}
-              >
-                {copied ? "✓ Copied" : "Copy key"}
-              </button>
+              <div aria-live="polite">
+                <button
+                  onClick={copyCreatedKey}
+                  style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, fontWeight: 600, color: copied ? "#00e87b" : "#000", background: copied ? "transparent" : "#00e87b", border: copied ? "1px solid rgba(0,232,123,0.35)" : "none", padding: "11px 16px", borderRadius: 7, cursor: "pointer", whiteSpace: "nowrap" }}
+                >
+                  {copied ? "✓ Copied" : "Copy key"}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
