@@ -106,6 +106,58 @@ const KIND_STYLE: Record<Endpoint["kind"], React.CSSProperties> = {
   MCP: { background: "rgba(120,140,255,0.08)", color: "#8a9eff", border: "1px solid rgba(120,140,255,0.25)" },
 }
 
+function CodeBlock({ label, code }: { label: string; code: string }) {
+  const [copied, setCopied] = useState(false)
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 1500)
+    } catch {}
+  }
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          {label}
+        </div>
+        <button
+          type="button"
+          onClick={copyCode}
+          aria-label={`Copy ${label.toLowerCase()} payload`}
+          style={{
+            fontFamily: "var(--font-ibm-plex)",
+            fontSize: 10,
+            color: copied ? "#00e87b" : "#888",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            padding: "2px 6px",
+            borderRadius: 4,
+            transition: "color 0.15s, background-color 0.15s",
+          }}
+          className="hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#00e87b]"
+        >
+          {copied ? "✓ Copied" : "Copy"}
+        </button>
+      </div>
+      <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>
+        {code}
+      </pre>
+    </div>
+  )
+}
+
 export default function ApiExplorerPage() {
   const [selectedId, setSelectedId] = useState<string>("screenshot")
   const selected = ENDPOINTS.find((e) => e.id === selectedId) ?? ENDPOINTS[0]
@@ -169,15 +221,8 @@ export default function ApiExplorerPage() {
           </div>
           <p style={{ fontSize: 13, color: "#888", marginBottom: 18 }}>{selected.summary}</p>
 
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Request</div>
-            <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.request}</pre>
-          </div>
-
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Response</div>
-            <pre style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12, background: "#050505", border: `1px solid ${BORDER}`, padding: 12, borderRadius: 7, color: "#888", margin: 0, overflow: "auto", lineHeight: 1.6 }}>{selected.response}</pre>
-          </div>
+          <CodeBlock key={`${selected.id}-request`} label="Request" code={selected.request} />
+          <CodeBlock key={`${selected.id}-response`} label="Response" code={selected.response} />
 
           <div style={{ display: "flex", gap: 8, paddingTop: 12, borderTop: `1px solid ${BORDER}` }}>
             {selected.id === "screenshot" && (
