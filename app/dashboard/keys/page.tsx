@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 
 const cardStyle: React.CSSProperties = {
   background: "#0a0a0a",
@@ -20,6 +20,15 @@ export default function KeysPage() {
   const [newName, setNewName] = useState("")
   const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null)
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Clear confirmation timer on unmount
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current)
+    }
+  }, [])
 
   // Transient plaintext for the "key created" modal ONLY. Cleared on close and
   // never written into `keys` or anywhere persisted.
@@ -92,6 +101,23 @@ export default function KeysPage() {
       if (res.ok) setKeys((ks) => ks.filter((k) => k.id !== id))
     } finally {
       setRevoking(null)
+    }
+  }
+
+  const handleRevokeClick = (id: string) => {
+    if (confirmTimerRef.current) {
+      clearTimeout(confirmTimerRef.current)
+      confirmTimerRef.current = null
+    }
+
+    if (confirmRevokeId === id) {
+      setConfirmRevokeId(null)
+      revokeKey(id)
+    } else {
+      setConfirmRevokeId(id)
+      confirmTimerRef.current = setTimeout(() => {
+        setConfirmRevokeId(null)
+      }, 3000)
     }
   }
 
@@ -191,11 +217,38 @@ export default function KeysPage() {
                   <td style={{ padding: "14px 0", textAlign: "right" }}>
                     {k.active !== false && (
                       <button
-                        onClick={() => revokeKey(k.id)}
+                        type="button"
+                        onClick={() => handleRevokeClick(k.id)}
                         disabled={revoking === k.id}
-                        style={{ fontFamily: "var(--font-ibm-plex)", fontSize: 11, color: revoking === k.id ? "#444" : "#ff6060", background: "none", border: "1px solid", borderColor: revoking === k.id ? "rgba(255,255,255,0.07)" : "rgba(255,60,60,0.2)", padding: "5px 12px", borderRadius: 6, cursor: revoking === k.id ? "not-allowed" : "pointer" }}
+                        aria-label={
+                          confirmRevokeId === k.id
+                            ? `Confirm revoking API key ${k.name}`
+                            : `Revoke API key ${k.name}`
+                        }
+                        style={{
+                          fontFamily: "var(--font-ibm-plex)",
+                          fontSize: 11,
+                          color: revoking === k.id ? "#444" : confirmRevokeId === k.id ? "#ffffff" : "#ff6060",
+                          background: confirmRevokeId === k.id ? "#d93838" : "none",
+                          border: "1px solid",
+                          borderColor:
+                            revoking === k.id
+                              ? "rgba(255,255,255,0.07)"
+                              : confirmRevokeId === k.id
+                              ? "#d93838"
+                              : "rgba(255,60,60,0.2)",
+                          padding: "5px 12px",
+                          borderRadius: 6,
+                          cursor: revoking === k.id ? "not-allowed" : "pointer",
+                          fontWeight: confirmRevokeId === k.id ? 600 : 400,
+                          transition: "all 0.15s ease",
+                        }}
                       >
-                        {revoking === k.id ? "Revoking…" : "Revoke"}
+                        {revoking === k.id
+                          ? "Revoking…"
+                          : confirmRevokeId === k.id
+                          ? "Confirm revoke?"
+                          : "Revoke"}
                       </button>
                     )}
                   </td>
